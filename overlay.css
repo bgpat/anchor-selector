@@ -1,0 +1,51 @@
+#--anchor-selector-overlay {
+  border: none;
+  top: 0;
+  left: 0;
+  margin: 0;
+  clip: auto;
+  position: fixed !important;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 2147483647;
+}
+
+#--anchor-selector-overlay > svg > .shadow {
+  fill: transparent;
+  stroke: rgba(128, 128, 128, .3);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 6;
+  stroke-dashoffset: 6;
+}
+
+#--anchor-selector-overlay > svg > .active {
+  fill: rgba(255, 0, 127, .05);
+  stroke: rgba(255, 0, 127, .9);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 6;
+  stroke-dashoffset: 6;
+  animation: anchor-selector-active .3s linear 0s infinite;
+  animation-fill-mode: forwards;
+  transition: opacity .3s;
+  cursor: pointer;
+}
+
+#--anchor-selector-overlay > svg > .label {
+  fill: rgba(0, 0, 0, .8);
+  text-anchor: middle;
+  font-weight: bold;
+  font-size: 32px;
+  font-size: 16px;
+  font-family: monospace;
+  dominant-baseline: central;
+  pointer-events: none;
+  transition: opacity .3s;
+}
+
+@keyframes anchor-selector-active {
+  0% { stroke-dashoffset: 12; }
+  100% { stroke-dashoffset: 0; }
+}
