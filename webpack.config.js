@@ -1,4 +1,5 @@
 const path = require('path');
+const MinifyPlugin = require('babel-minify-webpack-plugin');
 
 const mode = process.env.NODE_ENV || 'development';
 
@@ -26,7 +27,7 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.json'],
   },
-  devtool: 'inline-source-map',
   plugins: [
+    new MinifyPlugin({}, { sourceMap: 'inline-source-map' }),
   ],
 };
