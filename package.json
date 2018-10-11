@@ -1,0 +1,22 @@
+{
+  "name": "@bgpat/anchor-selector",
+  "version": "0.1.0",
+  "description": "The web-extension to select anchor element.",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bgpat/anchor-selector.git"
+  },
+  "keywords": [
+    "webextension",
+    "firefox-addon"
+  ],
+  "author": "bgpat",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bgpat/anchor-selector/issues"
+  },
+  "homepage": "https://github.com/bgpat/anchor-selector#readme"
+}
