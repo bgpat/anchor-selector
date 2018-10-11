@@ -31,6 +31,9 @@
       {
         "varsIgnorePattern": "_"
       }
+    ],
+    "no-console": [
+      "warn"
     ]
   }
 }
