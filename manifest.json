@@ -7,12 +7,12 @@
     "48": "icons/anchor-selector.png"
   },
   "background": {
-    "scripts": ["dists/background.js"]
+    "scripts": ["dist/background.js"]
   },
   "content_scripts": [
     {
       "matches": ["*://*/*"],
-      "js": ["dists/content_script.js"],
+      "js": ["dist/content_script.js"],
       "css": ["stylesheets/overlay.css"]
     }
   ],
