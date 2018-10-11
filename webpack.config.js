@@ -27,7 +27,6 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.json'],
   },
-  plugins: [
-    new MinifyPlugin({}, { sourceMap: 'inline-source-map' }),
-  ],
+  devtool: mode === 'production' ? false : 'source-map',
+  plugins: mode === 'production' ? [new MinifyPlugin()] : [],
 };
