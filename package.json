@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "The web-extension to select anchor element.",
   "scripts": {
-    "start": "webpack -w & web-ext run --browser-console",
+    "start": "webpack --config webpack.config.webext.js -w",
     "build": "webpack",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -31,6 +31,7 @@
     "sass-loader": "^7.1.0",
     "web-ext": "^2.9.1",
     "webpack": "^4.20.2",
-    "webpack-cli": "^3.1.2"
+    "webpack-cli": "^3.1.2",
+    "webpack-webext-plugin": "github:rpl/webpack-webext-plugin"
   }
 }

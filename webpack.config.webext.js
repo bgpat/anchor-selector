@@ -35,5 +35,9 @@ module.exports = {
       runOnce: false,
       argv: ['lint', '-s'],
     }),
+    new WebpackWebExt({
+      runOnce: true,
+      argv: ['run', '-s', '.', '--browser-console'],
+    }),
   ],
 };
