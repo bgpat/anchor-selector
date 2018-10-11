@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "The web-extension to select anchor element.",
   "scripts": {
+    "start": "webpack -w & web-ext run --browser-console",
     "build": "webpack",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
