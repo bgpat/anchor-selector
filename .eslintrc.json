@@ -1,7 +1,9 @@
 {
   "env": {
     "browser": true,
-    "es6": true
+    "es6": true,
+    "node": true,
+    "webextensions": true
   },
   "extends": "eslint:recommended",
   "parserOptions": {
@@ -30,8 +32,5 @@
         "varsIgnorePattern": "_"
       }
     ]
-  },
-  "globals": {
-    "browser": true
   }
 }
