@@ -9,6 +9,7 @@
   "background": {
     "scripts": ["dist/background.js"]
   },
+  "content_security_policy": "default-src 'unsafe-eval'",
   "content_scripts": [
     {
       "matches": ["*://*/*"],
