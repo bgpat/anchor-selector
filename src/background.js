@@ -3,6 +3,3 @@ browser.pageAction.onClicked.addListener((tab) => {
     action: 'click',
   });
 });
-
-browser.runtime.onMessage.addListener((req, sender, sendResponse) => {
-});
