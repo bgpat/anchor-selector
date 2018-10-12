@@ -1,6 +1,5 @@
 const path = require('path');
 const MinifyPlugin = require('babel-minify-webpack-plugin');
-const WebpackWebExt = require('webpack-webext-plugin');
 
 const mode = process.env.NODE_ENV || 'development';
 
@@ -27,13 +26,12 @@ module.exports = {
   },
   resolve: {
     extensions: ['.js', '.json'],
+    alias: {
+      '@': path.join(__dirname, 'src'),
+    },
   },
   devtool: mode === 'production' ? false : 'source-map',
   plugins: [
     ...(mode === 'production' ? [new MinifyPlugin()] : []),
-    new WebpackWebExt({
-      runOnce: false,
-      argv: ['lint', '-s'],
-    }),
   ],
 };
