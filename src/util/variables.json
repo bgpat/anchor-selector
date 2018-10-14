@@ -1,0 +1,17 @@
+{
+  "overlay": {
+    "class": "--anchor-selector-overlay",
+    "selecting": {
+      "duration": "0.15s"
+    },
+    "label": {
+      "margin": 4
+    }
+  },
+  "animation": {
+    "ease": {
+      "keySplines": "0.42 0 0.58 1",
+      "calcMode": "spline"
+    }
+  }
+}

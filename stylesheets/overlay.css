@@ -1,4 +1,4 @@
-#--anchor-selector-overlay {
+.--anchor-selector-overlay {
   border: none;
   top: 0;
   left: 0;
@@ -11,19 +11,19 @@
   z-index: 2147483647;
 }
 
-#--anchor-selector-overlay > svg > .shadow {
+.--anchor-selector-overlay > svg > .background > path {
   fill: transparent;
   stroke: rgba(128, 128, 128, .3);
-  stroke-width: 4;
+  stroke-width: 3;
   stroke-linecap: round;
   stroke-dasharray: 6;
   stroke-dashoffset: 6;
 }
 
-#--anchor-selector-overlay > svg > .active {
-  fill: rgba(255, 0, 127, .05);
+.--anchor-selector-overlay > svg > .selecting > path {
+  fill: rgba(214, 161, 187, 0.24);
   stroke: rgba(255, 0, 127, .9);
-  stroke-width: 4;
+  stroke-width: 3;
   stroke-linecap: round;
   stroke-dasharray: 6;
   stroke-dashoffset: 6;
@@ -33,16 +33,25 @@
   cursor: pointer;
 }
 
-#--anchor-selector-overlay > svg > .label {
-  fill: rgba(0, 0, 0, .8);
-  text-anchor: middle;
-  font-weight: bold;
-  font-size: 32px;
-  font-size: 16px;
-  font-family: monospace;
-  dominant-baseline: central;
+.--anchor-selector-overlay > svg > .label > .label-content {
   pointer-events: none;
   transition: opacity .3s;
+}
+
+.--anchor-selector-overlay > svg > .label > .label-content > text {
+  font-weight: bold;
+  font-size: 24px;
+  font-family: monospace;
+}
+
+.--anchor-selector-overlay > svg > .label > .label-content > .text-bg {
+  fill: rgba(255, 255, 255, .95);
+  stroke: rgba(255, 255, 255, .95);
+  stroke-width: 5;
+}
+
+.--anchor-selector-overlay > svg > .label > .label-content > .text-fg {
+  fill: rgba(0, 0, 0, .8);
 }
 
 @keyframes anchor-selector-active {
