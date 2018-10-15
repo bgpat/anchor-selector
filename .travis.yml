@@ -1,8 +1,6 @@
 language: node_js
 node_js:
 - "10"
-services:
-- docker
 cache:
   directories:
   - node_modules
@@ -20,6 +18,8 @@ install:
 script:
 - npm run build
 - npm test
+before_deploy:
+- npm run sign
 deploy:
 - provider: releases
   skip_cleanup: true
