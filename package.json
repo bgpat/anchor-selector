@@ -5,7 +5,8 @@
   "scripts": {
     "start": "webpack -w",
     "build": "webpack",
-    "test": "web-ext lint -i src"
+    "test": "web-ext lint -i src",
+    "sign": "web-ext sign"
   },
   "repository": {
     "type": "git",
