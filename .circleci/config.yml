@@ -21,4 +21,4 @@ jobs:
         environment:
           NODE_ENV: production
     - run: npm test
-    - run: npm run sign
+    - run: web-ext sign
