@@ -1,0 +1,30 @@
+language: node_js
+node_js:
+- "10"
+services:
+- docker
+cache:
+  directories:
+  - node_modules
+env:
+  global:
+  - PATH=$HOME/.wantedly/bin:$PATH
+  # WEB_EXT_API_KEY
+  - secure: "i/25Mrcx9mfsR1wStg2/YwvXxuUvs8rFlK+y70kemvODli/OaXK295lutK1VR38SDaSrMxoJNF7RdK71Hry2EfE/uPhIbucDnwl2hq3d/j4Dp9lmX+hINRTF8UveDkgAeT8Q+JhaPDP3B8LhX6u8qgAXfHTY53oAK/jJclWNG4AxV7rFgGSvufz+k0FDgyZQhewVrukB4h1YnRl0gfxOrTZ/o1NqiNzip5/uS53L0jr2dne3Qzznh+CAN56+eO6b3ovdj/Be6kC217xHjr1EI66cgpQdbyfB2C+neX4d2+DkyCIvJ/hKC+m3cfbngVD5BnHjOZxtkr29vGZKWb1qL3Kcdwp6P7Yl1cX9LnUe+YyNsH8T0Nlk9o7twdcRX+GYBH2PRmu/JR8HeacIMcZtlM+yhVRMp1Vv8jSHKUF8DlAfGNEHJrLm+/WZlA5dF5TkJIrmkWXuMucbcOWr/C17sxdEMZT0+vRHdbIbVbY2qlL4EA9swNAbRqJoHKg06+KD++EdD43acLlXpQ4LYK1bhDrZ4hsu98PgJ1TrfdRlLBgoqWbMMfjL7NIka9+k1MJPNoeCuTdwo/aLQEVhMySvDkcaygPGgIcQPdJ61LmsVJq1ftBPwepAHItSnCGaO/G/kP8yhVIVfaCSGP2ohrLofi3a5DDzVN0G7nkTEekGzm0="
+  # WEB_EXT_API_SECRET
+  - secure: "w01aJQMkzashC5IksnHGASRs4WADlY24kBbr5COB0yvaxK585x17LEOl7eixdRZqVKLXDoY97aV+KllDstWT0b6CN+hlS4MgRJdxT0mXenMQ0tMbQRlh8NYqR4eiatwz2kBqA5yxwOlixDjcjDx0BSHYOAhGks8im5vJQxn08NtLSkvFmtzOjx/0eFBf0gfGvi0xh6Bn0vmhW6zd5IY3sqqBOWp5mAmRDexA46C3A/0GfdD6/PYdEgJAk1Osn2Dw3JEXuA9Bd4K7X1/2v/vEn3uV/lB8sfTZ9VVLYvp5mWVWj3btfd0y2S6dTIKrW/IwVdiSGJl/aEgheR/y4L/1ToxN1YFeVFvvgPwCFM8rjupVShMeaeQdsxjxjjbxMkAWG1/YJHsQ+kfueuxchVv2/aggxr8tkWxf9zGNeQ7jM4pXbLU8eCdGRBobtuyAUzyRAMEenp6mTaWnHJD/MYr9yhjzZB0R1Z6tE/AE1RyI157PppunSYWc+QppdEOgkyl6TzuXnREKkUR8QiGp26DECdywry5FztZxhjsT/DvnZItoigJWrRoPlOSVpvFAe8k7E0iqMGmIYSAy8UP3jGgWAP/Njm8MUHVmMhdZs/PSsXewtHxmkFBmHsflLmTqGR790kQ7oaqP4skn7Jrg3P9gB3op7Q/J6o/uCwG60PfzcYk="
+  # GITHUB_TOKEN
+  - secure: "aSzOqEt0DmkMyDuuG1N5AwyJk79qvgwvHstWbjJlzkZkWq0GQUqa4Ni4G5sybtOdHqxGqk8EvLXUwR0U2C9sI2QQYD2YfOTbYlddYoTU94+BKbYbOZoTJHWFw+d1qBON97cHyDs6nN6jvwEM69cJHFAZxGYHnTsOQaSR4eXO8fOF122aNEYoYl12LgjoFZTdJ1ztcoxwkm9dJA8STnZzw5K3p275kIreMs3yExDgJIwlM27Aa1f4ZTcqATqoHIrbMCLkXe50jOdbtTBi5A2ssX9/4H5J7HGyPMQmbv4LkW+0yyvUX4tgCrm/JxEpW+D60oSQBxnpDxnnng3X7NBvMbj+HGtCzfz7eVVMqWISeeopNDLyOOM6MHkE+SPoxOVSWvNpWCTYZEc/OkA80+gO5CZU2U/pkNWwzxfg7c2/wDLx1YZFT1CwHDymxA+wFqgrOv2oPquLTrmVwPemw1Lt1w0E5bhgbBO7f7S+lYDINb5ttWFXxNeg3PM7I2g/nTXPcSa0kuO6nCwoNrR28i3bpz1YMLhLjQI6N6zOkIyWBD+aUu+joarhRbhSi2a7VS1tMSCRZKECvJDfmieANMQ6UgxIORfeKjAz+d4aNtvqLsDELR5Qi9nz2FIgB98RGxKP1LOeGJW8fSEsPOyVUUVjtC5BZQ49EZOloSam7BCBi2s="
+install:
+- npm install
+script:
+- npm run build
+- npm test
+deploy:
+- provider: releases
+  skip_cleanup: true
+  api_key: $GITHUB_TOKEN
+  file_glob: true
+  file: 'web-ext-artifacts/*'
+  on:
+    tags: true
