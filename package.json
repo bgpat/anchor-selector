@@ -5,7 +5,8 @@
   "scripts": {
     "start": "webpack -w",
     "build": "webpack",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "web-ext lint -i src",
+    "sign": "web-ext sign"
   },
   "repository": {
     "type": "git",
