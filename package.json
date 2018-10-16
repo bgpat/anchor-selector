@@ -5,8 +5,8 @@
   "scripts": {
     "start": "webpack -w",
     "build": "webpack",
-    "test": "web-ext lint -i src",
-    "sign": "web-ext sign"
+    "test": "web-ext lint",
+    "sign": "web-ext sign --api-key=$JWT_ISSUER --api-secret=$JWT_SECRET"
   },
   "repository": {
     "type": "git",
