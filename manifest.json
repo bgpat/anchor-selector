@@ -3,6 +3,11 @@
   "name": "Anchor Selector",
   "version": "0.1.2",
   "description": "Select link anchor element",
+  "applications": {
+    "gecko": {
+      "strict_min_version": "59.0"
+    }
+  },
   "icons": {
     "48": "icons/anchor-selector.png"
   },
