@@ -1,7 +1,11 @@
-import { type } from '@/util';
+import {type} from '@/util';
 
-browser.pageAction.onClicked.addListener((tab) => {
-  browser.tabs.sendMessage(tab.id, {
+chrome.tabs.onUpdated.addListener(tabId => {
+  chrome.pageAction.show(tabId);
+});
+
+chrome.pageAction.onClicked.addListener(tab => {
+  chrome.tabs.sendMessage(tab.id, {
     type: type.click,
   });
 });

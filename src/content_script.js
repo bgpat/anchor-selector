@@ -1,7 +1,7 @@
-import { type } from '@/util';
+import {type} from '@/util';
 import Overlay from '@/overlay';
 
-browser.runtime.onMessage.addListener((message) => {
+chrome.runtime.onMessage.addListener(message => {
   switch (message.type) {
     case type.click:
       if (Overlay.isActive) {
@@ -12,8 +12,12 @@ browser.runtime.onMessage.addListener((message) => {
   }
 });
 
-window.addEventListener('keypress', e => {
-  if (e.key === 'Escape' && Overlay.isActive) {
-    Overlay.current.abort();
-  }
-}, false);
+window.addEventListener(
+  'keypress',
+  e => {
+    if (e.key === 'Escape' && Overlay.isActive) {
+      Overlay.current.abort();
+    }
+  },
+  false,
+);
