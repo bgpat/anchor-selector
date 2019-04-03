@@ -13,7 +13,7 @@
 
 .--anchor-selector-overlay > svg > .background > path {
   fill: transparent;
-  stroke: rgba(128, 128, 128, .3);
+  stroke: rgba(128, 128, 128, 0.3);
   stroke-width: 3;
   stroke-linecap: round;
   stroke-dasharray: 6;
@@ -21,21 +21,19 @@
 }
 
 .--anchor-selector-overlay > svg > .selecting > path {
-  fill: rgba(214, 161, 187, 0.24);
-  stroke: rgba(255, 0, 127, .9);
   stroke-width: 3;
   stroke-linecap: round;
   stroke-dasharray: 6;
   stroke-dashoffset: 6;
-  animation: anchor-selector-active .3s linear 0s infinite;
+  animation: anchor-selector-active 0.3s linear 0s infinite;
   animation-fill-mode: forwards;
-  transition: opacity .3s;
+  transition: opacity 0.3s;
   cursor: pointer;
 }
 
 .--anchor-selector-overlay > svg > .label > .label-content {
   pointer-events: none;
-  transition: opacity .3s;
+  transition: opacity 0.3s;
 }
 
 .--anchor-selector-overlay > svg > .label > .label-content > text {
@@ -45,16 +43,20 @@
 }
 
 .--anchor-selector-overlay > svg > .label > .label-content > .text-bg {
-  fill: rgba(255, 255, 255, .95);
-  stroke: rgba(255, 255, 255, .95);
+  fill: rgba(255, 255, 255, 0.95);
+  stroke: rgba(255, 255, 255, 0.95);
   stroke-width: 5;
 }
 
 .--anchor-selector-overlay > svg > .label > .label-content > .text-fg {
-  fill: rgba(0, 0, 0, .8);
+  fill: rgba(0, 0, 0, 0.8);
 }
 
 @keyframes anchor-selector-active {
-  0% { stroke-dashoffset: 12; }
-  100% { stroke-dashoffset: 0; }
+  0% {
+    stroke-dashoffset: 12;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
 }
