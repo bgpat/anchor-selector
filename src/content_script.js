@@ -5,9 +5,10 @@ chrome.runtime.onMessage.addListener(message => {
   switch (message.type) {
     case type.click:
       if (Overlay.isActive) {
-        return Overlay.current.abort();
+        return Overlay.current.close();
       }
-      new Overlay();
+      new Overlay(() => chrome.runtime.sendMessage({type: 'close'}));
+      chrome.runtime.sendMessage({type: 'open'});
       break;
   }
 });
@@ -16,7 +17,7 @@ window.addEventListener(
   'keypress',
   e => {
     if (e.key === 'Escape' && Overlay.isActive) {
-      Overlay.current.abort();
+      Overlay.current.close();
     }
   },
   false,

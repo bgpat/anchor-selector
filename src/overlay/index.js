@@ -11,9 +11,10 @@ export default class Overlay {
     return current;
   }
 
-  constructor() {
+  constructor(callback) {
     this.container = new Container(this);
     this.container.appendTo(document.body);
+    this.callback = callback;
     current = this;
   }
 
@@ -24,13 +25,14 @@ export default class Overlay {
   select(id) {
     let to = id == null ? location.href.replace(/#.*/, '') : `#${id}`;
     history.pushState(null, null, to);
-    this.abort();
+    this.close();
   }
 
-  abort() {
+  close() {
     if (this.selecting) {
       this.container.remove();
       current = null;
     }
+    this.callback();
   }
 }
