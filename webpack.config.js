@@ -17,10 +17,7 @@ module.exports = {
     rules: [
       {
         test: /\.js$/,
-        use: [
-          'babel-loader',
-          'eslint-loader',
-        ],
+        use: ['babel-loader', 'eslint-loader'],
       },
     ],
   },
@@ -31,7 +28,5 @@ module.exports = {
     },
   },
   devtool: mode === 'production' ? false : 'source-map',
-  plugins: [
-    ...(mode === 'production' ? [new MinifyPlugin()] : []),
-  ],
+  plugins: [...(mode === 'production' ? [new MinifyPlugin()] : [])],
 };

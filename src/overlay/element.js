@@ -61,13 +61,18 @@ export default class Element {
   }
 
   get attrs() {
-    return Array.from(this.element.attributes).map(a => ({
-      k: a.name,
-      v: a.value,
-    })).reduce((o, { k, v }) => ({
-      ...o,
-      [k]: v,
-    }), {});
+    return Array.from(this.element.attributes)
+      .map(a => ({
+        k: a.name,
+        v: a.value,
+      }))
+      .reduce(
+        (o, { k, v }) => ({
+          ...o,
+          [k]: v,
+        }),
+        {}
+      );
   }
 
   set attrs(v) {

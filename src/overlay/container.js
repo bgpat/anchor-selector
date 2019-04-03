@@ -11,11 +11,7 @@ export default class Container extends Element {
 
   constructor(overlay) {
     const svg = new SVG({
-      children: [
-        new Background(),
-        new Selecting(),
-        new Label(),
-      ],
+      children: [new Background(), new Selecting(), new Label()],
     });
     super({ children: svg });
     this.on('mousemove', e => this.move(e.clientX, e.clientY));
