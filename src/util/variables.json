@@ -2,7 +2,19 @@
   "overlay": {
     "class": "--anchor-selector-overlay",
     "selecting": {
-      "duration": "0.15s"
+      "duration": "0.15s",
+      "stroke": {
+        "hue": 330,
+        "saturation": 100,
+        "lightness": 50,
+        "alpha": 0.9
+      },
+      "fill": {
+        "hue": 330,
+        "saturation": 39,
+        "lightness": 73,
+        "alpha": 0.24
+      }
     },
     "label": {
       "margin": 4
