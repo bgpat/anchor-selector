@@ -1,22 +1,46 @@
-import { variables } from '@/util';
-import { G, Path, Animate } from './svg';
+import {variables} from '@/util';
+import {G, Path, Animate} from './svg';
+import {default as Color} from 'color';
 
 export default class Selecting extends G {
   static class = 'selecting';
 
   constructor() {
     const path = new Path({
-      children: new Animate({
-        attributeName: 'd',
-        dur: variables.overlay.selecting.duration,
-        repeatCount: 1,
-        ...variables.animation.ease,
-      }, () => path.style.opacity > 0),
+      children: new Animate(
+        {
+          attributeName: 'd',
+          dur: variables.overlay.selecting.duration,
+          repeatCount: 1,
+          ...variables.animation.ease,
+        },
+        () => path.style.opacity > 0,
+      ),
       style: {
         opacity: 0,
-      }
+        stroke: `rgba(${[
+          ...Color.hsl(
+            variables.overlay.selecting.stroke.hue,
+            variables.overlay.selecting.stroke.saturation,
+            variables.overlay.selecting.stroke.lightness,
+          )
+            .rgb()
+            .array(),
+          variables.overlay.selecting.stroke.alpha,
+        ].join(',')})`,
+        fill: `rgba(${[
+          ...Color.hsl(
+            variables.overlay.selecting.fill.hue,
+            variables.overlay.selecting.fill.saturation,
+            variables.overlay.selecting.fill.lightness,
+          )
+            .rgb()
+            .array(),
+          variables.overlay.selecting.fill.alpha,
+        ].join(',')})`,
+      },
     });
-    super({ children: path });
+    super({children: path});
     path.on('transitionend', e => {
       if (e.propertyName === 'opacity' && path.style.opacity === '0') {
         path.element.removeAttribute('d');
@@ -26,17 +50,18 @@ export default class Selecting extends G {
   }
 
   render(topElement) {
-    this.path.style = { opacity: +!!topElement };
+    this.path.style = {opacity: +!!topElement};
     if (topElement == null) {
       return;
     }
-    const { left, top, right, bottom } = topElement.getBoundingClientRect();
-    this.path.d = [[
-      { x: left, y: top },
-      { x: right, y: top },
-      { x: right, y: bottom },
-      { x: left, y: bottom },
-    ]];
+    const {left, top, right, bottom} = topElement.getBoundingClientRect();
+    this.path.d = [
+      [
+        {x: left, y: top},
+        {x: right, y: top},
+        {x: right, y: bottom},
+        {x: left, y: bottom},
+      ],
+    ];
   }
 }
-
