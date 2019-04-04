@@ -1,6 +1,6 @@
 const path = require('path');
 const MinifyPlugin = require('babel-minify-webpack-plugin');
-const WebExtPlugin = require('../webext-webpack-plugin');
+const WebExtPlugin = require('@bgpat/webext-webpack-plugin');
 
 const mode = process.env.NODE_ENV || 'development';
 
