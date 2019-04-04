@@ -1,4 +1,4 @@
-import {type} from '@/util';
+import { type } from '@/util';
 
 chrome.tabs.onUpdated.addListener(tabId => {
   try {
@@ -13,7 +13,7 @@ chrome.tabs.onUpdated.addListener(tabId => {
 });
 
 chrome.pageAction.onClicked.addListener(tab => {
-  chrome.tabs.sendMessage(tab.id, {type: type.click});
+  chrome.tabs.sendMessage(tab.id, { type: type.click });
 });
 
 chrome.runtime.onMessage.addListener((message, sender) => {
@@ -29,6 +29,8 @@ chrome.runtime.onMessage.addListener((message, sender) => {
         path: '../icons/anchor-selector.svg',
         tabId: sender.tab.id,
       });
+      break;
+    case '':
       break;
   }
 });

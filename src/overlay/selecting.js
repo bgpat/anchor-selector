@@ -14,7 +14,7 @@ export default class Selecting extends G {
           repeatCount: 1,
           ...variables.animation.ease,
         },
-        () => path.style.opacity > 0
+        () => path.style.opacity > 0,
       ),
       style: {
         opacity: 0,
@@ -22,7 +22,7 @@ export default class Selecting extends G {
           ...Color.hsl(
             variables.overlay.selecting.stroke.hue,
             variables.overlay.selecting.stroke.saturation,
-            variables.overlay.selecting.stroke.lightness
+            variables.overlay.selecting.stroke.lightness,
           )
             .rgb()
             .array(),
@@ -32,7 +32,7 @@ export default class Selecting extends G {
           ...Color.hsl(
             variables.overlay.selecting.fill.hue,
             variables.overlay.selecting.fill.saturation,
-            variables.overlay.selecting.fill.lightness
+            variables.overlay.selecting.fill.lightness,
           )
             .rgb()
             .array(),

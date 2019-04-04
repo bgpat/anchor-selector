@@ -48,7 +48,7 @@ export class Path extends SVGElement {
               return `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`;
             }),
             'Z',
-          ].join(' ')
+          ].join(' '),
         )
         .join(' ');
     }

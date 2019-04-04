@@ -71,7 +71,7 @@ export default class Element {
           ...o,
           [k]: v,
         }),
-        {}
+        {},
       );
   }
 

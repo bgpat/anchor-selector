@@ -18,26 +18,15 @@
         "SwitchCase": 1
       }
     ],
-    "linebreak-style": [
-      "error",
-      "unix"
-    ],
-    "quotes": [
-      "error",
-      "single"
-    ],
-    "semi": [
-      "error",
-      "always"
-    ],
-    "no-unused-vars" : [
+    "linebreak-style": ["error", "unix"],
+    "quotes": ["error", "single"],
+    "semi": ["error", "always"],
+    "no-unused-vars": [
       1,
       {
         "varsIgnorePattern": "_"
       }
     ],
-    "no-console": [
-      "warn"
-    ]
+    "no-console": ["warn"]
   }
 }

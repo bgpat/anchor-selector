@@ -1,4 +1,4 @@
-import {type} from '@/util';
+import { type } from '@/util';
 import Overlay from '@/overlay';
 
 chrome.runtime.onMessage.addListener(message => {
@@ -7,8 +7,8 @@ chrome.runtime.onMessage.addListener(message => {
       if (Overlay.isActive) {
         return Overlay.current.close();
       }
-      new Overlay(() => chrome.runtime.sendMessage({type: 'close'}));
-      chrome.runtime.sendMessage({type: 'open'});
+      new Overlay(() => chrome.runtime.sendMessage({ type: 'close' }));
+      chrome.runtime.sendMessage({ type: 'open' });
       break;
   }
 });

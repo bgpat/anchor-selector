@@ -4,7 +4,7 @@ function elements(x, y) {
 
 export function topElement(x, y) {
   let elem;
-  elements(x, y).some((e) => {
+  elements(x, y).some(e => {
     if (e.id !== '') {
       elem = e;
       return true;
