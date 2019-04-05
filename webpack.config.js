@@ -1,6 +1,7 @@
 const path = require('path');
 const MinifyPlugin = require('babel-minify-webpack-plugin');
 const WebExtPlugin = require('@bgpat/webext-webpack-plugin');
+const webExtConfig = require('./web-ext-config');
 
 const mode = process.env.NODE_ENV || 'development';
 
@@ -32,6 +33,7 @@ module.exports = {
   plugins: [
     ...(mode === 'production' ? [new MinifyPlugin()] : []),
     new WebExtPlugin({
+      ...webExtConfig,
       overwriteDest: true,
     }),
   ],

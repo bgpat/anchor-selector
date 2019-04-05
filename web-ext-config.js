@@ -9,5 +9,7 @@ module.exports = {
     'package-lock.json',
     'src',
     'web-ext-artifacts',
+    'web-ext-config.js',
+    'webpack.config.js',
   ],
 };
