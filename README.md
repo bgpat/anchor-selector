@@ -20,7 +20,7 @@ Go to https://addons.mozilla.org/ja/firefox/addon/anchor-selector/ and install t
 
 ### Google Chrome
 
-coming soon
+Go to https://chrome.google.com/webstore/detail/anchor-selector/ejnjjcpllmekfiiiamofdgpiaipanpge/ and install to your browser.
 
 ## Development
 
