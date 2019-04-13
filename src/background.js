@@ -1,4 +1,7 @@
-import { type } from '@/util';
+import { type, makeActiveIcon } from '@/util';
+
+let activeIcon;
+makeActiveIcon().then(img => (activeIcon = img));
 
 chrome.pageAction.onClicked.addListener(tab => {
   chrome.tabs.sendMessage(tab.id, { type: type.click });
@@ -18,8 +21,11 @@ chrome.runtime.onMessage.addListener((message, sender) => {
       chrome.pageAction.show(sender.tab.id);
       break;
     case 'open':
+      if (activeIcon == null) {
+        break;
+      }
       chrome.pageAction.setIcon({
-        path: '../icons/active.svg',
+        imageData: activeIcon,
         tabId: sender.tab.id,
       });
       break;
@@ -28,8 +34,6 @@ chrome.runtime.onMessage.addListener((message, sender) => {
         path: '../icons/anchor-selector.svg',
         tabId: sender.tab.id,
       });
-      break;
-    case '':
       break;
   }
 });
