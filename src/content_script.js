@@ -22,3 +22,5 @@ window.addEventListener(
   },
   false,
 );
+
+chrome.runtime.sendMessage({ type: 'load' });
