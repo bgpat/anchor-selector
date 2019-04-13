@@ -26,5 +26,6 @@
       "48": "icons/anchor-selector.png"
     },
     "default_title": "Anchor Selector"
-  }
+  },
+  "web_accessible_resources": ["icons/anchor-selector.svg"]
 }
