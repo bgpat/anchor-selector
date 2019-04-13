@@ -11,6 +11,8 @@
     [
       "@babel/env",
       {
+        "useBuiltIns": "usage",
+        "corejs": 2,
         "targets": {
           "browsers": ["last 2 versions"]
         }

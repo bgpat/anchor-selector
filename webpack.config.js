@@ -29,7 +29,7 @@ module.exports = {
       '@': path.join(__dirname, 'src'),
     },
   },
-  devtool: mode === 'production' ? false : 'source-map',
+  devtool: mode === 'production' ? false : 'inline-source-map',
   plugins: [
     ...(mode === 'production' ? [new MinifyPlugin()] : []),
     new WebExtPlugin({
