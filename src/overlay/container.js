@@ -9,9 +9,9 @@ import Label from './label';
 export default class Container extends Element {
   static class = variables.overlay.class;
 
-  constructor(overlay) {
+  constructor(overlay, config) {
     const svg = new SVG({
-      children: [new Background(), new Selecting(), new Label()],
+      children: [new Background(), new Selecting(config), new Label()],
     });
     super({ children: svg });
     this.on('mousemove', e => this.move(e.clientX, e.clientY));

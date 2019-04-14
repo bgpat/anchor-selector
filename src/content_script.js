@@ -1,14 +1,17 @@
+import browser from 'webextension-polyfill';
 import { type } from '@/util';
 import Overlay from '@/overlay';
 
-chrome.runtime.onMessage.addListener(message => {
+browser.runtime.onMessage.addListener(message => {
   switch (message.type) {
     case type.click:
       if (Overlay.isActive) {
         return Overlay.current.close();
       }
-      new Overlay(() => chrome.runtime.sendMessage({ type: 'close' }));
-      chrome.runtime.sendMessage({ type: 'open' });
+      new Overlay(message.config, () =>
+        browser.runtime.sendMessage({ type: 'close' }),
+      );
+      browser.runtime.sendMessage({ type: 'open' });
       break;
   }
 });
@@ -23,4 +26,4 @@ window.addEventListener(
   false,
 );
 
-chrome.runtime.sendMessage({ type: 'load' });
+browser.runtime.sendMessage({ type: 'load' });

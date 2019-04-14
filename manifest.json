@@ -5,6 +5,7 @@
   "description": "Select link anchor element",
   "applications": {
     "gecko": {
+      "id": "{22a2fd71-5ac1-46c9-88e8-fe65a41bad62}",
       "strict_min_version": "59.0"
     }
   },
@@ -27,5 +28,9 @@
     },
     "default_title": "Anchor Selector"
   },
-  "web_accessible_resources": ["icons/anchor-selector.svg"]
+  "web_accessible_resources": ["icons/anchor-selector.svg"],
+  "options_ui": {
+    "page": "options.html"
+  },
+  "permissions": ["storage"]
 }
