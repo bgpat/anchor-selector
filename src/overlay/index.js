@@ -11,8 +11,8 @@ export default class Overlay {
     return current;
   }
 
-  constructor(callback) {
-    this.container = new Container(this);
+  constructor(config, callback) {
+    this.container = new Container(this, config);
     this.container.appendTo(document.body);
     this.callback = callback;
     current = this;

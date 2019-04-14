@@ -1,20 +1,21 @@
+import browser from 'webextension-polyfill';
 import { createCanvas, loadImage } from 'canvas';
 import { default as Color } from 'color';
 import { variables } from '@/util';
 
 export function makeActiveIcon() {
-  return fetch(chrome.runtime.getURL('../../icons/anchor-selector.svg'))
+  return fetch(browser.runtime.getURL('../../icons/anchor-selector.svg'))
     .then(resp => resp.text())
-    .then(svg =>
-      svg.replace(
+    .then(async svg => {
+      return svg.replace(
         '"context-fill"',
         `"${Color.hsl(
-          variables.overlay.selecting.stroke.hue,
+          await variables.config.get('hue'),
           variables.overlay.selecting.stroke.saturation,
           variables.overlay.selecting.stroke.lightness,
         ).hex()}"`,
-      ),
-    )
+      );
+    })
     .then(svg => svg.replace('"context-fill-opacity"', '"0.9"'))
     .then(svg => new Blob([svg], { type: 'image/svg+xml' }))
     .then(blob => loadImage(URL.createObjectURL(blob)))

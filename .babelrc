@@ -14,7 +14,7 @@
         "useBuiltIns": "usage",
         "corejs": 2,
         "targets": {
-          "browsers": ["last 2 versions"]
+          "firefox": "59.0"
         }
       }
     ]

@@ -5,7 +5,7 @@ import { default as Color } from 'color';
 export default class Selecting extends G {
   static class = 'selecting';
 
-  constructor() {
+  constructor(config) {
     const path = new Path({
       children: new Animate(
         {
@@ -20,7 +20,7 @@ export default class Selecting extends G {
         opacity: 0,
         stroke: `rgba(${[
           ...Color.hsl(
-            variables.overlay.selecting.stroke.hue,
+            config.hue,
             variables.overlay.selecting.stroke.saturation,
             variables.overlay.selecting.stroke.lightness,
           )
@@ -30,7 +30,7 @@ export default class Selecting extends G {
         ].join(',')})`,
         fill: `rgba(${[
           ...Color.hsl(
-            variables.overlay.selecting.fill.hue,
+            config.hue,
             variables.overlay.selecting.fill.saturation,
             variables.overlay.selecting.fill.lightness,
           )

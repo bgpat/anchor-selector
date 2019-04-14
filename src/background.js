@@ -1,39 +1,48 @@
-import { type, makeActiveIcon } from '@/util';
+import browser from 'webextension-polyfill';
+import { type, variables, makeActiveIcon } from '@/util';
 
-let activeIcon;
-makeActiveIcon().then(img => (activeIcon = img));
-
-chrome.pageAction.onClicked.addListener(tab => {
-  chrome.tabs.sendMessage(tab.id, { type: type.click });
+browser.pageAction.onClicked.addListener(tab => {
+  variables.config.getAll().then(config =>
+    browser.tabs.sendMessage(tab.id, {
+      type: type.click,
+      config,
+    }),
+  );
 });
 
-chrome.runtime.onMessage.addListener((message, sender) => {
+browser.runtime.onMessage.addListener((message, sender) => {
   switch (message.type) {
     case 'load':
-      chrome.pageAction.setTitle({
+      browser.pageAction.setTitle({
         title: 'jump to the anchored element',
         tabId: sender.tab.id,
       });
-      chrome.pageAction.setIcon({
+      browser.pageAction.setIcon({
         path: '../icons/anchor-selector.svg',
         tabId: sender.tab.id,
       });
-      chrome.pageAction.show(sender.tab.id);
+      browser.pageAction.show(sender.tab.id);
       break;
     case 'open':
-      if (activeIcon == null) {
-        break;
-      }
-      chrome.pageAction.setIcon({
-        imageData: activeIcon,
-        tabId: sender.tab.id,
-      });
+      makeActiveIcon().then(img =>
+        browser.pageAction.setIcon({
+          imageData: img,
+          tabId: sender.tab.id,
+        }),
+      );
       break;
     case 'close':
-      chrome.pageAction.setIcon({
+      browser.pageAction.setIcon({
         path: '../icons/anchor-selector.svg',
         tabId: sender.tab.id,
       });
+      break;
+    case 'get-config':
+      return browser.storage.sync
+        .get(message.key)
+        .then(v => ({ ...variables.config.default, ...v }[message.key]));
+    case 'set-config':
+      browser.storage.sync.set({ [message.key]: message.value });
       break;
   }
 });
