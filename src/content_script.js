@@ -17,7 +17,7 @@ browser.runtime.onMessage.addListener(message => {
 });
 
 window.addEventListener(
-  'keypress',
+  'keydown',
   e => {
     if (e.key === 'Escape' && Overlay.isActive) {
       Overlay.current.close();
