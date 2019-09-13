@@ -13,7 +13,7 @@ script:
 - npm run build
 - npm test
 before_deploy:
-- npm run sign
+- npm run publish
 deploy:
 - provider: releases
   skip_cleanup: true
