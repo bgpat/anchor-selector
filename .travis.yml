@@ -13,8 +13,18 @@ script:
 - npm run build
 - npm test
 before_deploy:
-- npm run publish
+- npm run zip
 deploy:
+- provider: script
+  skip_cleanup: true
+  script: npm run publish:chrome
+  on:
+    tags: true
+- provider: script
+  skip_cleanup: true
+  script: npm run publish:firefox
+  on:
+    tags: true
 - provider: releases
   skip_cleanup: true
   api_key: $GITHUB_TOKEN

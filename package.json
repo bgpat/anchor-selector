@@ -7,9 +7,10 @@
     "build": "webpack",
     "test": "web-ext lint",
     "sign": "web-ext sign --api-key=$JWT_ISSUER --api-secret=$JWT_SECRET",
+    "zip": "web-ext build",
     "publish": "npm run publish:chrome && npm run publish:firefox",
     "publish:firefox": "npm run sign",
-    "publish:chrome": "webstore upload --auto-publish",
+    "publish:chrome": "webstore upload --source web-ext-artifacts/* --auto-publish",
     "preversion": "dot-json manifest.json version $npm_package_version && git add manifest.json"
   },
   "repository": {
