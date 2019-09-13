@@ -7,6 +7,10 @@
     "build": "webpack",
     "test": "web-ext lint",
     "sign": "web-ext sign --api-key=$JWT_ISSUER --api-secret=$JWT_SECRET",
+    "zip": "web-ext build",
+    "publish": "npm run publish:chrome && npm run publish:firefox",
+    "publish:firefox": "npm run sign",
+    "publish:chrome": "webstore upload --source web-ext-artifacts/* --auto-publish",
     "preversion": "dot-json manifest.json version $npm_package_version && git add manifest.json"
   },
   "repository": {
@@ -33,6 +37,7 @@
     "babel-loader": "^8.0.6",
     "babel-minify-webpack-plugin": "^0.3.1",
     "canvas": "^2.6.0",
+    "chrome-webstore-upload-cli": "^1.2.0",
     "color": "^3.1.2",
     "dot-json": "^1.1.0",
     "eslint": "^6.3.0",
