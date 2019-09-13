@@ -12,9 +12,14 @@ install:
 script:
 - npm run build
 - npm test
-before_deploy:
-- npm run zip
 deploy:
+- provider: releases
+  skip_cleanup: true
+  api_key: $GITHUB_TOKEN
+  file_glob: true
+  file: 'web-ext-artifacts/*'
+  on:
+    tags: true
 - provider: script
   skip_cleanup: true
   script: npm run publish:chrome
@@ -23,12 +28,5 @@ deploy:
 - provider: script
   skip_cleanup: true
   script: npm run publish:firefox
-  on:
-    tags: true
-- provider: releases
-  skip_cleanup: true
-  api_key: $GITHUB_TOKEN
-  file_glob: true
-  file: 'web-ext-artifacts/*'
   on:
     tags: true
