@@ -45,7 +45,7 @@
     "lint-staged": "^9.4.0",
     "prettier": "^1.18.2",
     "sass-loader": "^7.3.1",
-    "web-ext": "^3.1.1",
+    "web-ext": "^3.2.0",
     "webextension-polyfill": "^0.4.0",
     "webpack": "^4.41.0",
     "webpack-cli": "^3.3.9"
