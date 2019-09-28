@@ -6,9 +6,9 @@
     "start": "webpack -w",
     "build": "webpack",
     "test": "web-ext lint",
-    "sign": "web-ext sign --api-key=$JWT_ISSUER --api-secret=$JWT_SECRET",
+    "submit": "web-ext-submit --api-key=$JWT_ISSUER --api-secret=$JWT_SECRET",
     "publish": "npm run publish:chrome && npm run publish:firefox",
-    "publish:firefox": "npm run sign",
+    "publish:firefox": "npm run submit",
     "publish:chrome": "webstore upload --source web-ext-artifacts/* --auto-publish",
     "preversion": "dot-json manifest.json version $npm_package_version && git add manifest.json"
   },
