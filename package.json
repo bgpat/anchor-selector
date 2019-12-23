@@ -47,7 +47,7 @@
     "sass-loader": "^7.3.1",
     "web-ext": "^3.2.1",
     "web-ext-submit": "^3.2.1",
-    "webextension-polyfill": "^0.5.0",
+    "webextension-polyfill": "^0.6.0",
     "webpack": "^4.41.4",
     "webpack-cli": "^3.3.10"
   },
