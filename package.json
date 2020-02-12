@@ -48,7 +48,7 @@
     "web-ext": "^4.0.0",
     "web-ext-submit": "^4.0.0",
     "webextension-polyfill": "^0.6.0",
-    "webpack": "^4.41.5",
+    "webpack": "^4.41.6",
     "webpack-cli": "^3.3.11"
   },
   "husky": {
