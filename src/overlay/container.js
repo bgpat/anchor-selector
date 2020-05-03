@@ -14,9 +14,9 @@ export default class Container extends Element {
       children: [new Background(), new Selecting(config), new Label()],
     });
     super({ children: svg });
-    this.on('mousemove', e => this.move(e.clientX, e.clientY));
+    this.on('mousemove', (e) => this.move(e.clientX, e.clientY));
     this.on('mouseleave', () => this.move());
-    svg.on('click', e => overlay.select(topID(e.clientX, e.clientY)));
+    svg.on('click', (e) => overlay.select(topID(e.clientX, e.clientY), e));
     this.overlay = overlay;
     this.svg = svg;
     window.requestAnimationFrame(() => this.render());
@@ -29,7 +29,7 @@ export default class Container extends Element {
     const bcr = this.element.getBoundingClientRect();
     const te = this.mouse && topElement(this.mouse.x, this.mouse.y);
     this.svg.size(bcr.width, bcr.height);
-    this.svg.children.forEach(e => e.render && e.render(te, bcr));
+    this.svg.children.forEach((e) => e.render && e.render(te, bcr));
     window.requestAnimationFrame(() => this.render());
   }
 
