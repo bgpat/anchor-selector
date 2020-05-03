@@ -1,4 +1,6 @@
+import browser from 'webextension-polyfill';
 import Container from './container';
+import { variables } from '@/util';
 
 let current = null;
 
@@ -22,9 +24,38 @@ export default class Overlay {
     return this === current;
   }
 
-  select(id) {
-    let to = id == null ? location.href.replace(/#.*/, '') : `#${id}`;
-    history.pushState(null, null, to);
+  async select(id, e = {}, action) {
+    let url = new URL(location);
+    url.hash = id == null ? url.hash : `#${id}`;
+    let config = await variables.config.getAll();
+    if (action == null) {
+      let match = config.click.find(
+        (a) =>
+          a.keys.sort().join('\0') ===
+          ['alt', 'ctrl', 'meta', 'shift']
+            .filter((k) => e[`${k}Key`])
+            .join('\0'),
+      );
+      if (match) {
+        action = match.action;
+      }
+    }
+    switch (action) {
+      case 'open-current':
+        history.pushState(null, null, url.hash);
+        break;
+      case 'open-new':
+        browser.runtime.sendMessage({ type: 'new-tab', url: url.href });
+        break;
+      case 'copy-url':
+        browser.runtime.sendMessage({ type: 'copy', text: url.href });
+        break;
+      case 'copy-hash':
+        browser.runtime.sendMessage({ type: 'copy', text: url.hash });
+        break;
+      default:
+        return this.select(id, null, 'open-current');
+    }
     this.close();
   }
 

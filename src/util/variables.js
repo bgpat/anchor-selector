@@ -4,8 +4,12 @@ const variables = {
   config: {
     default: {
       hue: 330,
+      click: [
+        { action: 'open-current', keys: [] },
+        { action: 'open-new', keys: ['shift'] },
+      ],
     },
-    get(key) {
+    async get(key) {
       return browser.runtime
         .sendMessage({
           type: 'get-config',
@@ -14,16 +18,18 @@ const variables = {
         .catch(() =>
           browser.storage.sync
             .get(key)
-            .then(v => ({ ...variables.config.default, ...v }[key])),
+            .then((v) => ({ ...variables.config.default, ...v }[key])),
         );
     },
-    set(key, value) {
-      browser.runtime.sendMessage({ type: 'set-config', key, value });
+    async set(key, value) {
+      return browser.runtime.sendMessage({ type: 'set-config', key, value });
     },
-    getAll() {
+    async getAll() {
       return Promise.all(
-        Object.keys(this.default).map(k => this.get(k).then(v => ({ [k]: v }))),
-      ).then(v => v.reduce((a, c) => ({ ...a, ...c })));
+        Object.keys(this.default).map((k) =>
+          this.get(k).then((v) => ({ [k]: v })),
+        ),
+      ).then((v) => v.reduce((a, c) => ({ ...a, ...c })));
     },
   },
   overlay: {

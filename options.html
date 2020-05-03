@@ -7,18 +7,50 @@
         display: none;
       }
 
+      fieldset {
+        margin: 8px 10px;
+      }
+
       fieldset > label {
         display: flex;
       }
 
-      fieldset > label > input {
+      fieldset > label > input,
+      fieldset > select {
         flex-grow: 1;
         width: 100%;
       }
     </style>
   </head>
   <body>
-    <div id="config">
+    <form id="config">
+      <fieldset>
+        <legend>Click</legend>
+        <div>
+          <label>
+            <input type="checkbox" name="clickKey" value="shift" />
+            shift
+          </label>
+          <label>
+            <input type="checkbox" name="clickKey" value="ctrl" />
+            ctrl
+          </label>
+          <label>
+            <input type="checkbox" name="clickKey" value="alt" />
+            alt
+          </label>
+          <label>
+            <input type="checkbox" name="clickKey" value="meta" />
+            meta
+          </label>
+        </div>
+        <select id="click">
+          <option value="open-current">Open in current tab</option>
+          <option value="open-new">Open in new tab</option>
+          <option value="copy-url">Copy URL</option>
+          <option value="copy-hash">Copy anchor hash</option>
+        </select>
+      </fieldset>
       <fieldset>
         <legend>Color</legend>
         <label>
@@ -31,11 +63,12 @@
           >
             <rect width="32" height="32" />
           </svg>
-          <input type="range" min="0" max="359" id="hue" />
+          <input type="range" min="0" max="359" name="hue" />
         </label>
       </fieldset>
+      <input type="reset" value="Reset" />
       <script src="dist/browser-polyfill.js"></script>
       <script src="dist/options.js"></script>
-    </div>
+    </form>
   </body>
 </html>
