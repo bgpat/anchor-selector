@@ -1,0 +1,20 @@
+name: Publish to Firefox Add-ons
+on:
+  release:
+    types: [created]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+    - run: npm install
+    - run: npm run build --if-present
+    - uses: trmcnvn/firefox-addon@v1
+      with:
+        uuid: '{22a2fd71-5ac1-46c9-88e8-fe65a41bad62}'
+        manifest: manifest.json
+        api-key: ${{ secrets.FIREFOX_API_KEY }}
+        api-secret: ${{ secrets.FIREFOX_API_SECRET }}
