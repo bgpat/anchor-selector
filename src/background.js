@@ -48,7 +48,16 @@ browser.runtime.onMessage.addListener((message, sender) => {
       browser.tabs.create({ url: message.url });
       break;
     case 'copy':
-      navigator.clipboard.writeText(message.text);
+      navigator.clipboard.writeText(message.text).catch((e) => {
+        console.warn('failed navigator.clipboard.writeText', e);
+        const input = document.createElement('textarea');
+        document.body.appendChild(input);
+        input.value = message.text;
+        input.focus();
+        input.select();
+        document.execCommand('Copy');
+        input.remove();
+      });
       break;
   }
 });
