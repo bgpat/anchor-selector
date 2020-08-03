@@ -45,7 +45,7 @@
     "prettier": "^2.0.5",
     "sass-loader": "^9.0.2",
     "web-ext": "^5.0.0",
-    "web-ext-submit": "^4.3.0",
+    "web-ext-submit": "^5.0.2",
     "webextension-polyfill": "^0.6.0",
     "webpack": "^4.44.1",
     "webpack-cli": "^3.3.12"
