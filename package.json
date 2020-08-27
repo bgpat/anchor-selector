@@ -42,7 +42,7 @@
     "eslint-loader": "^4.0.2",
     "husky": "^4.2.5",
     "lint-staged": "^10.2.13",
-    "prettier": "^2.1.0",
+    "prettier": "^2.1.1",
     "sass-loader": "^10.0.1",
     "web-ext": "^5.0.0",
     "web-ext-submit": "^5.0.2",
