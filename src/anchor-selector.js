@@ -4,8 +4,12 @@ function elements(x, y) {
 
 export function topElement(x, y) {
   let elem;
-  elements(x, y).some(e => {
+  elements(x, y).some((e) => {
     if (e.id !== '') {
+      elem = e;
+      return true;
+    }
+    if (e.tagName === 'A' && e.name !== '') {
       elem = e;
       return true;
     }
@@ -15,5 +19,5 @@ export function topElement(x, y) {
 
 export function topID(x, y) {
   const e = topElement(x, y);
-  return e && e.id;
+  return e && (e.id || e.name);
 }
