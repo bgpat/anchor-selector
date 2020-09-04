@@ -49,6 +49,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
       break;
     case 'copy':
       navigator.clipboard.writeText(message.text).catch((e) => {
+        // eslint-disable-next-line no-console
         console.warn('failed navigator.clipboard.writeText', e);
         const input = document.createElement('textarea');
         document.body.appendChild(input);
