@@ -10,21 +10,21 @@ export default class Background extends G {
   }
 
   render(topElement, { left, top, right, bottom }) {
-    this.path.d = Array.from(document.querySelectorAll('[id]'))
-      .map(e => e.getBoundingClientRect())
+    this.path.d = Array.from(document.querySelectorAll('[id], a[name]'))
+      .map((e) => e.getBoundingClientRect())
       .filter(
-        bcr =>
+        (bcr) =>
           (left <= bcr.left && bcr.left <= right) ||
           (left <= bcr.right && bcr.right <= right),
       )
       .filter(
-        bcr =>
+        (bcr) =>
           (top <= bcr.top && bcr.top <= bottom) ||
           (top <= bcr.bottom && bcr.bottom <= bottom),
       )
-      .filter(bcr => bcr.left !== bcr.right)
-      .filter(bcr => bcr.top !== bcr.bottom)
-      .map(bcr => [
+      .filter((bcr) => bcr.left !== bcr.right)
+      .filter((bcr) => bcr.top !== bcr.bottom)
+      .map((bcr) => [
         { x: bcr.left, y: bcr.top },
         { x: bcr.right, y: bcr.top },
         { x: bcr.right, y: bcr.bottom },
