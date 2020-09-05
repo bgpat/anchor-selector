@@ -22,11 +22,11 @@ deploy:
     tags: true
 - provider: script
   skip_cleanup: true
-  script: npm run publish:chrome
+  script: npm run publish:firefox
   on:
     tags: true
 - provider: script
   skip_cleanup: true
-  script: npm run publish:firefox
+  script: npm run publish:chrome
   on:
     tags: true
