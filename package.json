@@ -44,7 +44,7 @@
     "husky": "^4.3.0",
     "lint-staged": "^10.4.0",
     "prettier": "^2.1.2",
-    "sass-loader": "^10.0.2",
+    "sass-loader": "^10.0.3",
     "web-ext": "^5.2.0",
     "web-ext-submit": "^5.1.0",
     "webextension-polyfill": "^0.6.0",
