@@ -32,7 +32,7 @@
     "@babel/preset-env": "^7.12.1",
     "@bgpat/webext-webpack-plugin": "^0.1.4",
     "babel-eslint": "^10.1.0",
-    "babel-loader": "^8.1.0",
+    "babel-loader": "^8.2.0",
     "babel-minify-webpack-plugin": "^0.3.1",
     "canvas": "^2.6.1",
     "chrome-webstore-upload-cli": "^1.2.0",
