@@ -5,8 +5,10 @@ const variables = {
     default: {
       hue: 330,
       click: [
-        { action: 'open-current', keys: [] },
-        { action: 'open-new', keys: ['shift'] },
+        { action: 'replace-address-bar', keys: [] },
+        { action: 'open-new-tab', keys: ['ctrl'] },
+        { action: 'open-new-window', keys: ['shift'] },
+        { action: 'open-new-tab', keys: ['meta'] },
       ],
     },
     async get(key) {

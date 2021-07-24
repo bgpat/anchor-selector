@@ -13,6 +13,9 @@ form.addEventListener('input', async (e) => {
       if (value != null) {
         return variables.config.set(key, value);
       }
+      if (option.render != null) {
+        option.render(value);
+      }
     }),
   );
   reload();

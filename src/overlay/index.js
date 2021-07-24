@@ -41,11 +41,16 @@ export default class Overlay {
       }
     }
     switch (action) {
-      case 'open-current':
+      case 'open-current': // deprecated
+      case 'replace-address-bar':
         history.pushState(null, null, url.hash);
         break;
-      case 'open-new':
+      case 'open-new': // deprecated
+      case 'open-new-tab':
         browser.runtime.sendMessage({ type: 'new-tab', url: url.href });
+        break;
+      case 'open-new-window':
+        browser.runtime.sendMessage({ type: 'new-window', url: url.href });
         break;
       case 'copy-url':
         browser.runtime.sendMessage({ type: 'copy', text: url.href });
@@ -54,7 +59,7 @@ export default class Overlay {
         browser.runtime.sendMessage({ type: 'copy', text: url.hash });
         break;
       default:
-        return this.select(id, null, 'open-current');
+        return this.select(id, null, 'replace-address-bar');
     }
     this.close();
   }
