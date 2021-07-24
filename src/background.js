@@ -47,6 +47,9 @@ browser.runtime.onMessage.addListener((message, sender) => {
     case 'new-tab':
       browser.tabs.create({ url: message.url });
       break;
+    case 'new-window':
+      browser.windows.create({ url: message.url });
+      break;
     case 'copy':
       navigator.clipboard.writeText(message.text).catch((e) => {
         // eslint-disable-next-line no-console
