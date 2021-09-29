@@ -23,6 +23,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: ${{ steps.node-version.output.version }}
+      - run: npm install
       - run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -30,7 +31,6 @@ jobs:
         env:
           VERSION: ${{ steps.release-drafter.outputs.tag_name }}
       - run: git push HEAD:refs/heads/master
-      - run: npm install
       - run: npm run build
       - uses: bgpat/release-asset-action@master
         with:
