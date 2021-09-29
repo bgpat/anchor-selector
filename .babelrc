@@ -6,8 +6,12 @@
         "useBuiltIns": "usage",
         "corejs": 3,
         "targets": {
-          "firefox": "59.0"
-        }
+          "firefox": "78.0",
+          "chrome": "83.0"
+        },
+        "include": [
+          "@babel/plugin-proposal-class-properties"
+        ]
       }
     ]
   ]
