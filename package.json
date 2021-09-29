@@ -8,7 +8,7 @@
     "test": "web-ext lint",
     "publish": "npm run publish:chrome && npm run publish:firefox",
     "publish:firefox": "web-ext-submit --api-key=$JWT_ISSUER --api-secret=$JWT_SECRET",
-    "publish:chrome": "webstore upload --source web-ext-artifacts/* --auto-publish --extension-id=$EXTENSION_ID",
+    "publish:chrome": "chrome-webstore-upload upload --source web-ext-artifacts/* --auto-publish",
     "preversion": "dot-json manifest.json version $npm_package_version && git add manifest.json"
   },
   "repository": {
