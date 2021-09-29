@@ -30,7 +30,7 @@ jobs:
       - run: npm version ${VERSION#v} --allow-same-version
         env:
           VERSION: ${{ steps.release-drafter.outputs.tag_name }}
-      - run: git push HEAD:refs/heads/master
+      - run: git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:refs/heads/master
       - run: npm run build
       - uses: bgpat/release-asset-action@master
         with:
