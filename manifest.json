@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Anchor Selector",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Select link anchor element",
   "applications": {
     "gecko": {
@@ -13,13 +13,21 @@
     "48": "icons/anchor-selector.png"
   },
   "background": {
-    "scripts": ["dist/background.js"]
+    "scripts": [
+      "dist/background.js"
+    ]
   },
   "content_scripts": [
     {
-      "matches": ["*://*/*"],
-      "js": ["dist/content_script.js"],
-      "css": ["stylesheets/overlay.css"]
+      "matches": [
+        "*://*/*"
+      ],
+      "js": [
+        "dist/content_script.js"
+      ],
+      "css": [
+        "stylesheets/overlay.css"
+      ]
     }
   ],
   "page_action": {
@@ -28,9 +36,15 @@
     },
     "default_title": "Anchor Selector"
   },
-  "web_accessible_resources": ["icons/anchor-selector.svg"],
+  "web_accessible_resources": [
+    "icons/anchor-selector.svg"
+  ],
   "options_ui": {
     "page": "options.html"
   },
-  "permissions": ["clipboardWrite", "storage", "activeTab"]
+  "permissions": [
+    "clipboardWrite",
+    "storage",
+    "activeTab"
+  ]
 }
