@@ -1,0 +1,24 @@
+name: test
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.npm
+            node_versions
+          key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - id: node-version
+        run: echo "::set-output name=version=$(cat .node-version)"
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ steps.node-version.outputs.version }}
+
+      - run: npm install
+      - run: npm run build
+      - run: npm test

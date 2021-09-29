@@ -10,3 +10,9 @@ jobs:
       - uses: release-drafter/release-drafter@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: bgpat/release-asset-action@master
+        with:
+          pattern: web-ext-artifacts/*
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          release-id: ${{ steps.release_drafter.outputs.id }}
+          allow-overwrite: true
