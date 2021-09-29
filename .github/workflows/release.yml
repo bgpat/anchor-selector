@@ -1,0 +1,33 @@
+name: release
+on:
+  push:
+    branches:
+      - master
+jobs:
+  update-draft-release:
+    runs-on: ubuntu-20.04
+    steps:
+      - id: release_drafter
+        uses: release-drafter/release-drafter@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.npm
+            node_versions
+          key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - id: node-version
+        run: echo "::set-output name=version=$(cat .node-version)"
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ steps.node-version.output.version }}
+      - run: npm install
+      - run: npm run build
+      - uses: bgpat/release-asset-action@master
+        with:
+          pattern: web-ext-artifacts/*
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          release-id: ${{ steps.release_drafter.outputs.id }}
+          allow-overwrite: true
