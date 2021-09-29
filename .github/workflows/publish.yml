@@ -6,6 +6,12 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-20.04
+    env:
+      CLIENT_ID: ${{ secrets.CLIENT_ID }}
+      EXTENSION_ID: ${{ secrets.EXTENSION_ID }}
+      JWT_ISSUER: ${{ secrets.JWT_ISSUER }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
     strategy:
       matrix:
         browser:
