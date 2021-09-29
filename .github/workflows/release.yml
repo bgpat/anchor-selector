@@ -7,7 +7,7 @@ jobs:
   update-draft-release:
     runs-on: ubuntu-20.04
     steps:
-      - id: release_drafter
+      - id: release-drafter
         uses: release-drafter/release-drafter@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -23,11 +23,18 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: ${{ steps.node-version.output.version }}
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - run: npm version ${VERSION#v} --allow-same-version
+        env:
+          VERSION: ${{ steps.release-drafter.outputs.tag_name }}
+      - run: git push HEAD:refs/heads/master
       - run: npm install
       - run: npm run build
       - uses: bgpat/release-asset-action@master
         with:
           pattern: web-ext-artifacts/*
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          release-id: ${{ steps.release_drafter.outputs.id }}
+          release-id: ${{ steps.release-drafter.outputs.id }}
           allow-overwrite: true
