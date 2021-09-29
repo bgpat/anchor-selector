@@ -1,6 +1,6 @@
 {
   "name": "@bgpat/anchor-selector",
-  "version": "0.6.0",
+  "version": "0.7.1",
   "description": "The web-extension to select anchor element.",
   "scripts": {
     "start": "webpack -w",
@@ -48,7 +48,7 @@
     "web-ext": "^6.2.0",
     "web-ext-submit": "^6.2.0",
     "webextension-polyfill": "^0.8.0",
-    "webpack": "^5.49.0",
+    "webpack": "^5.55.1",
     "webpack-cli": "^4.7.2"
   },
   "husky": {
