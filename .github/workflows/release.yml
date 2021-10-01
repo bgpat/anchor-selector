@@ -27,6 +27,8 @@ jobs:
       - run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git reset --hard
+          git clean -fd
       - run: npm version ${VERSION#v} --allow-same-version
         env:
           VERSION: ${{ steps.release-drafter.outputs.tag_name }}
