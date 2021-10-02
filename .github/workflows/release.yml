@@ -29,10 +29,12 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git reset --hard
           git clean -fd
-      - run: npm version ${VERSION#v} --allow-same-version
+          if npm version ${VERSION#v} --no-git-tag-version; then
+            git commit -am $VERSION
+            git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:refs/heads/master
+          fi
         env:
           VERSION: ${{ steps.release-drafter.outputs.tag_name }}
-      - run: git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:refs/heads/master
       - run: npm run build
       - uses: bgpat/release-asset-action@master
         with:
