@@ -32,7 +32,7 @@
     "@bgpat/webext-webpack-plugin": "0.1.8",
     "@zeit/eslint-config-node": "0.3.0",
     "babel-eslint": "10.1.0",
-    "babel-loader": "8.2.2",
+    "babel-loader": "8.2.3",
     "babel-minify-webpack-plugin": "0.3.1",
     "canvas": "2.8.0",
     "chrome-webstore-upload-cli": "2.0.1",
