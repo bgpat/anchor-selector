@@ -23,7 +23,7 @@ jobs:
         with:
           path: |
             ~/.npm
-            node_versions
+            node_modules
           key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - id: node-version
         run: echo "::set-output name=version=$(cat .node-version)"
