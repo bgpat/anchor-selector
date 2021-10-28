@@ -5,6 +5,7 @@ module.exports = {
     '.git',
     '.github',
     '.gitignore',
+    '.linthtmlrc',
     '.node-version',
     '.prettierrc',
     '.stylelintrc',

@@ -1,3 +1,4 @@
+/* stylelint-disable selector-class-pattern */
 .--anchor-selector-overlay {
   border: none;
   top: 0;
@@ -14,7 +15,7 @@
 
 .--anchor-selector-overlay > svg > .background > path {
   fill: transparent;
-  stroke: rgba(128, 128, 128, 0.3);
+  stroke: rgb(128 128 128 / 30%);
   stroke-width: 3;
   stroke-linecap: round;
   stroke-dasharray: 6;
@@ -44,19 +45,20 @@
 }
 
 .--anchor-selector-overlay > svg > .label > .label-content > .text-bg {
-  fill: rgba(255, 255, 255, 0.95);
-  stroke: rgba(255, 255, 255, 0.95);
+  fill: rgb(255 255 255 / 95%);
+  stroke: rgb(255  255  255 / 95%);
   stroke-width: 5;
 }
 
 .--anchor-selector-overlay > svg > .label > .label-content > .text-fg {
-  fill: rgba(0, 0, 0, 0.8);
+  fill: rgb(0 0 0 / 80%);
 }
 
 @keyframes anchor-selector-active {
   0% {
     stroke-dashoffset: 12;
   }
+
   100% {
     stroke-dashoffset: 0;
   }
