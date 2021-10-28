@@ -18,26 +18,22 @@ export default class Selecting extends G {
       ),
       style: {
         opacity: 0,
-        stroke: `rgba(${[
-          ...Color.hsl(
-            config.hue,
-            variables.overlay.selecting.stroke.saturation,
-            variables.overlay.selecting.stroke.lightness,
-          )
-            .rgb()
-            .array(),
-          variables.overlay.selecting.stroke.alpha,
-        ].join(',')})`,
-        fill: `rgba(${[
-          ...Color.hsl(
-            config.hue,
-            variables.overlay.selecting.fill.saturation,
-            variables.overlay.selecting.fill.lightness,
-          )
-            .rgb()
-            .array(),
-          variables.overlay.selecting.fill.alpha,
-        ].join(',')})`,
+        stroke: `rgb(${Color.hsl(
+          config.hue,
+          variables.overlay.selecting.stroke.saturation,
+          variables.overlay.selecting.stroke.lightness,
+        )
+          .rgb()
+          .array()
+          .join(' ')} / ${variables.overlay.selecting.stroke.alpha})`,
+        fill: `rgb(${Color.hsl(
+          config.hue,
+          variables.overlay.selecting.fill.saturation,
+          variables.overlay.selecting.fill.lightness,
+        )
+          .rgb()
+          .array()
+          .join(' ')} / ${variables.overlay.selecting.fill.alpha})`,
       },
     });
     super({ children: path });
