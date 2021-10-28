@@ -31,12 +31,23 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git reset --hard
           git clean -fd
-          if npm version ${VERSION#v} --no-git-tag-version; then
-            git commit -am $VERSION
-            git push origin HEAD:refs/heads/master
-          fi
+          npm version ${VERSION#v} --no-git-tag-version
         env:
           VERSION: ${{ steps.release-drafter.outputs.tag_name }}
+      - id: pr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: ${{ steps.release-drafter.outputs.tag_name }}
+          committer: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
+          author: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
+          branch: bump-version-${{ steps.release-drafter.outputs.tag_name }}
+          base: master
+          delete-branch: true
+          title: ${{ steps.release-drafter.outputs.tag_name }}
+          body: ""
+      - run: gh pr merge ${{ steps.pr.outputs.pull-request-url }} --auto
+        if: ${{ steps.pr.outputs.pull-request-url != null }}
       - run: npm run build
       - uses: bgpat/release-asset-action@master
         with:
