@@ -1,5 +1,6 @@
 const path = require('path');
 const MinifyPlugin = require('babel-minify-webpack-plugin');
+const ESLintPlugin = require('eslint-webpack-plugin');
 const WebExtPlugin = require('@bgpat/webext-webpack-plugin');
 const webExtConfig = require('./web-ext-config');
 
@@ -20,7 +21,7 @@ module.exports = {
     rules: [
       {
         test: /\.js$/,
-        use: ['babel-loader', 'eslint-loader'],
+        use: ['babel-loader'],
       },
     ],
   },
@@ -33,6 +34,7 @@ module.exports = {
   devtool: mode === 'production' ? false : 'inline-source-map',
   plugins: [
     ...(mode === 'production' ? [new MinifyPlugin()] : []),
+    new ESLintPlugin(),
     new WebExtPlugin({
       ...webExtConfig,
       overwriteDest: true,
