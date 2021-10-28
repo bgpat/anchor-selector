@@ -1,0 +1,17 @@
+#config {
+  display: none;
+}
+
+fieldset {
+  margin: 8px 10px;
+}
+
+fieldset > label {
+  display: flex;
+}
+
+fieldset > label > input,
+fieldset > select {
+  flex-grow: 1;
+  width: 100%;
+}

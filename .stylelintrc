@@ -1,0 +1,20 @@
+{
+  "plugins": [
+    "stylelint-order"
+  ],
+  "extends": "stylelint-config-standard",
+  "rules": {
+    "declaration-block-no-duplicate-properties": true,
+    "property-no-unknown": [
+      true, {
+        ignoreProperties:
+          ["inset-block-end", "inset-block-start"]
+    }],
+    "selector-class-pattern": [
+      "^((--)?[a-z][a-z0-9]*)(-[a-z0-9]+)*$",
+      {
+        "message": "Expected class selector to be kebab-case"
+      }
+    ]
+  }
+}
