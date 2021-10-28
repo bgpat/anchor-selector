@@ -46,7 +46,7 @@ jobs:
           delete-branch: true
           title: ${{ steps.release-drafter.outputs.tag_name }}
           body: ""
-      - run: gh pr merge ${{ steps.pr.outputs.pull-request-url }} --auto
+      - run: gh pr merge ${{ steps.pr.outputs.pull-request-url }} --auto --merge
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ steps.pr.outputs.pull-request-url != null }}
