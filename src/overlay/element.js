@@ -25,7 +25,7 @@ export default class Element {
       children = [children];
     }
     this.children = [];
-    children.forEach(c => this.append(c));
+    children.forEach((c) => this.append(c));
     this.attrs = p.attrs || {};
     this.class = p.class;
     this.style = p.style || {};
@@ -62,7 +62,7 @@ export default class Element {
 
   get attrs() {
     return Array.from(this.element.attributes)
-      .map(a => ({
+      .map((a) => ({
         k: a.name,
         v: a.value,
       }))

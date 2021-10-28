@@ -5,8 +5,8 @@ import { variables } from '@/util';
 
 export function makeActiveIcon() {
   return fetch(browser.runtime.getURL('../../icons/anchor-selector.svg'))
-    .then(resp => resp.text())
-    .then(async svg => {
+    .then((resp) => resp.text())
+    .then(async (svg) => {
       return svg.replace(
         '"context-fill"',
         `"${Color.hsl(
@@ -16,10 +16,10 @@ export function makeActiveIcon() {
         ).hex()}"`,
       );
     })
-    .then(svg => svg.replace('"context-fill-opacity"', '"0.9"'))
-    .then(svg => new Blob([svg], { type: 'image/svg+xml' }))
-    .then(blob => loadImage(URL.createObjectURL(blob)))
-    .then(img => {
+    .then((svg) => svg.replace('"context-fill-opacity"', '"0.9"'))
+    .then((svg) => new Blob([svg], { type: 'image/svg+xml' }))
+    .then((blob) => loadImage(URL.createObjectURL(blob)))
+    .then((img) => {
       const canvas = createCanvas(img.width, img.height);
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, img.width, img.height);

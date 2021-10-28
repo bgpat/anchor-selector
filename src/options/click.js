@@ -37,9 +37,8 @@ export default {
     Array.from(ul.querySelectorAll('li')).forEach((li) => ul.removeChild(li));
     config.forEach(({ keys, action }) => {
       const li = document.createElement('LI');
-      const actionLabel = form.querySelector(
-        `#click > option[value=${action}`,
-      ).innerText;
+      const actionLabel = form.querySelector(`#click > option[value=${action}`)
+        .innerText;
       li.innerText = `${
         keys.map((k) => `[${keyLabels[k]}]`).join(' + ') || 'no key'
       }: ${actionLabel}`;
