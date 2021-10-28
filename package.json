@@ -28,7 +28,6 @@
   "devDependencies": {
     "@babel/core": "7.15.8",
     "@babel/eslint-parser": "7.15.8",
-    "@babel/polyfill": "7.12.1",
     "@babel/preset-env": "7.15.8",
     "@bgpat/webext-webpack-plugin": "0.1.8",
     "@zeit/eslint-config-node": "0.3.0",
