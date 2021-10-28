@@ -1,0 +1,14 @@
+{
+  "plugins": [
+    "stylelint-order"
+  ],
+  "extends": "stylelint-config-standard",
+  "rules": {
+    "declaration-block-no-duplicate-properties": true,
+    "property-no-unknown": [
+      true, {
+        ignoreProperties:
+          ["inset-block-end", "inset-block-start"]
+    }]
+  }
+}
