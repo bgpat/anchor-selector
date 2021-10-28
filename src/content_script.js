@@ -2,7 +2,7 @@ import browser from 'webextension-polyfill';
 import { type } from '@/util';
 import Overlay from '@/overlay';
 
-browser.runtime.onMessage.addListener(message => {
+browser.runtime.onMessage.addListener((message) => {
   switch (message.type) {
     case type.click:
       if (Overlay.isActive) {
@@ -18,7 +18,7 @@ browser.runtime.onMessage.addListener(message => {
 
 window.addEventListener(
   'keydown',
-  e => {
+  (e) => {
     if (e.key === 'Escape' && Overlay.isActive) {
       Overlay.current.close();
     }

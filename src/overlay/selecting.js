@@ -41,7 +41,7 @@ export default class Selecting extends G {
       },
     });
     super({ children: path });
-    path.on('transitionend', e => {
+    path.on('transitionend', (e) => {
       if (e.propertyName === 'opacity' && path.style.opacity === '0') {
         path.element.removeAttribute('d');
       }

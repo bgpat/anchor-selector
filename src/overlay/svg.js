@@ -42,7 +42,7 @@ export class Path extends SVGElement {
   set d(v) {
     if (Array.isArray(v)) {
       v = v
-        .map(p =>
+        .map((p) =>
           [
             ...p.map((p, i) => {
               return `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`;
