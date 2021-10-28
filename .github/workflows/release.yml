@@ -12,6 +12,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v2
+        with:
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
       - uses: actions/cache@v2
         with:
           path: |
@@ -31,7 +33,7 @@ jobs:
           git clean -fd
           if npm version ${VERSION#v} --no-git-tag-version; then
             git commit -am $VERSION
-            git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:refs/heads/master
+            git push origin HEAD:refs/heads/master
           fi
         env:
           VERSION: ${{ steps.release-drafter.outputs.tag_name }}
