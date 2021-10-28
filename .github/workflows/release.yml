@@ -31,7 +31,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git reset --hard
           git clean -fd
-          npm version ${VERSION#v} --no-git-tag-version
+          npm version ${VERSION#v} --no-git-tag-version --allow-same-version
         env:
           VERSION: ${{ steps.release-drafter.outputs.tag_name }}
       - id: pr
