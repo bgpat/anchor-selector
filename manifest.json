@@ -44,7 +44,6 @@
   },
   "permissions": [
     "clipboardWrite",
-    "storage",
-    "activeTab"
+    "storage"
   ]
 }
