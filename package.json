@@ -40,7 +40,7 @@
     "babel-loader": "8.2.3",
     "canvas": "2.8.0",
     "chrome-webstore-upload-cli": "2.0.1",
-    "color": "4.0.2",
+    "color": "4.1.0",
     "core-js": "3.19.2",
     "dot-json": "1.2.2",
     "eslint": "8.3.0",
