@@ -16,7 +16,7 @@ jobs:
           ssh-key: ${{ secrets.DEPLOY_KEY }}
       - id: node-version
         run: echo "::set-output name=version=$(cat .node-version)"
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
           node-version: ${{ steps.node-version.output.version }}
           cache: npm
