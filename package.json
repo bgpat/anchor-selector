@@ -53,7 +53,7 @@
     "stylelint-config-standard": "29.0.0",
     "stylelint-order": "5.0.0",
     "terser-webpack-plugin": "5.3.6",
-    "web-ext": "7.3.0",
+    "web-ext": "7.3.1",
     "web-ext-submit": "7.3.0",
     "webextension-polyfill": "0.10.0",
     "webpack": "5.74.0",
