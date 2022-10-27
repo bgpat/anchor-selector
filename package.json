@@ -37,7 +37,7 @@
     "@bgpat/webext-webpack-plugin": "0.1.8",
     "@linthtml/linthtml": "0.9.3",
     "@zeit/eslint-config-node": "0.3.0",
-    "babel-loader": "8.2.5",
+    "babel-loader": "9.0.0",
     "canvas": "2.10.1",
     "chrome-webstore-upload-cli": "2.1.0",
     "color": "4.2.3",
