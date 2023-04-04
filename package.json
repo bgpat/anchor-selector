@@ -41,7 +41,7 @@
     "canvas": "2.11.2",
     "chrome-webstore-upload-cli": "2.2.0",
     "color": "4.2.3",
-    "core-js": "3.29.1",
+    "core-js": "3.30.0",
     "dot-json": "1.2.2",
     "eslint": "8.37.0",
     "husky": "8.0.3",
