@@ -30,7 +30,7 @@ jobs:
         env:
           VERSION: ${{ steps.release-drafter.outputs.tag_name }}
       - id: pr
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: ${{ steps.release-drafter.outputs.tag_name }}
