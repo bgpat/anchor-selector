@@ -1,6 +1,6 @@
 # anchor-selector
 
-[![Build Status](https://travis-ci.com/bgpat/anchor-selector.svg?branch=master)](https://travis-ci.com/bgpat/anchor-selector)
+[![publish](https://github.com/bgpat/anchor-selector/actions/workflows/publish.yml/badge.svg)](https://github.com/bgpat/anchor-selector/actions/workflows/publish.yml)
 
 **anchor-selector** is the web browser extension to jump with selecting the HTML element which has `id` attribute.
 
