@@ -3,6 +3,7 @@
   "name": "Anchor Selector",
   "version": "0.8.6",
   "description": "Select link anchor element",
+  "homepage_url": "https://github.com/bgpat/anchor-selector",
   "applications": {
     "gecko": {
       "id": "{22a2fd71-5ac1-46c9-88e8-fe65a41bad62}",
