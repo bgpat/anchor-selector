@@ -52,6 +52,7 @@ const variables = {
     label: {
       margin: 4,
     },
+    strokeWidth: 3,
   },
   animation: {
     ease: {
@@ -59,6 +60,7 @@ const variables = {
       calcMode: 'spline',
     },
   },
+  minimumDistance: 10,
 };
 
 export default variables;

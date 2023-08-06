@@ -50,13 +50,18 @@ export default class Selecting extends G {
     if (topElement == null) {
       return;
     }
-    const { left, top, right, bottom } = topElement.getBoundingClientRect();
+    const { left, top, right, bottom, width , height } = topElement.getBoundingClientRect();
+    let pad = 0;
+    const swh = variables.overlay.strokeWidth * 0.5;
+    if (width <= swh || height <= swh) {
+      pad = swh;
+    }
     this.path.d = [
       [
-        { x: left, y: top },
-        { x: right, y: top },
-        { x: right, y: bottom },
-        { x: left, y: bottom },
+        { x: left - pad, y: top - pad },
+        { x: right + pad, y: top - pad },
+        { x: right - pad, y: bottom + pad },
+        { x: left - pad, y: bottom + pad },
       ],
     ];
   }
