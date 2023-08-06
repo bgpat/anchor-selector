@@ -18,8 +18,8 @@ browser.runtime.onMessage.addListener((message) => {
 
 window.addEventListener(
   'keydown',
-  (e) => {
-    if (e.key === 'Escape' && Overlay.isActive) {
+  ({ key }) => {
+    if (key === 'Escape' && Overlay.isActive) {
       Overlay.current.close();
     }
   },
