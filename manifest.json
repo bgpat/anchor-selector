@@ -4,7 +4,7 @@
   "version": "0.8.7",
   "description": "Select link anchor element",
   "homepage_url": "https://github.com/bgpat/anchor-selector",
-  "applications": {
+  "browser_specific_settings": {
     "gecko": {
       "id": "{22a2fd71-5ac1-46c9-88e8-fe65a41bad62}",
       "strict_min_version": "78.0"
