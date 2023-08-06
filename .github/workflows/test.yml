@@ -6,11 +6,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - id: node-version
-        run: echo "::set-output name=version=$(cat .node-version)"
       - uses: actions/setup-node@v3
         with:
-          node-version: ${{ steps.node-version.outputs.version }}
+          node-version-file: .node-version
           cache: npm
 
       - run: npm install
