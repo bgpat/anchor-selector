@@ -14,9 +14,37 @@ export default class Container extends Element {
       children: [new Background(), new Selecting(config), new Label()],
     });
     super({ children: svg });
-    this.on('mousemove', (e) => this.move(e.clientX, e.clientY));
-    this.on('mouseleave', () => this.move());
-    svg.on('click', (e) => overlay.select(topID(e.clientX, e.clientY), e));
+    window.addEventListener(
+      'mousemove',
+      ({ clientX, clientY }) => this.move(clientX, clientY),
+      true,
+    );
+    window.addEventListener('mouseleave', () => this.move(), true);
+    window.addEventListener(
+      'click',
+      (e) => overlay.select(topID(e.clientX, e.clientY), e),
+      true,
+    );
+    [
+      'mousedown',
+      'mouseover',
+      'mouseup',
+      'pointerdown',
+      'pointerover',
+      'pointerup',
+      'click',
+    ].forEach((name) =>
+      window.addEventListener(
+        name,
+        (e) => {
+          if (overlay.selecting) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        },
+        true,
+      ),
+    );
     this.overlay = overlay;
     this.svg = svg;
     window.requestAnimationFrame(() => this.render());
@@ -34,6 +62,9 @@ export default class Container extends Element {
   }
 
   move(x, y) {
+    if (!this.overlay.selecting) {
+      return;
+    }
     if (x == null || y == null) {
       this.mouse = null;
       return;

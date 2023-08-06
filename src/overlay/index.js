@@ -25,6 +25,9 @@ export default class Overlay {
   }
 
   async select(id, e = {}, action) {
+    if (!this.selecting) {
+      return;
+    }
     let url = new URL(location);
     url.hash = id == null ? url.hash : `#${id}`;
     let config = await variables.config.getAll();
