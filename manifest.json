@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Anchor Selector",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "description": "Select link anchor element",
   "homepage_url": "https://github.com/bgpat/anchor-selector",
   "applications": {
