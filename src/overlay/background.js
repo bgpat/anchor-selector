@@ -1,3 +1,4 @@
+import { variables } from '@/util';
 import { G, Path } from './svg';
 
 export default class Background extends G {
@@ -11,6 +12,7 @@ export default class Background extends G {
 
   render(topElement, { left, top, right, bottom }) {
     this.path.d = Array.from(document.querySelectorAll('[id], a[name]'))
+      .filter((e) => e.checkVisibility())
       .map((e) => e.getBoundingClientRect())
       .filter(
         (bcr) =>
@@ -22,13 +24,18 @@ export default class Background extends G {
           (top <= bcr.top && bcr.top <= bottom) ||
           (top <= bcr.bottom && bcr.bottom <= bottom),
       )
-      .filter((bcr) => bcr.left !== bcr.right)
-      .filter((bcr) => bcr.top !== bcr.bottom)
-      .map((bcr) => [
-        { x: bcr.left, y: bcr.top },
-        { x: bcr.right, y: bcr.top },
-        { x: bcr.right, y: bcr.bottom },
-        { x: bcr.left, y: bcr.bottom },
-      ]);
+      .map(({left, top, right, bottom, width, height}) => {
+        let pad = 0;
+        const swh = variables.overlay.strokeWidth * 0.5;
+        if (width <= swh || height <= swh) {
+          pad = swh;
+        }
+        return [
+          { x: left - pad, y: top - pad },
+          { x: right + pad, y: top - pad },
+          { x: right + pad, y: bottom + pad },
+          { x: left - pad, y: bottom + pad },
+        ];
+      });
   }
 }
