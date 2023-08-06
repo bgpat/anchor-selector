@@ -14,7 +14,7 @@
     "publish": "npm-run-all publish:*",
     "publish:firefox": "web-ext-submit --api-key=$JWT_ISSUER --api-secret=$JWT_SECRET",
     "publish:chrome": "chrome-webstore-upload upload --source web-ext-artifacts/* --auto-publish",
-    "preversion": "dot-json manifest.json version $npm_package_version && git add manifest.json"
+    "postversion": "dot-json manifest.json version $npm_package_version"
   },
   "repository": {
     "type": "git",
