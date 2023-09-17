@@ -4,5 +4,7 @@
   ],
   "labels": [
     "dependencies"
-  ]
+  ],
+  "automerge": true,
+  "platformAutomerge": true
 }
