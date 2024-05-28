@@ -8,7 +8,7 @@ export function makeActiveIcon() {
     .then((resp) => resp.text())
     .then(async (svg) => {
       return svg.replace(
-        '"context-fill"',
+        '"context-fill #555"',
         `"${Color.hsl(
           await variables.config.get('hue'),
           variables.overlay.selecting.stroke.saturation,
@@ -16,7 +16,7 @@ export function makeActiveIcon() {
         ).hex()}"`,
       );
     })
-    .then((svg) => svg.replace('"context-fill-opacity"', '"0.9"'))
+    .then((svg) => svg.replace('"context-fill-opacity 0.7"', '"0.9"'))
     .then((svg) => new Blob([svg], { type: 'image/svg+xml' }))
     .then((blob) => loadImage(URL.createObjectURL(blob)))
     .then((img) => {
