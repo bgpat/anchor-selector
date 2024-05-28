@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
 jobs:
   update-draft-release:
     runs-on: ubuntu-22.04
