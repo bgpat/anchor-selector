@@ -4,19 +4,13 @@
 
 **anchor-selector** is the web browser extension to jump with selecting the HTML element which has `id` attribute.
 
-![demo](https://raw.githubusercontent.com/bgpat/anchor-selector/readme/images/demo.gif)
+[![demo movie](http://img.youtube.com/vi/FfGpJnQZBbI/0.jpg)](https://youtu.be/FfGpJnQZBbI?si=r4g3nFtivvrA_OBh)
 
 ## Installation
 
 ### Firefox
 
 Go to https://addons.mozilla.org/ja/firefox/addon/anchor-selector/ and install to your browser.
-
-#### Enable pretty icon (Optional)
-
-1. Open `about:config`
-2. Input `svg.context-properties.context.enabled` to search box
-3. Make value true
 
 ### Google Chrome
 
