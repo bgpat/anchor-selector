@@ -32,7 +32,7 @@
   "homepage": "https://github.com/bgpat/anchor-selector#readme",
   "devDependencies": {
     "@babel/core": "7.24.9",
-    "@babel/eslint-parser": "7.25.0",
+    "@babel/eslint-parser": "7.25.1",
     "@babel/preset-env": "7.25.0",
     "@bgpat/webext-webpack-plugin": "0.1.8",
     "@linthtml/linthtml": "0.9.6",
