@@ -5,7 +5,7 @@ on:
       - released
 jobs:
   publish:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       CLIENT_ID: ${{ secrets.CLIENT_ID }}
       CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
