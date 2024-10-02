@@ -31,9 +31,9 @@
   },
   "homepage": "https://github.com/bgpat/anchor-selector#readme",
   "devDependencies": {
-    "@babel/core": "7.25.2",
+    "@babel/core": "7.25.7",
     "@babel/eslint-parser": "7.25.7",
-    "@babel/preset-env": "7.25.4",
+    "@babel/preset-env": "7.25.7",
     "@bgpat/webext-webpack-plugin": "0.1.8",
     "@linthtml/linthtml": "0.10.1",
     "@zeit/eslint-config-node": "0.3.0",
