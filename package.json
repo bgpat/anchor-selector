@@ -38,7 +38,7 @@
     "@linthtml/linthtml": "0.10.1",
     "@zeit/eslint-config-node": "0.3.0",
     "babel-loader": "9.2.1",
-    "canvas": "2.11.2",
+    "canvas": "3.0.0",
     "chrome-webstore-upload-cli": "3.3.1",
     "chrome-webstore-upload": "3.1.4",
     "color": "4.2.3",
