@@ -35,7 +35,7 @@
     "@babel/eslint-parser": "7.27.0",
     "@babel/preset-env": "7.26.9",
     "@bgpat/webext-webpack-plugin": "0.1.8",
-    "@linthtml/linthtml": "0.10.1",
+    "@linthtml/linthtml": "0.10.2",
     "@zeit/eslint-config-node": "0.3.0",
     "babel-loader": "10.0.0",
     "canvas": "3.1.0",
