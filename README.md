@@ -10,7 +10,7 @@
 
 ### Firefox
 
-Go to https://addons.mozilla.org/ja/firefox/addon/anchor-selector/ and install to your browser.
+Go to https://addons.mozilla.org/firefox/addon/anchor-selector/ and install to your browser.
 
 ### Google Chrome
 
