@@ -39,7 +39,7 @@
     "@zeit/eslint-config-node": "0.3.0",
     "babel-loader": "10.0.0",
     "canvas": "3.2.0",
-    "chrome-webstore-upload-cli": "3.3.2",
+    "chrome-webstore-upload-cli": "3.4.0",
     "chrome-webstore-upload": "3.2.0",
     "color": "5.0.2",
     "core-js": "3.45.1",
