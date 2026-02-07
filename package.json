@@ -44,7 +44,7 @@
     "color": "5.0.3",
     "core-js": "3.48.0",
     "dot-json": "1.3.0",
-    "eslint": "9.39.2",
+    "eslint": "10.0.0",
     "husky": "9.1.7",
     "lint-staged": "16.2.7",
     "npm-run-all2": "8.0.4",
