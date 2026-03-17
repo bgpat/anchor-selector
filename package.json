@@ -33,7 +33,7 @@
   "devDependencies": {
     "@babel/core": "7.29.0",
     "@babel/eslint-parser": "7.28.6",
-    "@babel/preset-env": "7.29.0",
+    "@babel/preset-env": "7.29.2",
     "@bgpat/webext-webpack-plugin": "0.1.8",
     "@linthtml/linthtml": "0.10.2",
     "@zeit/eslint-config-node": "0.3.0",
