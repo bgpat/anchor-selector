@@ -45,20 +45,20 @@ reload();
 const ALL_ORIGINS = { origins: ['*://*/*'] };
 const toggleBtn = document.getElementById('toggle-permissions');
 const statusEl = document.getElementById('permission-status');
+let permissionGranted = false;
 
 async function updatePermissionUI() {
-  const granted = await browser.permissions.contains(ALL_ORIGINS);
-  statusEl.textContent = granted
+  permissionGranted = await browser.permissions.contains(ALL_ORIGINS);
+  statusEl.textContent = permissionGranted
     ? 'Enabled on all sites.'
     : 'No sites enabled.';
-  toggleBtn.textContent = granted
+  toggleBtn.textContent = permissionGranted
     ? 'Disable all site access'
     : 'Enable on all sites (Recommended)';
 }
 
 toggleBtn.addEventListener('click', async () => {
-  const granted = await browser.permissions.contains(ALL_ORIGINS);
-  if (granted) {
+  if (permissionGranted) {
     await browser.permissions.remove(ALL_ORIGINS);
   } else {
     await browser.permissions.request(ALL_ORIGINS);
