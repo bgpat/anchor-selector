@@ -26,13 +26,12 @@ browser.runtime.onMessage.addListener((message, sender) => {
       browser.action.enable(sender.tab.id);
       break;
     case 'open':
-      makeActiveIcon().then((img) =>
+      return makeActiveIcon().then((img) =>
         browser.action.setIcon({
           imageData: img,
           tabId: sender.tab.id,
         }),
       );
-      break;
     case 'close':
       browser.action.setIcon({
         path: 'icons/anchor-selector.svg',
