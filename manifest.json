@@ -24,7 +24,8 @@
     "default_icon": {
       "48": "icons/anchor-selector.png"
     },
-    "default_title": "Anchor Selector"
+    "default_title": "Anchor Selector",
+    "default_popup": "popup.html"
   },
   "web_accessible_resources": [
     {

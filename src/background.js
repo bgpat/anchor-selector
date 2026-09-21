@@ -1,8 +1,6 @@
 import browser from 'webextension-polyfill';
 import { type, variables, makeActiveIcon } from '@/util';
 
-browser.action.disable();
-
 browser.action.onClicked.addListener((tab) => {
   variables.config.getAll().then((config) =>
     browser.tabs.sendMessage(tab.id, {
@@ -15,6 +13,7 @@ browser.action.onClicked.addListener((tab) => {
 browser.runtime.onMessage.addListener((message, sender) => {
   switch (message.type) {
     case 'load':
+      browser.action.setPopup({ tabId: sender.tab.id, popup: '' });
       browser.action.setTitle({
         title: 'jump to the anchored element',
         tabId: sender.tab.id,
@@ -23,7 +22,6 @@ browser.runtime.onMessage.addListener((message, sender) => {
         path: 'icons/anchor-selector.svg',
         tabId: sender.tab.id,
       });
-      browser.action.enable(sender.tab.id);
       break;
     case 'open':
       return makeActiveIcon().then((img) =>
