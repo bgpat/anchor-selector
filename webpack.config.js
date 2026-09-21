@@ -1,7 +1,7 @@
 const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
 const WebExtPlugin = require('@bgpat/webext-webpack-plugin');
-const webExtConfig = require('./web-ext-config');
+const webExtConfig = require('./web-ext-config.cjs');
 
 const mode = process.env.NODE_ENV || 'development';
 
