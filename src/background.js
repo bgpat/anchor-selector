@@ -54,3 +54,20 @@ browser.runtime.onMessage.addListener((message, sender) => {
       break;
   }
 });
+
+browser.runtime.onInstalled.addListener(async ({ reason }) => {
+  const registered = await browser.scripting.getRegisteredContentScripts();
+  if (registered.length === 0) {
+    await browser.scripting.registerContentScripts([
+      {
+        id: 'anchor-selector',
+        matches: ['*://*/*'],
+        js: ['dist/content_script.js'],
+        css: ['stylesheets/overlay.css'],
+      },
+    ]);
+  }
+  if (reason === 'install') {
+    browser.runtime.openOptionsPage();
+  }
+});

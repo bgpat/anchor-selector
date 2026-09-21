@@ -17,18 +17,8 @@
     "scripts": ["dist/background.js"],
     "service_worker": "dist/background.js"
   },
-  "content_scripts": [
-    {
-      "matches": [
-        "*://*/*"
-      ],
-      "js": [
-        "dist/content_script.js"
-      ],
-      "css": [
-        "stylesheets/overlay.css"
-      ]
-    }
+  "optional_host_permissions": [
+    "*://*/*"
   ],
   "action": {
     "default_icon": {
@@ -46,6 +36,7 @@
     "page": "options.html"
   },
   "permissions": [
+    "scripting",
     "storage"
   ]
 }

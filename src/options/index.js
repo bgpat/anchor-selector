@@ -1,3 +1,4 @@
+import browser from 'webextension-polyfill';
 import { variables } from '@/util';
 
 import click from './click';
@@ -40,3 +41,29 @@ function reload() {
 }
 
 reload();
+
+const ALL_ORIGINS = { origins: ['*://*/*'] };
+const toggleBtn = document.getElementById('toggle-permissions');
+const statusEl = document.getElementById('permission-status');
+
+async function updatePermissionUI() {
+  const granted = await browser.permissions.contains(ALL_ORIGINS);
+  statusEl.textContent = granted
+    ? 'Enabled on all sites.'
+    : 'No sites enabled.';
+  toggleBtn.textContent = granted
+    ? 'Disable all site access'
+    : 'Enable on all sites (Recommended)';
+}
+
+toggleBtn.addEventListener('click', async () => {
+  const granted = await browser.permissions.contains(ALL_ORIGINS);
+  if (granted) {
+    await browser.permissions.remove(ALL_ORIGINS);
+  } else {
+    await browser.permissions.request(ALL_ORIGINS);
+  }
+  updatePermissionUI();
+});
+
+updatePermissionUI();
