@@ -25,6 +25,7 @@ async function injectAndClose() {
     target: { tabId: currentTab.id },
     files: ['stylesheets/overlay.css'],
   });
+  await browser.action.setPopup({ tabId: currentTab.id, popup: '' });
   window.close();
 }
 
