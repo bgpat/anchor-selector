@@ -1,7 +1,7 @@
 import browser from 'webextension-polyfill';
 import { type, variables, makeActiveIcon } from '@/util';
 
-browser.pageAction.onClicked.addListener((tab) => {
+browser.action.onClicked.addListener((tab) => {
   variables.config.getAll().then((config) =>
     browser.tabs.sendMessage(tab.id, {
       type: type.click,
@@ -13,27 +13,26 @@ browser.pageAction.onClicked.addListener((tab) => {
 browser.runtime.onMessage.addListener((message, sender) => {
   switch (message.type) {
     case 'load':
-      browser.pageAction.setTitle({
+      browser.action.setPopup({ tabId: sender.tab.id, popup: '' });
+      browser.action.setTitle({
         title: 'jump to the anchored element',
         tabId: sender.tab.id,
       });
-      browser.pageAction.setIcon({
-        path: '../icons/anchor-selector.svg',
+      browser.action.setIcon({
+        path: 'icons/anchor-selector.svg',
         tabId: sender.tab.id,
       });
-      browser.pageAction.show(sender.tab.id);
       break;
     case 'open':
-      makeActiveIcon().then((img) =>
-        browser.pageAction.setIcon({
+      return makeActiveIcon().then((img) =>
+        browser.action.setIcon({
           imageData: img,
           tabId: sender.tab.id,
         }),
       );
-      break;
     case 'close':
-      browser.pageAction.setIcon({
-        path: '../icons/anchor-selector.svg',
+      browser.action.setIcon({
+        path: 'icons/anchor-selector.svg',
         tabId: sender.tab.id,
       });
       break;
@@ -50,18 +49,22 @@ browser.runtime.onMessage.addListener((message, sender) => {
     case 'new-window':
       browser.windows.create({ url: message.url });
       break;
-    case 'copy':
-      navigator.clipboard.writeText(message.text).catch((e) => {
-        // eslint-disable-next-line no-console
-        console.warn('failed navigator.clipboard.writeText', e);
-        const input = document.createElement('textarea');
-        document.body.appendChild(input);
-        input.value = message.text;
-        input.focus();
-        input.select();
-        document.execCommand('Copy');
-        input.remove();
-      });
-      break;
+  }
+});
+
+browser.runtime.onInstalled.addListener(async ({ reason }) => {
+  const registered = await browser.scripting.getRegisteredContentScripts();
+  if (registered.length === 0) {
+    await browser.scripting.registerContentScripts([
+      {
+        id: 'anchor-selector',
+        matches: ['*://*/*'],
+        js: ['dist/content_script.js'],
+        css: ['stylesheets/overlay.css'],
+      },
+    ]);
+  }
+  if (reason === 'install') {
+    browser.runtime.openOptionsPage();
   }
 });

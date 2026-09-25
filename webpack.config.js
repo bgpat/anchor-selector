@@ -1,7 +1,7 @@
 const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
 const WebExtPlugin = require('@bgpat/webext-webpack-plugin');
-const webExtConfig = require('./web-ext-config');
+const webExtConfig = require('./web-ext-config.cjs');
 
 const mode = process.env.NODE_ENV || 'development';
 
@@ -11,6 +11,7 @@ module.exports = {
     background: './src/background',
     content_script: './src/content_script',
     options: './src/options',
+    popup: './src/popup',
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
