@@ -2,7 +2,6 @@ import browser from 'webextension-polyfill';
 import { type, variables, makeActiveIcon } from '@/util';
 
 const selectingTabs = new Set();
-const BADGE_UNAVAILABLE = '!';
 const TITLE_READY = 'jump to the anchored element';
 const TITLE_UNAVAILABLE =
   'Anchor Selector — not available on this page';
@@ -31,13 +30,15 @@ async function getTabUrl(tab) {
 }
 
 async function markUnavailable(tabId) {
-  await browser.action.setBadgeText({ tabId, text: BADGE_UNAVAILABLE });
+  await browser.action.setBadgeText({ tabId, text: '' });
   await browser.action.setTitle({ tabId, title: TITLE_UNAVAILABLE });
+  await browser.action.disable(tabId);
 }
 
 async function markAvailable(tabId) {
   await browser.action.setBadgeText({ tabId, text: '' });
   await browser.action.setTitle({ tabId, title: TITLE_READY });
+  await browser.action.enable(tabId);
 }
 
 async function updateActionForTab(tab) {
@@ -90,7 +91,6 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 browser.action.onClicked.addListener(async (tab) => {
   if (!isWebPage(tab.url)) {
-    await markUnavailable(tab.id);
     return;
   }
   try {
@@ -98,7 +98,10 @@ browser.action.onClicked.addListener(async (tab) => {
       await ensureContentScript(tab.id);
     }
   } catch {
-    await markUnavailable(tab.id);
+    await browser.action.setTitle({
+      tabId: tab.id,
+      title: TITLE_UNAVAILABLE,
+    });
     return;
   }
   await markAvailable(tab.id);
@@ -142,6 +145,11 @@ browser.runtime.onMessage.addListener((message, sender) => {
   }
 });
 
+async function initActionState() {
+  await browser.action.disable();
+  await refreshAllTabs();
+}
+
 browser.runtime.onInstalled.addListener(async () => {
   try {
     await browser.scripting.unregisterContentScripts({
@@ -150,7 +158,7 @@ browser.runtime.onInstalled.addListener(async () => {
   } catch {
     // not registered
   }
-  await refreshAllTabs();
+  await initActionState();
 });
 
-browser.runtime.onStartup.addListener(refreshAllTabs);
+browser.runtime.onStartup.addListener(initActionState);
