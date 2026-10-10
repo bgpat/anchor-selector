@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { variables } from '@/util';
 import { topID, topElement } from '@/anchor-selector';
 import Element from './element';

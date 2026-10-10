@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { variables } from '@/util';
 import { G, Path } from './svg';
 

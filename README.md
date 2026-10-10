@@ -21,11 +21,11 @@ Go to https://chrome.google.com/webstore/detail/anchor-selector/ejnjjcpllmekfiii
 ### Debug with Firefox
 
 ```bash
-npm start
+bun start
 ```
 
 ### Build
 
 ```bash
-npm run build
+bun run build
 ```

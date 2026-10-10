@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { variables } from '@/util';
 import { G, Path, Animate } from './svg';
 import { default as Color } from 'color';

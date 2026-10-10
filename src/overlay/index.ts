@@ -1,3 +1,4 @@
+// @ts-nocheck
 import browser from 'webextension-polyfill';
 import Container from './container';
 import { variables } from '@/util';

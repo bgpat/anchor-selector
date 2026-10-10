@@ -1,17 +1,128 @@
-#config {
-  display: none;
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.5;
 }
 
-fieldset {
-  margin: 8px 10px;
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: canvas;
+  color: canvastext;
 }
 
-fieldset > label {
+.options {
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 2rem;
+}
+
+.options-loading {
+  padding: 1.25rem;
+}
+
+.options-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.35rem;
+  font-weight: 650;
+}
+
+.options-header p {
+  margin: 0 0 1.25rem;
+  color: color-mix(in srgb, canvastext 70%, transparent);
+  font-size: 0.95rem;
+}
+
+.options-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, canvastext 18%, transparent);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, canvas 92%, canvastext 8%);
+}
+
+.options-section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.options-fieldset {
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  border: 1px solid color-mix(in srgb, canvastext 14%, transparent);
+  border-radius: 0.5rem;
+}
+
+.options-fieldset legend {
+  padding: 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.options-modifiers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem 0.75rem;
+}
+
+.options-check {
   display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.9rem;
 }
 
-fieldset > label > input,
-fieldset > select {
-  flex-grow: 1;
+.options-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.options-label select {
   width: 100%;
+  padding: 0.45rem 0.5rem;
+  font: inherit;
+  border-radius: 0.45rem;
+  border: 1px solid color-mix(in srgb, canvastext 22%, transparent);
+  background: canvas;
+  color: inherit;
+}
+
+.options-bindings {
+  margin: 1rem 0 0;
+  padding-left: 1.15rem;
+  font-size: 0.85rem;
+  color: color-mix(in srgb, canvastext 80%, transparent);
+}
+
+.options-hue {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.options-hue input[type='range'] {
+  flex: 1;
+}
+
+.options-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.options-reset {
+  padding: 0.45rem 0.85rem;
+  font: inherit;
+  border-radius: 0.45rem;
+  border: 1px solid color-mix(in srgb, canvastext 22%, transparent);
+  background: color-mix(in srgb, canvas 90%, canvastext 10%);
+  color: inherit;
+  cursor: pointer;
+}
+
+.options-reset:hover {
+  background: color-mix(in srgb, canvas 85%, canvastext 15%);
 }

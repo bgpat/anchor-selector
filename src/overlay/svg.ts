@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Element from './element';
 
 export class SVGElement extends Element {

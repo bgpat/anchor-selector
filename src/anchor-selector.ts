@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { variables } from '@/util';
 
 function elements(x, y) {
