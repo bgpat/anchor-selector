@@ -2,11 +2,9 @@ import browser from 'webextension-polyfill';
 
 const btnSite = document.getElementById('grant-site');
 const btnAll = document.getElementById('grant-all');
-let currentTab = null;
 let originPattern = null;
 
 browser.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
-  currentTab = tab;
   try {
     const url = new URL(tab.url);
     originPattern = `${url.protocol}//${url.host}/*`;
@@ -16,9 +14,11 @@ browser.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
   }
 });
 
-async function onGranted() {
-  await browser.runtime.sendMessage({ type: 'permissions-changed' });
+function afterPermissionRequest(granted) {
   window.close();
+  if (granted) {
+    browser.runtime.sendMessage({ type: 'permissions-changed' });
+  }
 }
 
 btnSite.addEventListener('click', async () => {
@@ -26,12 +26,12 @@ btnSite.addEventListener('click', async () => {
   const granted = await browser.permissions.request({
     origins: [originPattern],
   });
-  if (granted) await onGranted();
+  afterPermissionRequest(granted);
 });
 
 btnAll.addEventListener('click', async () => {
   const granted = await browser.permissions.request({
     origins: ['*://*/*'],
   });
-  if (granted) await onGranted();
+  afterPermissionRequest(granted);
 });
