@@ -14,11 +14,11 @@ function installContentScript() {
         return Promise.resolve();
       case type.click:
         if (Overlay.isActive) {
-          Overlay.current.close();
-          return { overlayActive: false };
+          return Overlay.current.close().then(() => ({ overlayActive: false }));
         }
-        new Overlay(message.config, () =>
-          browser.runtime.sendMessage({ type: 'close' }),
+        new Overlay(
+          message.config,
+          () => browser.runtime.sendMessage({ type: 'close' }),
         );
         return { overlayActive: true };
     }
@@ -28,7 +28,7 @@ function installContentScript() {
     'keydown',
     ({ key }) => {
       if (key === 'Escape' && Overlay.isActive) {
-        Overlay.current.close();
+        void Overlay.current.close();
       }
     },
     false,

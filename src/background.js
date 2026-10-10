@@ -7,6 +7,11 @@ import {
   CONTENT_SCRIPT_MARKER,
 } from '@/util';
 
+function getDefaultIconPaths() {
+  const png = browser.runtime.getURL('icons/anchor-selector.png');
+  return { 16: png, 32: png, 48: png };
+}
+
 const selectingTabs = new Set();
 /** Tabs where inject failed after a toolbar click (show badge until URL changes). */
 const injectFailedTabs = new Set();
@@ -29,10 +34,24 @@ function cloneImageData(src) {
   );
 }
 
-/** Chrome keeps tab imageData until replaced; path-only reset is ignored. */
+/**
+ * Clear per-tab icon override so the toolbar uses the global/manifest icon.
+ * Chrome only drops tab imageData on navigation unless cleared with {} (see MDN).
+ */
 async function resetActionIcon(tabId) {
-  const imageData = cloneImageData(await getDefaultActionIconImageData());
-  await browser.action.setIcon({ tabId, imageData });
+  await browser.action
+    .setIcon({ tabId, imageData: {} })
+    .catch(() => {});
+  try {
+    await browser.action.setIcon({ tabId, path: getDefaultIconPaths() });
+  } catch {
+    const imageData = cloneImageData(await getDefaultActionIconImageData());
+    await browser.action.setIcon({ tabId, imageData });
+  }
+}
+
+async function setGlobalDefaultActionIcon() {
+  await browser.action.setIcon({ path: getDefaultIconPaths() });
 }
 
 async function endSelectionForTab(tabId) {
@@ -66,9 +85,8 @@ async function startSelectionForTab(tabId) {
 async function applyOverlayClickResult(tabId, result) {
   if (result?.overlayActive) {
     await startSelectionForTab(tabId);
-  } else {
-    await endSelectionForTab(tabId);
   }
+  // overlay closed: content script awaits the close message (icon reset there)
 }
 const TITLE_READY = 'jump to the anchored element';
 const TITLE_UNAVAILABLE =
@@ -247,6 +265,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
 });
 
 async function initActionState() {
+  await setGlobalDefaultActionIcon();
   await browser.action.disable();
   await refreshAllTabs();
 }

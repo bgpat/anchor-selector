@@ -72,6 +72,6 @@ export default class Overlay {
       this.container.remove();
       current = null;
     }
-    this.callback();
+    return Promise.resolve(this.callback());
   }
 }
