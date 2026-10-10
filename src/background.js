@@ -3,6 +3,7 @@ import {
   type,
   variables,
   makeActiveIcon,
+  makeDefaultIcon,
   CONTENT_SCRIPT_MARKER,
 } from '@/util';
 
@@ -11,16 +12,26 @@ const selectingTabs = new Set();
 const injectFailedTabs = new Set();
 /** Bumped on close so in-flight makeActiveIcon cannot repaint after overlay ends. */
 const actionIconEpoch = new Map();
-const DEFAULT_ACTION_ICON = {
-  path: {
-    16: 'icons/anchor-selector.png',
-    32: 'icons/anchor-selector.png',
-    48: 'icons/anchor-selector.png',
-  },
-};
+let defaultActionIconImageData = null;
 
+async function getDefaultActionIconImageData() {
+  if (!defaultActionIconImageData) {
+    defaultActionIconImageData = await makeDefaultIcon();
+  }
+  return defaultActionIconImageData;
+}
+
+/** Chrome keeps tab imageData until replaced; path-only reset is ignored. */
 async function resetActionIcon(tabId) {
-  await browser.action.setIcon({ tabId, ...DEFAULT_ACTION_ICON });
+  const imageData = await getDefaultActionIconImageData();
+  await browser.action.setIcon({ tabId, imageData });
+}
+
+async function endSelectionForTab(tabId) {
+  selectingTabs.delete(tabId);
+  actionIconEpoch.set(tabId, (actionIconEpoch.get(tabId) ?? 0) + 1);
+  await resetActionIcon(tabId);
+  await updateActionForTab({ id: tabId });
 }
 const TITLE_READY = 'jump to the anchored element';
 const TITLE_UNAVAILABLE =
@@ -77,13 +88,16 @@ async function updateActionForTab(tab) {
   const url = await getTabUrl(tab);
   if (!url || !isWebPage(url)) {
     await markUnavailable(tab.id);
+    await resetActionIcon(tab.id);
     return;
   }
   if (injectFailedTabs.has(tab.id)) {
     await markUnavailableAfterClick(tab.id);
+    await resetActionIcon(tab.id);
     return;
   }
   await markAvailable(tab.id);
+  await resetActionIcon(tab.id);
 }
 
 function refreshAllTabs() {
@@ -153,9 +167,9 @@ browser.action.onClicked.addListener(async (tab) => {
   if (selectingTabs.has(tab.id)) {
     try {
       await sendClickToTab(tab.id, config);
+      await endSelectionForTab(tab.id);
     } catch {
-      selectingTabs.delete(tab.id);
-      await updateActionForTab(tab);
+      await endSelectionForTab(tab.id);
     }
     return;
   }
@@ -202,12 +216,11 @@ browser.runtime.onMessage.addListener((message, sender) => {
         });
     }
     case 'close': {
-      const tabId = sender.tab.id;
-      selectingTabs.delete(tabId);
-      actionIconEpoch.set(tabId, (actionIconEpoch.get(tabId) ?? 0) + 1);
-      return resetActionIcon(tabId).then(() =>
-        updateActionForTab({ id: tabId }),
-      );
+      const tabId = sender.tab?.id;
+      if (tabId == null) {
+        return;
+      }
+      return endSelectionForTab(tabId);
     }
     case 'get-config':
       return browser.storage.sync

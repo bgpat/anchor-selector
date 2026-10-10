@@ -30,6 +30,11 @@ function rasterizeAnchor(fillStyle, alpha) {
   });
 }
 
+/** Default toolbar anchor color (matches icons/anchor-selector.svg). */
+export function makeDefaultIcon() {
+  return rasterizeAnchor('#555555', 0.7);
+}
+
 export function makeActiveIcon() {
   return variables.config.get('hue').then((hue) =>
     rasterizeAnchor(
