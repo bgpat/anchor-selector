@@ -8,8 +8,8 @@ export function getSelectingBadgeStyle() {
     const background = Color.hsl(hue, saturation, lightness).hex();
     return {
       background,
-      // Firefox collapses same-color/space badges into a thin line; use a glyph + contrast.
-      text: '•',
+      // U+00A0: Firefox draws a normal " " + matching textColor as a line; NBSP + contrast keeps a pill.
+      text: '\u00A0',
       textColor: '#FFFFFF',
     };
   });
