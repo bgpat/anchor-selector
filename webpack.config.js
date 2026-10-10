@@ -11,7 +11,6 @@ module.exports = {
     background: './src/background',
     content_script: './src/content_script',
     options: './src/options',
-    popup: './src/popup',
   },
   output: {
     path: path.resolve(__dirname, 'dist'),

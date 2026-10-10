@@ -17,15 +17,11 @@
     "scripts": ["dist/background.js"],
     "service_worker": "dist/background.js"
   },
-  "optional_host_permissions": [
-    "*://*/*"
-  ],
   "action": {
     "default_icon": {
       "48": "icons/anchor-selector.png"
     },
-    "default_title": "Anchor Selector",
-    "default_popup": "popup.html"
+    "default_title": "Anchor Selector"
   },
   "web_accessible_resources": [
     {
@@ -37,8 +33,8 @@
     "page": "options.html"
   },
   "permissions": [
+    "activeTab",
     "scripting",
-    "storage",
-    "tabs"
+    "storage"
   ]
 }
