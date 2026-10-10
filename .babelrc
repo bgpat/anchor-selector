@@ -4,7 +4,7 @@
       "@babel/env",
       {
         "targets": {
-          "firefox": "128.0",
+          "firefox": "140.0",
           "chrome": "88.0"
         }
       }
