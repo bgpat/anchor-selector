@@ -8,8 +8,8 @@ export function getSelectingBadgeStyle() {
     const background = Color.hsl(hue, saturation, lightness).hex();
     return {
       background,
-      // U+00A0: Firefox draws a normal " " + matching textColor as a line; NBSP + contrast keeps a pill.
-      text: '\u00A0',
+      // U+200B zero-width space: no visible glyph; pill size is still browser-defined.
+      text: '\u200B',
       textColor: '#FFFFFF',
     };
   });
