@@ -1,5 +1,10 @@
 import browser from 'webextension-polyfill';
-import { type, variables, makeActiveIcon } from '@/util';
+import {
+  type,
+  variables,
+  makeActiveIcon,
+  CONTENT_SCRIPT_MARKER,
+} from '@/util';
 
 const selectingTabs = new Set();
 /** Tabs where inject failed after a toolbar click (show badge until URL changes). */
@@ -74,12 +79,25 @@ function refreshAllTabs() {
     .then((tabs) => Promise.all(tabs.map((tab) => updateActionForTab(tab))));
 }
 
+async function isContentScriptMarkerPresent(tabId) {
+  try {
+    const [probe] = await browser.scripting.executeScript({
+      target: { tabId },
+      func: (marker) => Boolean(globalThis[marker]),
+      args: [CONTENT_SCRIPT_MARKER],
+    });
+    return probe?.result === true;
+  } catch {
+    return false;
+  }
+}
+
 async function isContentScriptReady(tabId) {
   try {
     await browser.tabs.sendMessage(tabId, { type: 'ping' });
     return true;
   } catch {
-    return false;
+    return isContentScriptMarkerPresent(tabId);
   }
 }
 
@@ -99,7 +117,7 @@ browser.tabs.onActivated.addListener(({ tabId }) => {
 });
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.url) {
+  if (changeInfo.url || changeInfo.status === 'loading') {
     injectFailedTabs.delete(tabId);
   }
   if (changeInfo.status === 'complete' || changeInfo.url) {
@@ -133,23 +151,34 @@ browser.action.onClicked.addListener(async (tab) => {
       await ensureContentScript(tab.id);
     }
   } catch {
-    await markUnavailableAfterClick(tab.id);
-    return;
+    if (!(await isContentScriptMarkerPresent(tab.id))) {
+      await markUnavailableAfterClick(tab.id);
+      return;
+    }
   }
   await markAvailable(tab.id);
-  await sendClickToTab(tab.id, config);
+  try {
+    await sendClickToTab(tab.id, config);
+  } catch {
+    await markUnavailableAfterClick(tab.id);
+  }
 });
 
 browser.runtime.onMessage.addListener((message, sender) => {
   switch (message.type) {
     case 'open':
       selectingTabs.add(sender.tab.id);
-      return makeActiveIcon().then((img) =>
-        browser.action.setIcon({
-          imageData: img,
-          tabId: sender.tab.id,
-        }),
-      );
+      return makeActiveIcon()
+        .then((img) =>
+          browser.action.setIcon({
+            imageData: img,
+            tabId: sender.tab.id,
+          }),
+        )
+        .catch(() => {
+          selectingTabs.delete(sender.tab.id);
+          return updateActionForTab({ id: sender.tab.id });
+        });
     case 'close':
       selectingTabs.delete(sender.tab.id);
       browser.action.setIcon({
