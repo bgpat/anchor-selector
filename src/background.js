@@ -17,15 +17,6 @@ const selectingTabs = new Set();
 const injectFailedTabs = new Set();
 /** Ignore stale icon updates after selection ends. */
 const selectionIconEpoch = new Map();
-let defaultActionIconImageData = null;
-
-async function getDefaultActionIconImageData() {
-  if (!defaultActionIconImageData) {
-    defaultActionIconImageData = await makeDefaultIcon();
-  }
-  return defaultActionIconImageData;
-}
-
 function cloneImageData(src) {
   return new ImageData(
     new Uint8ClampedArray(src.data),
@@ -34,17 +25,36 @@ function cloneImageData(src) {
   );
 }
 
-/** Clear per-tab icon override (legacy builds that tinted the toolbar icon). */
+let tabIconDotSupportedPromise = null;
+
+/** Chromium often keeps tab action imageData until navigation; avoid dot overlays there. */
+async function tabIconDotSupported() {
+  if (!tabIconDotSupportedPromise) {
+    tabIconDotSupportedPromise = (async () => {
+      if (typeof browser.runtime.getBrowserInfo !== 'function') {
+        return false;
+      }
+      try {
+        const { name } = await browser.runtime.getBrowserInfo();
+        return name === 'Firefox';
+      } catch {
+        return false;
+      }
+    })();
+  }
+  return tabIconDotSupportedPromise;
+}
+
+/** Clear per-tab icon override (dot overlay or legacy full tint). */
 async function resetActionIcon(tabId) {
+  const imageData = await makeDefaultIcon();
+  await browser.action.setIcon({ tabId, imageData }).catch(() => {});
   await browser.action
     .setIcon({ tabId, imageData: {} })
     .catch(() => {});
-  try {
-    await browser.action.setIcon({ tabId, path: getDefaultIconPaths() });
-  } catch {
-    const imageData = cloneImageData(await getDefaultActionIconImageData());
-    await browser.action.setIcon({ tabId, imageData });
-  }
+  await browser.action
+    .setIcon({ tabId, path: getDefaultIconPaths() })
+    .catch(() => {});
 }
 
 async function setGlobalDefaultActionIcon() {
@@ -60,19 +70,23 @@ async function endSelectionForTab(tabId) {
 
 async function startSelectionForTab(tabId) {
   selectingTabs.add(tabId);
-  const epochAtOpen = selectionIconEpoch.get(tabId) ?? 0;
   try {
-    const imageData = await makeIconWithNotificationDot();
-    if ((selectionIconEpoch.get(tabId) ?? 0) !== epochAtOpen) {
+    if (await tabIconDotSupported()) {
+      const epochAtOpen = selectionIconEpoch.get(tabId) ?? 0;
+      const imageData = await makeIconWithNotificationDot();
+      if ((selectionIconEpoch.get(tabId) ?? 0) !== epochAtOpen) {
+        return;
+      }
+      if (!selectingTabs.has(tabId)) {
+        return;
+      }
+      await browser.action.setIcon({
+        tabId,
+        imageData: cloneImageData(imageData),
+      });
       return;
     }
-    if (!selectingTabs.has(tabId)) {
-      return;
-    }
-    await browser.action.setIcon({
-      tabId,
-      imageData: cloneImageData(imageData),
-    });
+    await browser.action.setTitle({ tabId, title: TITLE_SELECTING });
   } catch {
     selectingTabs.delete(tabId);
     await updateActionForTab({ id: tabId });
@@ -89,6 +103,8 @@ async function applyOverlayClickResult(tabId, result) {
 }
 
 const TITLE_READY = 'jump to the anchored element';
+const TITLE_SELECTING =
+  'Selecting anchor — click extension icon to cancel';
 const TITLE_UNAVAILABLE =
   'Anchor Selector — not available on this page';
 
