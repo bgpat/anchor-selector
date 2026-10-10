@@ -5,17 +5,25 @@
     <style>
       body {
         width: 250px;
-        padding: 12px;
+        padding: 16px;
+        margin: 0;
         font-family: system-ui, sans-serif;
         font-size: 14px;
       }
       p {
-        margin: 0 0 12px;
+        margin: 0 0 16px;
+        line-height: 1.4;
       }
       button {
+        display: block;
         width: 100%;
-        padding: 8px;
+        margin: 0;
+        padding: 10px 12px;
         cursor: pointer;
+        box-sizing: border-box;
+      }
+      button + button {
+        margin-top: 10px;
       }
     </style>
   </head>
