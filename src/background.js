@@ -250,15 +250,6 @@ async function initActionState() {
   await refreshAllTabs();
 }
 
-browser.runtime.onInstalled.addListener(async () => {
-  try {
-    await browser.scripting.unregisterContentScripts({
-      ids: ['anchor-selector'],
-    });
-  } catch {
-    // not registered
-  }
-  await initActionState();
-});
+browser.runtime.onInstalled.addListener(initActionState);
 
 browser.runtime.onStartup.addListener(initActionState);
