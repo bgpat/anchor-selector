@@ -21,9 +21,17 @@ async function getDefaultActionIconImageData() {
   return defaultActionIconImageData;
 }
 
+function cloneImageData(src) {
+  return new ImageData(
+    new Uint8ClampedArray(src.data),
+    src.width,
+    src.height,
+  );
+}
+
 /** Chrome keeps tab imageData until replaced; path-only reset is ignored. */
 async function resetActionIcon(tabId) {
-  const imageData = await getDefaultActionIconImageData();
+  const imageData = cloneImageData(await getDefaultActionIconImageData());
   await browser.action.setIcon({ tabId, imageData });
 }
 
@@ -32,6 +40,35 @@ async function endSelectionForTab(tabId) {
   actionIconEpoch.set(tabId, (actionIconEpoch.get(tabId) ?? 0) + 1);
   await resetActionIcon(tabId);
   await updateActionForTab({ id: tabId });
+}
+
+async function startSelectionForTab(tabId) {
+  selectingTabs.add(tabId);
+  const epochAtOpen = actionIconEpoch.get(tabId) ?? 0;
+  try {
+    const img = await makeActiveIcon();
+    if ((actionIconEpoch.get(tabId) ?? 0) !== epochAtOpen) {
+      return;
+    }
+    if (!selectingTabs.has(tabId)) {
+      return;
+    }
+    await browser.action.setIcon({
+      tabId,
+      imageData: cloneImageData(img),
+    });
+  } catch {
+    selectingTabs.delete(tabId);
+    await updateActionForTab({ id: tabId });
+  }
+}
+
+async function applyOverlayClickResult(tabId, result) {
+  if (result?.overlayActive) {
+    await startSelectionForTab(tabId);
+  } else {
+    await endSelectionForTab(tabId);
+  }
 }
 const TITLE_READY = 'jump to the anchored element';
 const TITLE_UNAVAILABLE =
@@ -153,7 +190,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 async function sendClickToTab(tabId, config) {
-  await browser.tabs.sendMessage(tabId, {
+  return browser.tabs.sendMessage(tabId, {
     type: type.click,
     config,
   });
@@ -164,15 +201,6 @@ browser.action.onClicked.addListener(async (tab) => {
     return;
   }
   const config = await variables.config.getAll();
-  if (selectingTabs.has(tab.id)) {
-    try {
-      await sendClickToTab(tab.id, config);
-      await endSelectionForTab(tab.id);
-    } catch {
-      await endSelectionForTab(tab.id);
-    }
-    return;
-  }
   try {
     if (!(await isContentScriptReady(tab.id))) {
       await ensureContentScript(tab.id);
@@ -185,36 +213,16 @@ browser.action.onClicked.addListener(async (tab) => {
   }
   await markAvailable(tab.id);
   try {
-    await sendClickToTab(tab.id, config);
+    const result = await sendClickToTab(tab.id, config);
+    await applyOverlayClickResult(tab.id, result);
   } catch {
+    await endSelectionForTab(tab.id);
     await markUnavailableAfterClick(tab.id);
   }
 });
 
 browser.runtime.onMessage.addListener((message, sender) => {
   switch (message.type) {
-    case 'open': {
-      const tabId = sender.tab.id;
-      selectingTabs.add(tabId);
-      const epochAtOpen = actionIconEpoch.get(tabId) ?? 0;
-      return makeActiveIcon()
-        .then((img) => {
-          if ((actionIconEpoch.get(tabId) ?? 0) !== epochAtOpen) {
-            return;
-          }
-          if (!selectingTabs.has(tabId)) {
-            return;
-          }
-          return browser.action.setIcon({
-            imageData: img,
-            tabId,
-          });
-        })
-        .catch(() => {
-          selectingTabs.delete(tabId);
-          return updateActionForTab({ id: tabId });
-        });
-    }
     case 'close': {
       const tabId = sender.tab?.id;
       if (tabId == null) {

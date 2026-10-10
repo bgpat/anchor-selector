@@ -14,13 +14,13 @@ function installContentScript() {
         return Promise.resolve();
       case type.click:
         if (Overlay.isActive) {
-          return Overlay.current.close();
+          Overlay.current.close();
+          return { overlayActive: false };
         }
         new Overlay(message.config, () =>
           browser.runtime.sendMessage({ type: 'close' }),
         );
-        browser.runtime.sendMessage({ type: 'open' });
-        break;
+        return { overlayActive: true };
     }
   });
 
