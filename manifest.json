@@ -38,6 +38,7 @@
   },
   "permissions": [
     "scripting",
-    "storage"
+    "storage",
+    "tabs"
   ]
 }

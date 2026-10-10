@@ -1,5 +1,74 @@
 import browser from 'webextension-polyfill';
-import { type, variables, makeActiveIcon } from '@/util';
+import { type, variables, makeActiveIcon, makeLockedIcon } from '@/util';
+
+const DEFAULT_ICON = { path: 'icons/anchor-selector.svg' };
+const selectingTabs = new Set();
+
+function originPatternFromUrl(url) {
+  try {
+    const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return null;
+    }
+    return `${parsed.protocol}//${parsed.host}/*`;
+  } catch {
+    return null;
+  }
+}
+
+async function updateActionIconForTab(tab) {
+  if (tab.id == null || selectingTabs.has(tab.id)) {
+    return;
+  }
+  let url = tab.url;
+  if (!url) {
+    try {
+      url = (await browser.tabs.get(tab.id)).url;
+    } catch {
+      return;
+    }
+  }
+  const pattern = originPatternFromUrl(url);
+  if (!pattern) {
+    await browser.action.setIcon({ tabId: tab.id, ...DEFAULT_ICON });
+    return;
+  }
+  const granted = await browser.permissions.contains({ origins: [pattern] });
+  if (!granted) {
+    const imageData = await makeLockedIcon();
+    await browser.action.setIcon({ tabId: tab.id, imageData });
+    await browser.action.setPopup({ tabId: tab.id, popup: 'popup.html' });
+    await browser.action.setTitle({
+      tabId: tab.id,
+      title: 'Anchor Selector — allow site access to use',
+    });
+    return;
+  }
+  await browser.action.setIcon({ tabId: tab.id, ...DEFAULT_ICON });
+  await browser.action.setTitle({
+    tabId: tab.id,
+    title: 'jump to the anchored element',
+  });
+}
+
+function refreshAllTabIcons() {
+  return browser.tabs.query({}).then((tabs) =>
+    Promise.all(tabs.map((tab) => updateActionIconForTab(tab))),
+  );
+}
+
+browser.tabs.onActivated.addListener(({ tabId }) => {
+  browser.tabs.get(tabId).then(updateActionIconForTab);
+});
+
+browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' || changeInfo.url) {
+    updateActionIconForTab({ ...tab, id: tabId });
+  }
+});
+
+browser.permissions.onAdded.addListener(refreshAllTabIcons);
+browser.permissions.onRemoved.addListener(refreshAllTabIcons);
 
 browser.action.onClicked.addListener((tab) => {
   variables.config.getAll().then((config) =>
@@ -24,6 +93,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
       });
       break;
     case 'open':
+      selectingTabs.add(sender.tab.id);
       return makeActiveIcon().then((img) =>
         browser.action.setIcon({
           imageData: img,
@@ -31,11 +101,8 @@ browser.runtime.onMessage.addListener((message, sender) => {
         }),
       );
     case 'close':
-      browser.action.setIcon({
-        path: 'icons/anchor-selector.svg',
-        tabId: sender.tab.id,
-      });
-      break;
+      selectingTabs.delete(sender.tab.id);
+      return updateActionIconForTab({ id: sender.tab.id });
     case 'get-config':
       return browser.storage.sync
         .get(message.key)
@@ -64,7 +131,10 @@ browser.runtime.onInstalled.addListener(async ({ reason }) => {
       },
     ]);
   }
+  await refreshAllTabIcons();
   if (reason === 'install') {
     browser.runtime.openOptionsPage();
   }
 });
+
+browser.runtime.onStartup.addListener(refreshAllTabIcons);
