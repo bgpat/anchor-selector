@@ -17,10 +17,6 @@
     "scripts": ["dist/background.js"],
     "service_worker": "dist/background.js"
   },
-  "optional_host_permissions": [
-    "http://*/*",
-    "https://*/*"
-  ],
   "action": {
     "default_icon": {
       "48": "icons/anchor-selector.png"
@@ -37,6 +33,7 @@
     "page": "options.html"
   },
   "permissions": [
+    "activeTab",
     "scripting",
     "storage",
     "tabs"
