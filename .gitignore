@@ -3,3 +3,8 @@ node_modules/
 .wxt/
 dist/
 web-ext-artifacts/
+e2e/firefox-profile/
+e2e/test-results/
+e2e/report/
+playwright-report/
+test-results/

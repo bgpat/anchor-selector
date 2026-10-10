@@ -45,3 +45,12 @@ bun run build:firefox
 bun run zip
 bun run zip:firefox
 ```
+
+### End-to-end tests (Chrome & Firefox)
+
+```bash
+bun run build && bun run build:firefox
+xvfb-run -a bun run test:e2e
+```
+
+CI uploads screen recordings from each browser as workflow artifacts (`e2e-recording-chrome` / `e2e-recording-firefox`).
