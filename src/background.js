@@ -6,26 +6,9 @@ import {
   CONTENT_SCRIPT_MARKER,
 } from '@/util';
 
-function getDefaultIconPaths() {
-  return {
-    16: 'icons/anchor-selector.png',
-    32: 'icons/anchor-selector.png',
-    48: 'icons/anchor-selector.png',
-  };
-}
-
 const selectingTabs = new Set();
 /** Tabs where inject failed after a toolbar click (show badge until URL changes). */
 const injectFailedTabs = new Set();
-
-/** One-time cleanup for older builds that changed the tab icon via imageData. */
-async function resetLegacyTabIcon(tabId) {
-  try {
-    await browser.action.setIcon({ tabId, path: getDefaultIconPaths() });
-  } catch {
-    // tab may have closed
-  }
-}
 
 async function showSelectingBadge(tabId) {
   const { background, text, textColor } = await getSelectingBadgeStyle();
@@ -237,15 +220,6 @@ browser.runtime.onMessage.addListener((message, sender) => {
 });
 
 async function initActionState() {
-  try {
-    await browser.action.setIcon({ path: getDefaultIconPaths() });
-  } catch {
-    // ignore
-  }
-  const tabs = await browser.tabs.query({});
-  await Promise.all(
-    tabs.map((tab) => (tab.id == null ? null : resetLegacyTabIcon(tab.id))),
-  );
   await browser.action.disable();
   await refreshAllTabs();
 }
