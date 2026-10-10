@@ -16,16 +16,8 @@ browser.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
   }
 });
 
-async function injectAndClose() {
-  await browser.scripting.executeScript({
-    target: { tabId: currentTab.id },
-    files: ['dist/content_script.js'],
-  });
-  await browser.scripting.insertCSS({
-    target: { tabId: currentTab.id },
-    files: ['stylesheets/overlay.css'],
-  });
-  await browser.action.setPopup({ tabId: currentTab.id, popup: '' });
+async function onGranted() {
+  await browser.runtime.sendMessage({ type: 'permissions-changed' });
   window.close();
 }
 
@@ -34,12 +26,12 @@ btnSite.addEventListener('click', async () => {
   const granted = await browser.permissions.request({
     origins: [originPattern],
   });
-  if (granted) await injectAndClose();
+  if (granted) await onGranted();
 });
 
 btnAll.addEventListener('click', async () => {
   const granted = await browser.permissions.request({
     origins: ['*://*/*'],
   });
-  if (granted) await injectAndClose();
+  if (granted) await onGranted();
 });

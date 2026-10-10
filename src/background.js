@@ -39,6 +39,56 @@ async function hasOriginPermission(url) {
   return browser.permissions.contains({ origins: [pattern] });
 }
 
+async function isContentScriptReady(tabId) {
+  try {
+    await browser.tabs.sendMessage(tabId, { type: 'ping' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureContentScriptOnTab(tab) {
+  if (tab.id == null) {
+    return;
+  }
+  let url = tab.url;
+  if (!url) {
+    try {
+      url = (await browser.tabs.get(tab.id)).url;
+    } catch {
+      return;
+    }
+  }
+  const pattern = originPatternFromUrl(url);
+  if (!pattern) {
+    return;
+  }
+  if (!(await browser.permissions.contains({ origins: [pattern] }))) {
+    return;
+  }
+  if (await isContentScriptReady(tab.id)) {
+    return;
+  }
+  try {
+    await browser.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['dist/content_script.js'],
+    });
+    await browser.scripting.insertCSS({
+      target: { tabId: tab.id },
+      files: ['stylesheets/overlay.css'],
+    });
+  } catch {
+    // e.g. chrome:// pages
+  }
+}
+
+async function ensureContentScriptsOnAllTabs() {
+  const tabs = await browser.tabs.query({});
+  await Promise.all(tabs.map((tab) => ensureContentScriptOnTab(tab)));
+}
+
 async function syncContentScripts() {
   const { origins = [] } = await browser.permissions.getAll();
   const registered = await browser.scripting.getRegisteredContentScripts();
@@ -98,6 +148,7 @@ async function updateActionIconForTab(tab) {
   }
   await browser.action.setIcon({ tabId: tab.id, ...DEFAULT_ICON });
   await clearAccessBadge(tab.id);
+  await browser.action.setPopup({ tabId: tab.id, popup: '' });
   await browser.action.setTitle({
     tabId: tab.id,
     title: 'jump to the anchored element',
@@ -112,6 +163,7 @@ function refreshAllTabIcons() {
 
 async function onPermissionsChanged() {
   await syncContentScripts();
+  await ensureContentScriptsOnAllTabs();
   await refreshAllTabIcons();
 }
 
@@ -181,6 +233,8 @@ browser.runtime.onMessage.addListener((message, sender) => {
     case 'new-window':
       browser.windows.create({ url: message.url });
       break;
+    case 'permissions-changed':
+      return onPermissionsChanged();
   }
 });
 

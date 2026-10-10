@@ -4,6 +4,8 @@ import Overlay from '@/overlay';
 
 browser.runtime.onMessage.addListener((message) => {
   switch (message.type) {
+    case 'ping':
+      return true;
     case type.click:
       if (Overlay.isActive) {
         return Overlay.current.close();
