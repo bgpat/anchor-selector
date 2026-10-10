@@ -36,6 +36,10 @@ async function hasOriginPermission(url) {
   if (!pattern) {
     return false;
   }
+  const { origins = [] } = await browser.permissions.getAll();
+  if (origins.includes('*://*/*') || origins.includes(pattern)) {
+    return true;
+  }
   return browser.permissions.contains({ origins: [pattern] });
 }
 
@@ -64,7 +68,7 @@ async function ensureContentScriptOnTab(tab) {
   if (!pattern) {
     return;
   }
-  if (!(await browser.permissions.contains({ origins: [pattern] }))) {
+  if (!(await hasOriginPermission(url))) {
     return;
   }
   if (await isContentScriptReady(tab.id)) {
@@ -135,7 +139,7 @@ async function updateActionIconForTab(tab) {
     await clearAccessBadge(tab.id);
     return;
   }
-  const granted = await browser.permissions.contains({ origins: [pattern] });
+  const granted = await hasOriginPermission(url);
   if (!granted) {
     await browser.action.setIcon({ tabId: tab.id, ...DEFAULT_ICON });
     await setNeedsAccessBadge(tab.id);
@@ -161,10 +165,17 @@ function refreshAllTabIcons() {
   );
 }
 
-async function onPermissionsChanged() {
+async function onPermissionsChanged(focusTabId) {
   await syncContentScripts();
   await ensureContentScriptsOnAllTabs();
   await refreshAllTabIcons();
+  if (focusTabId != null) {
+    try {
+      await updateActionIconForTab(await browser.tabs.get(focusTabId));
+    } catch {
+      // tab may have closed
+    }
+  }
 }
 
 browser.tabs.onActivated.addListener(({ tabId }) => {
@@ -177,8 +188,8 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 });
 
-browser.permissions.onAdded.addListener(onPermissionsChanged);
-browser.permissions.onRemoved.addListener(onPermissionsChanged);
+browser.permissions.onAdded.addListener(() => onPermissionsChanged());
+browser.permissions.onRemoved.addListener(() => onPermissionsChanged());
 
 browser.action.onClicked.addListener(async (tab) => {
   if (!(await hasOriginPermission(tab.url))) {
@@ -234,7 +245,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
       browser.windows.create({ url: message.url });
       break;
     case 'permissions-changed':
-      return onPermissionsChanged();
+      return onPermissionsChanged(message.tabId);
   }
 });
 
