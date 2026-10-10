@@ -9,6 +9,19 @@ import {
 const selectingTabs = new Set();
 /** Tabs where inject failed after a toolbar click (show badge until URL changes). */
 const injectFailedTabs = new Set();
+/** Bumped on close so in-flight makeActiveIcon cannot repaint after overlay ends. */
+const actionIconEpoch = new Map();
+const DEFAULT_ACTION_ICON = {
+  path: {
+    16: 'icons/anchor-selector.png',
+    32: 'icons/anchor-selector.png',
+    48: 'icons/anchor-selector.png',
+  },
+};
+
+async function resetActionIcon(tabId) {
+  await browser.action.setIcon({ tabId, ...DEFAULT_ACTION_ICON });
+}
 const TITLE_READY = 'jump to the anchored element';
 const TITLE_UNAVAILABLE =
   'Anchor Selector — not available on this page';
@@ -166,26 +179,36 @@ browser.action.onClicked.addListener(async (tab) => {
 
 browser.runtime.onMessage.addListener((message, sender) => {
   switch (message.type) {
-    case 'open':
-      selectingTabs.add(sender.tab.id);
+    case 'open': {
+      const tabId = sender.tab.id;
+      selectingTabs.add(tabId);
+      const epochAtOpen = actionIconEpoch.get(tabId) ?? 0;
       return makeActiveIcon()
-        .then((img) =>
-          browser.action.setIcon({
+        .then((img) => {
+          if ((actionIconEpoch.get(tabId) ?? 0) !== epochAtOpen) {
+            return;
+          }
+          if (!selectingTabs.has(tabId)) {
+            return;
+          }
+          return browser.action.setIcon({
             imageData: img,
-            tabId: sender.tab.id,
-          }),
-        )
+            tabId,
+          });
+        })
         .catch(() => {
-          selectingTabs.delete(sender.tab.id);
-          return updateActionForTab({ id: sender.tab.id });
+          selectingTabs.delete(tabId);
+          return updateActionForTab({ id: tabId });
         });
-    case 'close':
-      selectingTabs.delete(sender.tab.id);
-      browser.action.setIcon({
-        path: 'icons/anchor-selector.svg',
-        tabId: sender.tab.id,
-      });
-      return updateActionForTab({ id: sender.tab.id });
+    }
+    case 'close': {
+      const tabId = sender.tab.id;
+      selectingTabs.delete(tabId);
+      actionIconEpoch.set(tabId, (actionIconEpoch.get(tabId) ?? 0) + 1);
+      return resetActionIcon(tabId).then(() =>
+        updateActionForTab({ id: tabId }),
+      );
+    }
     case 'get-config':
       return browser.storage.sync
         .get(message.key)
