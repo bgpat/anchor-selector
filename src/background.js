@@ -3,12 +3,9 @@ import {
   type,
   variables,
   makeDefaultIcon,
-  getSelectionAccentColor,
+  makeIconWithNotificationDot,
   CONTENT_SCRIPT_MARKER,
 } from '@/util';
-
-/** Colored dot on the action icon (no visible badge text). */
-const SELECTION_NOTIFICATION_MARK = ' ';
 
 function getDefaultIconPaths() {
   const png = browser.runtime.getURL('icons/anchor-selector.png');
@@ -18,6 +15,8 @@ function getDefaultIconPaths() {
 const selectingTabs = new Set();
 /** Tabs where inject failed after a toolbar click (show badge until URL changes). */
 const injectFailedTabs = new Set();
+/** Ignore stale icon updates after selection ends. */
+const selectionIconEpoch = new Map();
 let defaultActionIconImageData = null;
 
 async function getDefaultActionIconImageData() {
@@ -52,31 +51,28 @@ async function setGlobalDefaultActionIcon() {
   await browser.action.setIcon({ path: getDefaultIconPaths() });
 }
 
-async function showSelectionNotificationMark(tabId) {
-  const color = await getSelectionAccentColor();
-  await browser.action.setBadgeBackgroundColor({ tabId, color });
-  await browser.action.setBadgeTextColor({ tabId, color });
-  await browser.action.setBadgeText({
-    tabId,
-    text: SELECTION_NOTIFICATION_MARK,
-  });
-}
-
-async function clearSelectionNotificationMark(tabId) {
-  await browser.action.setBadgeText({ tabId, text: '' });
-}
-
 async function endSelectionForTab(tabId) {
   selectingTabs.delete(tabId);
-  await clearSelectionNotificationMark(tabId);
+  selectionIconEpoch.set(tabId, (selectionIconEpoch.get(tabId) ?? 0) + 1);
   await resetActionIcon(tabId);
   await updateActionForTab({ id: tabId });
 }
 
 async function startSelectionForTab(tabId) {
   selectingTabs.add(tabId);
+  const epochAtOpen = selectionIconEpoch.get(tabId) ?? 0;
   try {
-    await showSelectionNotificationMark(tabId);
+    const imageData = await makeIconWithNotificationDot();
+    if ((selectionIconEpoch.get(tabId) ?? 0) !== epochAtOpen) {
+      return;
+    }
+    if (!selectingTabs.has(tabId)) {
+      return;
+    }
+    await browser.action.setIcon({
+      tabId,
+      imageData: cloneImageData(imageData),
+    });
   } catch {
     selectingTabs.delete(tabId);
     await updateActionForTab({ id: tabId });
