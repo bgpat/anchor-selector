@@ -2,6 +2,7 @@ import browser from 'webextension-polyfill';
 import { type, variables, makeActiveIcon, makeLockedIcon } from '@/util';
 
 const DEFAULT_ICON = { path: 'icons/anchor-selector.svg' };
+const CONTENT_SCRIPT_ID = 'anchor-selector';
 const selectingTabs = new Set();
 
 function originPatternFromUrl(url) {
@@ -13,6 +14,42 @@ function originPatternFromUrl(url) {
     return `${parsed.protocol}//${parsed.host}/*`;
   } catch {
     return null;
+  }
+}
+
+async function hasOriginPermission(url) {
+  const pattern = originPatternFromUrl(url);
+  if (!pattern) {
+    return false;
+  }
+  return browser.permissions.contains({ origins: [pattern] });
+}
+
+async function syncContentScripts() {
+  const { origins = [] } = await browser.permissions.getAll();
+  const registered = await browser.scripting.getRegisteredContentScripts();
+  const exists = registered.some((r) => r.id === CONTENT_SCRIPT_ID);
+
+  if (origins.length === 0) {
+    if (exists) {
+      await browser.scripting.unregisterContentScripts({
+        ids: [CONTENT_SCRIPT_ID],
+      });
+    }
+    return;
+  }
+
+  const script = {
+    id: CONTENT_SCRIPT_ID,
+    matches: origins,
+    js: ['dist/content_script.js'],
+    css: ['stylesheets/overlay.css'],
+  };
+
+  if (exists) {
+    await browser.scripting.updateContentScripts([script]);
+  } else {
+    await browser.scripting.registerContentScripts([script]);
   }
 }
 
@@ -57,6 +94,11 @@ function refreshAllTabIcons() {
   );
 }
 
+async function onPermissionsChanged() {
+  await syncContentScripts();
+  await refreshAllTabIcons();
+}
+
 browser.tabs.onActivated.addListener(({ tabId }) => {
   browser.tabs.get(tabId).then(updateActionIconForTab);
 });
@@ -67,31 +109,37 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 });
 
-browser.permissions.onAdded.addListener(refreshAllTabIcons);
-browser.permissions.onRemoved.addListener(refreshAllTabIcons);
+browser.permissions.onAdded.addListener(onPermissionsChanged);
+browser.permissions.onRemoved.addListener(onPermissionsChanged);
 
-browser.action.onClicked.addListener((tab) => {
-  variables.config.getAll().then((config) =>
-    browser.tabs.sendMessage(tab.id, {
-      type: type.click,
-      config,
-    }),
-  );
+browser.action.onClicked.addListener(async (tab) => {
+  if (!(await hasOriginPermission(tab.url))) {
+    return;
+  }
+  const config = await variables.config.getAll();
+  await browser.tabs.sendMessage(tab.id, {
+    type: type.click,
+    config,
+  });
 });
 
 browser.runtime.onMessage.addListener((message, sender) => {
   switch (message.type) {
     case 'load':
-      browser.action.setPopup({ tabId: sender.tab.id, popup: '' });
-      browser.action.setTitle({
-        title: 'jump to the anchored element',
-        tabId: sender.tab.id,
+      return hasOriginPermission(sender.url).then((granted) => {
+        if (!granted) {
+          return;
+        }
+        browser.action.setPopup({ tabId: sender.tab.id, popup: '' });
+        browser.action.setTitle({
+          title: 'jump to the anchored element',
+          tabId: sender.tab.id,
+        });
+        browser.action.setIcon({
+          path: 'icons/anchor-selector.svg',
+          tabId: sender.tab.id,
+        });
       });
-      browser.action.setIcon({
-        path: 'icons/anchor-selector.svg',
-        tabId: sender.tab.id,
-      });
-      break;
     case 'open':
       selectingTabs.add(sender.tab.id);
       return makeActiveIcon().then((img) =>
@@ -120,21 +168,14 @@ browser.runtime.onMessage.addListener((message, sender) => {
 });
 
 browser.runtime.onInstalled.addListener(async ({ reason }) => {
-  const registered = await browser.scripting.getRegisteredContentScripts();
-  if (registered.length === 0) {
-    await browser.scripting.registerContentScripts([
-      {
-        id: 'anchor-selector',
-        matches: ['*://*/*'],
-        js: ['dist/content_script.js'],
-        css: ['stylesheets/overlay.css'],
-      },
-    ]);
-  }
+  await syncContentScripts();
   await refreshAllTabIcons();
   if (reason === 'install') {
     browser.runtime.openOptionsPage();
   }
 });
 
-browser.runtime.onStartup.addListener(refreshAllTabIcons);
+browser.runtime.onStartup.addListener(async () => {
+  await syncContentScripts();
+  await refreshAllTabIcons();
+});
