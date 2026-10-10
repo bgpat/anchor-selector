@@ -35,15 +35,16 @@ export function makeDefaultIcon() {
   return rasterizeAnchor('#555555', 0.7);
 }
 
-export function makeActiveIcon() {
+export function getSelectionAccentColor() {
   return variables.config.get('hue').then((hue) =>
-    rasterizeAnchor(
-      Color.hsl(
-        hue,
-        variables.overlay.selecting.stroke.saturation,
-        variables.overlay.selecting.stroke.lightness,
-      ).hex(),
-      0.9,
-    ),
+    Color.hsl(
+      hue,
+      variables.overlay.selecting.stroke.saturation,
+      variables.overlay.selecting.stroke.lightness,
+    ).hex(),
   );
+}
+
+export function makeActiveIcon() {
+  return getSelectionAccentColor().then((hex) => rasterizeAnchor(hex, 0.9));
 }

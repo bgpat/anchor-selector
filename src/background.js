@@ -4,8 +4,11 @@ import {
   variables,
   makeActiveIcon,
   makeDefaultIcon,
+  getSelectionAccentColor,
   CONTENT_SCRIPT_MARKER,
 } from '@/util';
+
+const SELECTING_BADGE = '●';
 
 function getDefaultIconPaths() {
   const png = browser.runtime.getURL('icons/anchor-selector.png');
@@ -54,28 +57,60 @@ async function setGlobalDefaultActionIcon() {
   await browser.action.setIcon({ path: getDefaultIconPaths() });
 }
 
+let usesColoredTabIconPromise = null;
+
+/** Firefox resets tab icons reliably; Chromium MV3 tab imageData often sticks until navigation. */
+async function usesColoredTabIcon() {
+  if (!usesColoredTabIconPromise) {
+    usesColoredTabIconPromise = (async () => {
+      try {
+        const { name } = await browser.runtime.getBrowserInfo();
+        return name === 'Firefox';
+      } catch {
+        return false;
+      }
+    })();
+  }
+  return usesColoredTabIconPromise;
+}
+
+async function showSelectingBadge(tabId) {
+  const color = await getSelectionAccentColor();
+  await browser.action.setBadgeBackgroundColor({ tabId, color });
+  await browser.action.setBadgeText({ tabId, text: SELECTING_BADGE });
+}
+
+async function clearSelectingBadge(tabId) {
+  await browser.action.setBadgeText({ tabId, text: '' });
+}
+
 async function endSelectionForTab(tabId) {
   selectingTabs.delete(tabId);
   actionIconEpoch.set(tabId, (actionIconEpoch.get(tabId) ?? 0) + 1);
+  await clearSelectingBadge(tabId);
   await resetActionIcon(tabId);
   await updateActionForTab({ id: tabId });
 }
 
 async function startSelectionForTab(tabId) {
   selectingTabs.add(tabId);
-  const epochAtOpen = actionIconEpoch.get(tabId) ?? 0;
   try {
-    const img = await makeActiveIcon();
-    if ((actionIconEpoch.get(tabId) ?? 0) !== epochAtOpen) {
+    if (await usesColoredTabIcon()) {
+      const epochAtOpen = actionIconEpoch.get(tabId) ?? 0;
+      const img = await makeActiveIcon();
+      if ((actionIconEpoch.get(tabId) ?? 0) !== epochAtOpen) {
+        return;
+      }
+      if (!selectingTabs.has(tabId)) {
+        return;
+      }
+      await browser.action.setIcon({
+        tabId,
+        imageData: cloneImageData(img),
+      });
       return;
     }
-    if (!selectingTabs.has(tabId)) {
-      return;
-    }
-    await browser.action.setIcon({
-      tabId,
-      imageData: cloneImageData(img),
-    });
+    await showSelectingBadge(tabId);
   } catch {
     selectingTabs.delete(tabId);
     await updateActionForTab({ id: tabId });
@@ -143,16 +178,22 @@ async function updateActionForTab(tab) {
   const url = await getTabUrl(tab);
   if (!url || !isWebPage(url)) {
     await markUnavailable(tab.id);
-    await resetActionIcon(tab.id);
+    if (await usesColoredTabIcon()) {
+      await resetActionIcon(tab.id);
+    }
     return;
   }
   if (injectFailedTabs.has(tab.id)) {
     await markUnavailableAfterClick(tab.id);
-    await resetActionIcon(tab.id);
+    if (await usesColoredTabIcon()) {
+      await resetActionIcon(tab.id);
+    }
     return;
   }
   await markAvailable(tab.id);
-  await resetActionIcon(tab.id);
+  if (await usesColoredTabIcon()) {
+    await resetActionIcon(tab.id);
+  }
 }
 
 function refreshAllTabs() {
@@ -264,8 +305,18 @@ browser.runtime.onMessage.addListener((message, sender) => {
   }
 });
 
+async function clearLegacyTabIcons() {
+  const tabs = await browser.tabs.query({});
+  await Promise.all(
+    tabs.map((tab) => (tab.id == null ? null : resetActionIcon(tab.id))),
+  );
+}
+
 async function initActionState() {
   await setGlobalDefaultActionIcon();
+  if (!(await usesColoredTabIcon())) {
+    await clearLegacyTabIcons();
+  }
   await browser.action.disable();
   await refreshAllTabs();
 }
