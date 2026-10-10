@@ -7,8 +7,8 @@ import {
   CONTENT_SCRIPT_MARKER,
 } from '@/util';
 
-const SELECTING_BADGE = '●';
-const SELECTING_BADGE_TEXT_COLOR = '#FFFFFF';
+/** Colored dot on the action icon (no visible badge text). */
+const SELECTION_NOTIFICATION_MARK = ' ';
 
 function getDefaultIconPaths() {
   const png = browser.runtime.getURL('icons/anchor-selector.png');
@@ -52,23 +52,23 @@ async function setGlobalDefaultActionIcon() {
   await browser.action.setIcon({ path: getDefaultIconPaths() });
 }
 
-async function showSelectingBadge(tabId) {
+async function showSelectionNotificationMark(tabId) {
   const color = await getSelectionAccentColor();
   await browser.action.setBadgeBackgroundColor({ tabId, color });
-  await browser.action.setBadgeTextColor({
+  await browser.action.setBadgeTextColor({ tabId, color });
+  await browser.action.setBadgeText({
     tabId,
-    color: SELECTING_BADGE_TEXT_COLOR,
+    text: SELECTION_NOTIFICATION_MARK,
   });
-  await browser.action.setBadgeText({ tabId, text: SELECTING_BADGE });
 }
 
-async function clearSelectingBadge(tabId) {
+async function clearSelectionNotificationMark(tabId) {
   await browser.action.setBadgeText({ tabId, text: '' });
 }
 
 async function endSelectionForTab(tabId) {
   selectingTabs.delete(tabId);
-  await clearSelectingBadge(tabId);
+  await clearSelectionNotificationMark(tabId);
   await resetActionIcon(tabId);
   await updateActionForTab({ id: tabId });
 }
@@ -76,7 +76,7 @@ async function endSelectionForTab(tabId) {
 async function startSelectionForTab(tabId) {
   selectingTabs.add(tabId);
   try {
-    await showSelectingBadge(tabId);
+    await showSelectionNotificationMark(tabId);
   } catch {
     selectingTabs.delete(tabId);
     await updateActionForTab({ id: tabId });
