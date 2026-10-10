@@ -107,8 +107,25 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 });
 
+async function sendClickToTab(tabId, config) {
+  await browser.tabs.sendMessage(tabId, {
+    type: type.click,
+    config,
+  });
+}
+
 browser.action.onClicked.addListener(async (tab) => {
   if (!isWebPage(tab.url)) {
+    return;
+  }
+  const config = await variables.config.getAll();
+  if (selectingTabs.has(tab.id)) {
+    try {
+      await sendClickToTab(tab.id, config);
+    } catch {
+      selectingTabs.delete(tab.id);
+      await updateActionForTab(tab);
+    }
     return;
   }
   try {
@@ -120,11 +137,7 @@ browser.action.onClicked.addListener(async (tab) => {
     return;
   }
   await markAvailable(tab.id);
-  const config = await variables.config.getAll();
-  await browser.tabs.sendMessage(tab.id, {
-    type: type.click,
-    config,
-  });
+  await sendClickToTab(tab.id, config);
 });
 
 browser.runtime.onMessage.addListener((message, sender) => {
