@@ -3,7 +3,6 @@ import { type, variables, makeActiveIcon } from '@/util';
 
 const selectingTabs = new Set();
 const BADGE_UNAVAILABLE = '!';
-const BADGE_UNAVAILABLE_COLOR = '#C62828';
 const TITLE_READY = 'jump to the anchored element';
 const TITLE_UNAVAILABLE =
   'Anchor Selector — not available on this page';
@@ -32,10 +31,6 @@ async function getTabUrl(tab) {
 }
 
 async function markUnavailable(tabId) {
-  await browser.action.setBadgeBackgroundColor({
-    tabId,
-    color: BADGE_UNAVAILABLE_COLOR,
-  });
   await browser.action.setBadgeText({ tabId, text: BADGE_UNAVAILABLE });
   await browser.action.setTitle({ tabId, title: TITLE_UNAVAILABLE });
 }
