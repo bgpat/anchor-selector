@@ -249,12 +249,9 @@ browser.runtime.onMessage.addListener((message, sender) => {
   }
 });
 
-browser.runtime.onInstalled.addListener(async ({ reason }) => {
+browser.runtime.onInstalled.addListener(async () => {
   await syncContentScripts();
   await refreshAllTabIcons();
-  if (reason === 'install') {
-    browser.runtime.openOptionsPage();
-  }
 });
 
 browser.runtime.onStartup.addListener(async () => {
