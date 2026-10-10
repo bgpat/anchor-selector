@@ -1,7 +1,6 @@
 import browser from 'webextension-polyfill';
 import { type, variables, makeActiveIcon } from '@/util';
 
-const DEFAULT_ICON = { path: 'icons/anchor-selector.svg' };
 const selectingTabs = new Set();
 
 function isWebPage(url) {
@@ -44,6 +43,10 @@ browser.action.onClicked.addListener(async (tab) => {
   } catch {
     return;
   }
+  await browser.action.setTitle({
+    tabId: tab.id,
+    title: 'jump to the anchored element',
+  });
   const config = await variables.config.getAll();
   await browser.tabs.sendMessage(tab.id, {
     type: type.click,
@@ -53,16 +56,6 @@ browser.action.onClicked.addListener(async (tab) => {
 
 browser.runtime.onMessage.addListener((message, sender) => {
   switch (message.type) {
-    case 'load':
-      browser.action.setTitle({
-        title: 'jump to the anchored element',
-        tabId: sender.tab.id,
-      });
-      browser.action.setIcon({
-        path: 'icons/anchor-selector.svg',
-        tabId: sender.tab.id,
-      });
-      break;
     case 'open':
       selectingTabs.add(sender.tab.id);
       return makeActiveIcon().then((img) =>

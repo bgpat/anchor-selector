@@ -27,5 +27,3 @@ window.addEventListener(
   },
   false,
 );
-
-browser.runtime.sendMessage({ type: 'load' });
