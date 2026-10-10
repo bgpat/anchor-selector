@@ -2,8 +2,7 @@ import browser from 'webextension-polyfill';
 import {
   type,
   variables,
-  makeDefaultIcon,
-  makeIconWithNotificationDot,
+  getSelectingBadgeStyle,
   CONTENT_SCRIPT_MARKER,
 } from '@/util';
 
@@ -15,40 +14,9 @@ function getDefaultIconPaths() {
 const selectingTabs = new Set();
 /** Tabs where inject failed after a toolbar click (show badge until URL changes). */
 const injectFailedTabs = new Set();
-/** Ignore stale icon updates after selection ends. */
-const selectionIconEpoch = new Map();
-function cloneImageData(src) {
-  return new ImageData(
-    new Uint8ClampedArray(src.data),
-    src.width,
-    src.height,
-  );
-}
 
-let tabIconDotSupportedPromise = null;
-
-/** Chromium often keeps tab action imageData until navigation; avoid dot overlays there. */
-async function tabIconDotSupported() {
-  if (!tabIconDotSupportedPromise) {
-    tabIconDotSupportedPromise = (async () => {
-      if (typeof browser.runtime.getBrowserInfo !== 'function') {
-        return false;
-      }
-      try {
-        const { name } = await browser.runtime.getBrowserInfo();
-        return name === 'Firefox';
-      } catch {
-        return false;
-      }
-    })();
-  }
-  return tabIconDotSupportedPromise;
-}
-
-/** Clear per-tab icon override (dot overlay or legacy full tint). */
-async function resetActionIcon(tabId) {
-  const imageData = await makeDefaultIcon();
-  await browser.action.setIcon({ tabId, imageData }).catch(() => {});
+/** One-time cleanup for older builds that changed the tab icon via imageData. */
+async function resetLegacyTabIcon(tabId) {
   await browser.action
     .setIcon({ tabId, imageData: {} })
     .catch(() => {});
@@ -57,36 +25,27 @@ async function resetActionIcon(tabId) {
     .catch(() => {});
 }
 
-async function setGlobalDefaultActionIcon() {
-  await browser.action.setIcon({ path: getDefaultIconPaths() });
+async function showSelectingBadge(tabId) {
+  const { background, text, textColor } = await getSelectingBadgeStyle();
+  await browser.action.setBadgeBackgroundColor({ tabId, color: background });
+  await browser.action.setBadgeTextColor({ tabId, color: textColor });
+  await browser.action.setBadgeText({ tabId, text });
+}
+
+async function clearSelectingBadge(tabId) {
+  await browser.action.setBadgeText({ tabId, text: '' });
 }
 
 async function endSelectionForTab(tabId) {
   selectingTabs.delete(tabId);
-  selectionIconEpoch.set(tabId, (selectionIconEpoch.get(tabId) ?? 0) + 1);
-  await resetActionIcon(tabId);
+  await clearSelectingBadge(tabId);
   await updateActionForTab({ id: tabId });
 }
 
 async function startSelectionForTab(tabId) {
   selectingTabs.add(tabId);
   try {
-    if (await tabIconDotSupported()) {
-      const epochAtOpen = selectionIconEpoch.get(tabId) ?? 0;
-      const imageData = await makeIconWithNotificationDot();
-      if ((selectionIconEpoch.get(tabId) ?? 0) !== epochAtOpen) {
-        return;
-      }
-      if (!selectingTabs.has(tabId)) {
-        return;
-      }
-      await browser.action.setIcon({
-        tabId,
-        imageData: cloneImageData(imageData),
-      });
-      return;
-    }
-    await browser.action.setTitle({ tabId, title: TITLE_SELECTING });
+    await showSelectingBadge(tabId);
   } catch {
     selectingTabs.delete(tabId);
     await updateActionForTab({ id: tabId });
@@ -103,8 +62,6 @@ async function applyOverlayClickResult(tabId, result) {
 }
 
 const TITLE_READY = 'jump to the anchored element';
-const TITLE_SELECTING =
-  'Selecting anchor — click extension icon to cancel';
 const TITLE_UNAVAILABLE =
   'Anchor Selector — not available on this page';
 
@@ -159,16 +116,13 @@ async function updateActionForTab(tab) {
   const url = await getTabUrl(tab);
   if (!url || !isWebPage(url)) {
     await markUnavailable(tab.id);
-    await resetActionIcon(tab.id);
     return;
   }
   if (injectFailedTabs.has(tab.id)) {
     await markUnavailableAfterClick(tab.id);
-    await resetActionIcon(tab.id);
     return;
   }
   await markAvailable(tab.id);
-  await resetActionIcon(tab.id);
 }
 
 function refreshAllTabs() {
@@ -280,16 +234,12 @@ browser.runtime.onMessage.addListener((message, sender) => {
   }
 });
 
-async function clearLegacyTabIcons() {
+async function initActionState() {
+  await browser.action.setIcon({ path: getDefaultIconPaths() });
   const tabs = await browser.tabs.query({});
   await Promise.all(
-    tabs.map((tab) => (tab.id == null ? null : resetActionIcon(tab.id))),
+    tabs.map((tab) => (tab.id == null ? null : resetLegacyTabIcon(tab.id))),
   );
-}
-
-async function initActionState() {
-  await setGlobalDefaultActionIcon();
-  await clearLegacyTabIcons();
   await browser.action.disable();
   await refreshAllTabs();
 }
