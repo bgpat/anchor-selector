@@ -1,9 +1,23 @@
 import browser from 'webextension-polyfill';
-import { type, variables, makeActiveIcon, makeLockedIcon } from '@/util';
+import { type, variables, makeActiveIcon } from '@/util';
 
 const DEFAULT_ICON = { path: 'icons/anchor-selector.svg' };
 const CONTENT_SCRIPT_ID = 'anchor-selector';
+const BADGE_NEEDS_ACCESS = '?';
+const BADGE_NEEDS_ACCESS_COLOR = '#E65100';
 const selectingTabs = new Set();
+
+async function setNeedsAccessBadge(tabId) {
+  await browser.action.setBadgeBackgroundColor({
+    tabId,
+    color: BADGE_NEEDS_ACCESS_COLOR,
+  });
+  await browser.action.setBadgeText({ tabId, text: BADGE_NEEDS_ACCESS });
+}
+
+async function clearAccessBadge(tabId) {
+  await browser.action.setBadgeText({ tabId, text: '' });
+}
 
 function originPatternFromUrl(url) {
   try {
@@ -68,12 +82,13 @@ async function updateActionIconForTab(tab) {
   const pattern = originPatternFromUrl(url);
   if (!pattern) {
     await browser.action.setIcon({ tabId: tab.id, ...DEFAULT_ICON });
+    await clearAccessBadge(tab.id);
     return;
   }
   const granted = await browser.permissions.contains({ origins: [pattern] });
   if (!granted) {
-    const imageData = await makeLockedIcon();
-    await browser.action.setIcon({ tabId: tab.id, imageData });
+    await browser.action.setIcon({ tabId: tab.id, ...DEFAULT_ICON });
+    await setNeedsAccessBadge(tab.id);
     await browser.action.setPopup({ tabId: tab.id, popup: 'popup.html' });
     await browser.action.setTitle({
       tabId: tab.id,
@@ -82,6 +97,7 @@ async function updateActionIconForTab(tab) {
     return;
   }
   await browser.action.setIcon({ tabId: tab.id, ...DEFAULT_ICON });
+  await clearAccessBadge(tab.id);
   await browser.action.setTitle({
     tabId: tab.id,
     title: 'jump to the anchored element',
@@ -139,6 +155,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
           path: 'icons/anchor-selector.svg',
           tabId: sender.tab.id,
         });
+        clearAccessBadge(sender.tab.id);
       });
     case 'open':
       selectingTabs.add(sender.tab.id);
