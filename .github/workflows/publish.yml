@@ -24,6 +24,5 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - run: bun run build
-      - run: bunx web-ext build --source-dir . --artifacts-dir web-ext-artifacts --overwrite-dest
+      - run: if [ "${{ matrix.browser }}" = "firefox" ]; then bun run zip:firefox; else bun run zip; fi
       - run: bun run publish:${{ matrix.browser }}

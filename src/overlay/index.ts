@@ -1,5 +1,5 @@
 // @ts-nocheck
-import browser from 'webextension-polyfill';
+import { browser } from 'wxt/browser';
 import Container from './container';
 import { variables } from '@/util';
 

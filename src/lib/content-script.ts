@@ -1,4 +1,4 @@
-import browser from 'webextension-polyfill';
+import { browser } from 'wxt/browser';
 import { type, CONTENT_SCRIPT_MARKER } from '@/util';
 import type { StoredConfig } from '@/util/config';
 import Overlay from '@/overlay';
@@ -7,7 +7,7 @@ type ContentMessage =
   | { type: 'ping' }
   | { type: typeof type.click; config: StoredConfig };
 
-function installContentScript() {
+export function installContentScript() {
   if (globalThis[CONTENT_SCRIPT_MARKER]) {
     return;
   }
@@ -40,5 +40,3 @@ function installContentScript() {
     false,
   );
 }
-
-installContentScript();

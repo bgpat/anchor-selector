@@ -1,5 +1,4 @@
-import browser from 'webextension-polyfill';
-import type { Tabs } from 'webextension-polyfill';
+import { browser } from 'wxt/browser';
 import {
   type,
   variables,
@@ -75,7 +74,7 @@ function isWebPage(url: string) {
   }
 }
 
-async function getTabUrl(tab: Tabs.Tab) {
+async function getTabUrl(tab: { id?: number; url?: string }) {
   if (tab.url) {
     return tab.url;
   }
@@ -110,11 +109,11 @@ async function markAvailable(tabId: number) {
   await browser.action.enable(tabId);
 }
 
-async function updateActionForTab(tab: Pick<Tabs.Tab, 'id'>) {
+async function updateActionForTab(tab: { id?: number; url?: string }) {
   if (tab.id == null || selectingTabs.has(tab.id)) {
     return;
   }
-  const url = await getTabUrl(tab as Tabs.Tab);
+  const url = await getTabUrl(tab);
   if (!url || !isWebPage(url)) {
     await markUnavailable(tab.id);
     return;
@@ -157,14 +156,15 @@ async function isContentScriptReady(tabId: number) {
 async function ensureContentScript(tabId: number) {
   await browser.scripting.executeScript({
     target: { tabId },
-    files: ['dist/content_script.js'],
+    files: ['/content_script.js'],
   });
   await browser.scripting.insertCSS({
     target: { tabId },
-    files: ['stylesheets/overlay.css'],
+    files: ['/assets/overlay.css'],
   });
 }
 
+export function registerBackground() {
 browser.tabs.onActivated.addListener(({ tabId }) => {
   browser.tabs.get(tabId).then(updateActionForTab);
 });
@@ -214,6 +214,8 @@ browser.runtime.onMessage.addListener(
   (raw: unknown, sender: { tab?: { id?: number } }) => {
   const message = raw as RuntimeMessage;
   switch (message.type) {
+    case 'ping':
+      break;
     case 'close': {
       const tabId = sender.tab?.id;
       if (tabId == null) {
@@ -249,3 +251,4 @@ async function initActionState() {
 browser.runtime.onInstalled.addListener(initActionState);
 
 browser.runtime.onStartup.addListener(initActionState);
+}

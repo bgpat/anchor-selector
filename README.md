@@ -18,14 +18,30 @@ Go to https://chrome.google.com/webstore/detail/anchor-selector/ejnjjcpllmekfiii
 
 ## Development
 
+Built with [WXT](https://wxt.dev/), TypeScript 7, and React (options page).
+
 ### Debug with Firefox
 
 ```bash
-bun start
+bun run dev:firefox
+```
+
+### Debug with Chrome
+
+```bash
+bun run dev
 ```
 
 ### Build
 
 ```bash
 bun run build
+bun run build:firefox
+```
+
+### Package for stores
+
+```bash
+bun run zip
+bun run zip:firefox
 ```

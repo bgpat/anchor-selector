@@ -25,7 +25,6 @@ jobs:
           git reset --hard
           git clean -fd
           bunx dot-json package.json version ${VERSION#v}
-          bunx dot-json manifest.json version ${VERSION#v}
           bun install
         env:
           VERSION: ${{ steps.release-drafter.outputs.tag_name }}
@@ -47,11 +46,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ steps.pr.outputs.pull-request-url != null }}
-      - run: bun run build
-      - run: bunx web-ext build --source-dir . --artifacts-dir web-ext-artifacts --overwrite-dest
+      - run: bun run zip && bun run zip:firefox
       - uses: bgpat/release-asset-action@master
         with:
-          pattern: web-ext-artifacts/*
+          pattern: .output/*.zip
           github-token: ${{ secrets.GITHUB_TOKEN }}
           release-id: ${{ steps.release-drafter.outputs.id }}
           allow-overwrite: true
