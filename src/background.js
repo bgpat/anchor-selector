@@ -2,6 +2,8 @@ import browser from 'webextension-polyfill';
 import { type, variables, makeActiveIcon } from '@/util';
 
 const selectingTabs = new Set();
+/** Tabs where inject failed after a toolbar click (show badge until URL changes). */
+const injectFailedTabs = new Set();
 const TITLE_READY = 'jump to the anchored element';
 const TITLE_UNAVAILABLE =
   'Anchor Selector — not available on this page';
@@ -30,12 +32,21 @@ async function getTabUrl(tab) {
 }
 
 async function markUnavailable(tabId) {
+  injectFailedTabs.delete(tabId);
   await browser.action.setBadgeText({ tabId, text: '' });
   await browser.action.setTitle({ tabId, title: TITLE_UNAVAILABLE });
   await browser.action.disable(tabId);
 }
 
+async function markUnavailableAfterClick(tabId) {
+  injectFailedTabs.add(tabId);
+  await browser.action.setBadgeText({ tabId, text: '!' });
+  await browser.action.setTitle({ tabId, title: TITLE_UNAVAILABLE });
+  await browser.action.disable(tabId);
+}
+
 async function markAvailable(tabId) {
+  injectFailedTabs.delete(tabId);
   await browser.action.setBadgeText({ tabId, text: '' });
   await browser.action.setTitle({ tabId, title: TITLE_READY });
   await browser.action.enable(tabId);
@@ -48,6 +59,10 @@ async function updateActionForTab(tab) {
   const url = await getTabUrl(tab);
   if (!url || !isWebPage(url)) {
     await markUnavailable(tab.id);
+    return;
+  }
+  if (injectFailedTabs.has(tab.id)) {
+    await markUnavailableAfterClick(tab.id);
     return;
   }
   await markAvailable(tab.id);
@@ -84,6 +99,9 @@ browser.tabs.onActivated.addListener(({ tabId }) => {
 });
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.url) {
+    injectFailedTabs.delete(tabId);
+  }
   if (changeInfo.status === 'complete' || changeInfo.url) {
     updateActionForTab({ ...tab, id: tabId });
   }
@@ -98,7 +116,7 @@ browser.action.onClicked.addListener(async (tab) => {
       await ensureContentScript(tab.id);
     }
   } catch {
-    await markUnavailable(tab.id);
+    await markUnavailableAfterClick(tab.id);
     return;
   }
   await markAvailable(tab.id);
