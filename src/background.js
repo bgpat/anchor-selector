@@ -98,10 +98,7 @@ browser.action.onClicked.addListener(async (tab) => {
       await ensureContentScript(tab.id);
     }
   } catch {
-    await browser.action.setTitle({
-      tabId: tab.id,
-      title: TITLE_UNAVAILABLE,
-    });
+    await markUnavailable(tab.id);
     return;
   }
   await markAvailable(tab.id);
