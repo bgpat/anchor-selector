@@ -7,8 +7,11 @@ import {
 } from '@/util';
 
 function getDefaultIconPaths() {
-  const png = browser.runtime.getURL('icons/anchor-selector.png');
-  return { 16: png, 32: png, 48: png };
+  return {
+    16: 'icons/anchor-selector.png',
+    32: 'icons/anchor-selector.png',
+    48: 'icons/anchor-selector.png',
+  };
 }
 
 const selectingTabs = new Set();
@@ -17,12 +20,11 @@ const injectFailedTabs = new Set();
 
 /** One-time cleanup for older builds that changed the tab icon via imageData. */
 async function resetLegacyTabIcon(tabId) {
-  await browser.action
-    .setIcon({ tabId, imageData: {} })
-    .catch(() => {});
-  await browser.action
-    .setIcon({ tabId, path: getDefaultIconPaths() })
-    .catch(() => {});
+  try {
+    await browser.action.setIcon({ tabId, path: getDefaultIconPaths() });
+  } catch {
+    // tab may have closed
+  }
 }
 
 async function showSelectingBadge(tabId) {
@@ -235,7 +237,11 @@ browser.runtime.onMessage.addListener((message, sender) => {
 });
 
 async function initActionState() {
-  await browser.action.setIcon({ path: getDefaultIconPaths() });
+  try {
+    await browser.action.setIcon({ path: getDefaultIconPaths() });
+  } catch {
+    // ignore
+  }
   const tabs = await browser.tabs.query({});
   await Promise.all(
     tabs.map((tab) => (tab.id == null ? null : resetLegacyTabIcon(tab.id))),
