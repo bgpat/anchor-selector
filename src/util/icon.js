@@ -1,6 +1,6 @@
 import browser from 'webextension-polyfill';
 import { default as Color } from 'color';
-import { variables } from '@/util';
+import variables from './variables';
 
 const SVG_SIZE = 16;
 

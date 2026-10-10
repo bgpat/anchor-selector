@@ -9,6 +9,7 @@ import {
 } from '@/util';
 
 const SELECTING_BADGE = '●';
+const SELECTING_BADGE_TEXT_COLOR = '#FFFFFF';
 
 function getDefaultIconPaths() {
   const png = browser.runtime.getURL('icons/anchor-selector.png');
@@ -63,6 +64,9 @@ let usesColoredTabIconPromise = null;
 async function usesColoredTabIcon() {
   if (!usesColoredTabIconPromise) {
     usesColoredTabIconPromise = (async () => {
+      if (typeof browser.runtime.getBrowserInfo !== 'function') {
+        return false;
+      }
       try {
         const { name } = await browser.runtime.getBrowserInfo();
         return name === 'Firefox';
@@ -77,6 +81,10 @@ async function usesColoredTabIcon() {
 async function showSelectingBadge(tabId) {
   const color = await getSelectionAccentColor();
   await browser.action.setBadgeBackgroundColor({ tabId, color });
+  await browser.action.setBadgeTextColor({
+    tabId,
+    color: SELECTING_BADGE_TEXT_COLOR,
+  });
   await browser.action.setBadgeText({ tabId, text: SELECTING_BADGE });
 }
 
@@ -118,10 +126,13 @@ async function startSelectionForTab(tabId) {
 }
 
 async function applyOverlayClickResult(tabId, result) {
-  if (result?.overlayActive) {
+  if (result?.overlayActive === false) {
+    return;
+  }
+  if (result?.overlayActive === true || result == null) {
     await startSelectionForTab(tabId);
   }
-  // overlay closed: content script awaits the close message (icon reset there)
+  // overlay closed via toggle: close message resets badge/icon
 }
 const TITLE_READY = 'jump to the anchored element';
 const TITLE_UNAVAILABLE =
