@@ -1,29 +1,38 @@
 import browser from 'webextension-polyfill';
-import { type } from '@/util';
+import { type, CONTENT_SCRIPT_MARKER } from '@/util';
 import Overlay from '@/overlay';
 
-browser.runtime.onMessage.addListener((message) => {
-  switch (message.type) {
-    case type.click:
-      if (Overlay.isActive) {
-        return Overlay.current.close();
-      }
-      new Overlay(message.config, () =>
-        browser.runtime.sendMessage({ type: 'close' }),
-      );
-      browser.runtime.sendMessage({ type: 'open' });
-      break;
+function installContentScript() {
+  if (globalThis[CONTENT_SCRIPT_MARKER]) {
+    return;
   }
-});
+  globalThis[CONTENT_SCRIPT_MARKER] = true;
 
-window.addEventListener(
-  'keydown',
-  ({ key }) => {
-    if (key === 'Escape' && Overlay.isActive) {
-      Overlay.current.close();
+  browser.runtime.onMessage.addListener((message) => {
+    switch (message.type) {
+      case 'ping':
+        return Promise.resolve();
+      case type.click:
+        if (Overlay.isActive) {
+          return Overlay.current.close().then(() => ({ overlayActive: false }));
+        }
+        new Overlay(
+          message.config,
+          () => browser.runtime.sendMessage({ type: 'close' }),
+        );
+        return { overlayActive: true };
     }
-  },
-  false,
-);
+  });
 
-browser.runtime.sendMessage({ type: 'load' });
+  window.addEventListener(
+    'keydown',
+    ({ key }) => {
+      if (key === 'Escape' && Overlay.isActive) {
+        void Overlay.current.close();
+      }
+    },
+    false,
+  );
+}
+
+installContentScript();

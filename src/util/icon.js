@@ -1,28 +1,16 @@
-import browser from 'webextension-polyfill';
-import { createCanvas, loadImage } from 'canvas';
 import { default as Color } from 'color';
-import { variables } from '@/util';
+import variables from './variables';
 
-export function makeActiveIcon() {
-  return fetch(browser.runtime.getURL('../../icons/anchor-selector.svg'))
-    .then((resp) => resp.text())
-    .then(async (svg) => {
-      return svg.replace(
-        '"context-fill #555"',
-        `"${Color.hsl(
-          await variables.config.get('hue'),
-          variables.overlay.selecting.stroke.saturation,
-          variables.overlay.selecting.stroke.lightness,
-        ).hex()}"`,
-      );
-    })
-    .then((svg) => svg.replace('"context-fill-opacity 0.7"', '"0.9"'))
-    .then((svg) => new Blob([svg], { type: 'image/svg+xml' }))
-    .then((blob) => loadImage(URL.createObjectURL(blob)))
-    .then((img) => {
-      const canvas = createCanvas(img.width, img.height);
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, img.width, img.height);
-      return ctx.getImageData(0, 0, img.width, img.height);
-    });
+/** Action badge while selecting (icon unchanged; works on Chrome and Firefox). */
+export function getSelectingBadgeStyle() {
+  return variables.config.get('hue').then((hue) => {
+    const { saturation, lightness } = variables.overlay.selecting.stroke;
+    const background = Color.hsl(hue, saturation, lightness).hex();
+    return {
+      background,
+      // U+200B zero-width space: no visible glyph; pill size is still browser-defined.
+      text: '\u200B',
+      textColor: '#FFFFFF',
+    };
+  });
 }

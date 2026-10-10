@@ -56,10 +56,10 @@ export default class Overlay {
         browser.runtime.sendMessage({ type: 'new-window', url: url.href });
         break;
       case 'copy-url':
-        browser.runtime.sendMessage({ type: 'copy', text: url.href });
+        navigator.clipboard.writeText(url.href);
         break;
       case 'copy-hash':
-        browser.runtime.sendMessage({ type: 'copy', text: url.hash });
+        navigator.clipboard.writeText(url.hash);
         break;
       default:
         return this.select(id, null, 'replace-address-bar');
@@ -72,6 +72,6 @@ export default class Overlay {
       this.container.remove();
       current = null;
     }
-    this.callback();
+    return Promise.resolve(this.callback());
   }
 }

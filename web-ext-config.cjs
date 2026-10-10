@@ -16,7 +16,7 @@ module.exports = {
     'renovate.json',
     'src',
     'web-ext-artifacts',
-    'web-ext-config.js',
+    'web-ext-config.cjs',
     'webpack.config.js',
   ],
 };
