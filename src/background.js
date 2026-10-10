@@ -2,7 +2,6 @@ import browser from 'webextension-polyfill';
 import {
   type,
   variables,
-  makeActiveIcon,
   makeDefaultIcon,
   getSelectionAccentColor,
   CONTENT_SCRIPT_MARKER,
@@ -19,8 +18,6 @@ function getDefaultIconPaths() {
 const selectingTabs = new Set();
 /** Tabs where inject failed after a toolbar click (show badge until URL changes). */
 const injectFailedTabs = new Set();
-/** Bumped on close so in-flight makeActiveIcon cannot repaint after overlay ends. */
-const actionIconEpoch = new Map();
 let defaultActionIconImageData = null;
 
 async function getDefaultActionIconImageData() {
@@ -38,10 +35,7 @@ function cloneImageData(src) {
   );
 }
 
-/**
- * Clear per-tab icon override so the toolbar uses the global/manifest icon.
- * Chrome only drops tab imageData on navigation unless cleared with {} (see MDN).
- */
+/** Clear per-tab icon override (legacy builds that tinted the toolbar icon). */
 async function resetActionIcon(tabId) {
   await browser.action
     .setIcon({ tabId, imageData: {} })
@@ -56,26 +50,6 @@ async function resetActionIcon(tabId) {
 
 async function setGlobalDefaultActionIcon() {
   await browser.action.setIcon({ path: getDefaultIconPaths() });
-}
-
-let usesColoredTabIconPromise = null;
-
-/** Firefox resets tab icons reliably; Chromium MV3 tab imageData often sticks until navigation. */
-async function usesColoredTabIcon() {
-  if (!usesColoredTabIconPromise) {
-    usesColoredTabIconPromise = (async () => {
-      if (typeof browser.runtime.getBrowserInfo !== 'function') {
-        return false;
-      }
-      try {
-        const { name } = await browser.runtime.getBrowserInfo();
-        return name === 'Firefox';
-      } catch {
-        return false;
-      }
-    })();
-  }
-  return usesColoredTabIconPromise;
 }
 
 async function showSelectingBadge(tabId) {
@@ -94,7 +68,6 @@ async function clearSelectingBadge(tabId) {
 
 async function endSelectionForTab(tabId) {
   selectingTabs.delete(tabId);
-  actionIconEpoch.set(tabId, (actionIconEpoch.get(tabId) ?? 0) + 1);
   await clearSelectingBadge(tabId);
   await resetActionIcon(tabId);
   await updateActionForTab({ id: tabId });
@@ -103,21 +76,6 @@ async function endSelectionForTab(tabId) {
 async function startSelectionForTab(tabId) {
   selectingTabs.add(tabId);
   try {
-    if (await usesColoredTabIcon()) {
-      const epochAtOpen = actionIconEpoch.get(tabId) ?? 0;
-      const img = await makeActiveIcon();
-      if ((actionIconEpoch.get(tabId) ?? 0) !== epochAtOpen) {
-        return;
-      }
-      if (!selectingTabs.has(tabId)) {
-        return;
-      }
-      await browser.action.setIcon({
-        tabId,
-        imageData: cloneImageData(img),
-      });
-      return;
-    }
     await showSelectingBadge(tabId);
   } catch {
     selectingTabs.delete(tabId);
@@ -132,8 +90,8 @@ async function applyOverlayClickResult(tabId, result) {
   if (result?.overlayActive === true || result == null) {
     await startSelectionForTab(tabId);
   }
-  // overlay closed via toggle: close message resets badge/icon
 }
+
 const TITLE_READY = 'jump to the anchored element';
 const TITLE_UNAVAILABLE =
   'Anchor Selector — not available on this page';
@@ -189,22 +147,16 @@ async function updateActionForTab(tab) {
   const url = await getTabUrl(tab);
   if (!url || !isWebPage(url)) {
     await markUnavailable(tab.id);
-    if (await usesColoredTabIcon()) {
-      await resetActionIcon(tab.id);
-    }
+    await resetActionIcon(tab.id);
     return;
   }
   if (injectFailedTabs.has(tab.id)) {
     await markUnavailableAfterClick(tab.id);
-    if (await usesColoredTabIcon()) {
-      await resetActionIcon(tab.id);
-    }
+    await resetActionIcon(tab.id);
     return;
   }
   await markAvailable(tab.id);
-  if (await usesColoredTabIcon()) {
-    await resetActionIcon(tab.id);
-  }
+  await resetActionIcon(tab.id);
 }
 
 function refreshAllTabs() {
@@ -325,9 +277,7 @@ async function clearLegacyTabIcons() {
 
 async function initActionState() {
   await setGlobalDefaultActionIcon();
-  if (!(await usesColoredTabIcon())) {
-    await clearLegacyTabIcons();
-  }
+  await clearLegacyTabIcons();
   await browser.action.disable();
   await refreshAllTabs();
 }
