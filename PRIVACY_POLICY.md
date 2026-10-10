@@ -1,7 +1,5 @@
 # Privacy Policy for Anchor Selector
 
-**Last updated:** October 10, 2026
-
 ## Overview
 
 Anchor Selector is a browser extension that allows users to jump to HTML elements with `id` attributes on web pages. This privacy policy explains how the extension handles user data.
