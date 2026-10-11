@@ -76,6 +76,9 @@ jobs:
 
       - name: Add E2E screenshots to job summary
         if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
         run: bun e2e/append-job-summary.ts ${{ matrix.browser }}
 
       - name: Upload Playwright HTML report
