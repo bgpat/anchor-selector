@@ -1,7 +1,31 @@
-import { test as base, expect } from '@playwright/test';
+import {
+  test as base,
+  expect,
+  type BrowserContext,
+  type TestInfo,
+} from '@playwright/test';
 import { withExtension } from 'playwright-webextext';
 import path from 'node:path';
 import { activateAnchorSelection } from './helpers/activate-selection';
+
+async function attachContextVideo(
+  context: BrowserContext,
+  testInfo: TestInfo,
+): Promise<void> {
+  const page = context.pages()[0];
+  const video = page?.video();
+  if (!video) {
+    return;
+  }
+  await context.close();
+  const videoPath = await video.path();
+  if (videoPath) {
+    await testInfo.attach('video', {
+      path: videoPath,
+      contentType: 'video/webm',
+    });
+  }
+}
 
 const FIXTURE_URL = 'http://127.0.0.1:4173/anchor-page.html';
 const OVERLAY_SELECTOR = '.--anchor-selector-overlay';
@@ -40,7 +64,7 @@ const test = base.extend<{ extDir: string }>({
         },
       });
       await use(context);
-      await context.close();
+      await attachContextVideo(context, testInfo);
       return;
     }
 
@@ -52,7 +76,7 @@ const test = base.extend<{ extDir: string }>({
       },
     });
     await use(context);
-    await context.close();
+    await attachContextVideo(context, testInfo);
   },
   page: async ({ context }, use) => {
     const page = context.pages()[0] ?? (await context.newPage());

@@ -68,20 +68,55 @@ jobs:
       - name: Run E2E (headed via Xvfb)
         run: xvfb-run -a bun run test:e2e -- --project=${{ matrix.browser }}
 
-      - name: Upload screen recording
+      - name: Upload Playwright HTML report (videos embedded)
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-recording-${{ matrix.browser }}
-          path: e2e/test-results/**/videos/*.webm
-          if-no-files-found: warn
-          retention-days: 30
-
-      - name: Upload Playwright HTML report
-        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-report-${{ matrix.browser }}
           path: e2e/report
-          if-no-files-found: ignore
-          retention-days: 14
+          if-no-files-found: error
+          retention-days: 30
+
+  e2e-report-hub:
+    name: E2E report (browser)
+    needs: e2e
+    if: always() && needs.e2e.result != 'cancelled'
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: e2e-report-chrome
+          path: site/chrome
+        continue-on-error: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: e2e-report-firefox
+          path: site/firefox
+        continue-on-error: true
+
+      - run: bun e2e/build-report-hub.ts site
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: site
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: How to watch recordings in a browser
+        run: |
+          {
+            echo '### E2E recordings (browser)'
+            echo ''
+            echo 'Download the **e2e-report** artifact, unzip it, and open **`index.html`** in a browser.'
+            echo 'Each browser report embeds the WebM recording on the test (attachment **video**).'
+            echo ''
+            echo 'Locally after \`bun run test:e2e\`: \`bun run test:e2e:report\` opens the same UI at http://127.0.0.1:9323 .'
+          } >> "$GITHUB_STEP_SUMMARY"
