@@ -23,7 +23,7 @@
     "lint:html": "linthtml \"src/entrypoints/**/*.html\"",
     "lint:js": "eslint src scripts",
     "publish": "npm-run-all publish:*",
-    "publish:firefox": "bun scripts/write-amo-metadata.ts && web-ext-submit --source-dir .output/firefox --channel listed --upload-source-code .output/*-sources.zip --amo-metadata .output/amo-metadata.json --api-key=$JWT_ISSUER --api-secret=$JWT_SECRET",
+    "publish:firefox": "mkdir -p .output && jq -n --rawfile notes README.md '{version:{approval_notes:$notes}}' > .output/amo-metadata.json && web-ext-submit --source-dir .output/firefox --channel listed --upload-source-code .output/*-sources.zip --amo-metadata .output/amo-metadata.json --api-key=$JWT_ISSUER --api-secret=$JWT_SECRET",
     "publish:chrome": "chrome-webstore-upload upload --source .output/*-chrome.zip --auto-publish",
     "postversion": "echo \"Version is read from package.json by WXT\""
   },
