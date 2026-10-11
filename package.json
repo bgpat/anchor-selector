@@ -8,6 +8,7 @@
     "dev:firefox": "wxt -b firefox",
     "build:chrome": "wxt build -b chrome",
     "build:firefox": "wxt build -b firefox",
+    "zip": "npm-run-all zip:chrome zip:firefox",
     "zip:chrome": "wxt zip -b chrome",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",

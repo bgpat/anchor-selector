@@ -42,7 +42,8 @@ bun run build:firefox
 ### Package for stores
 
 ```bash
-bun run zip:chrome
+bun run zip              # Chrome + Firefox
+bun run zip:chrome       # one browser only
 bun run zip:firefox
 ```
 
