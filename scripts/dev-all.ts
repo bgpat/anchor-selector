@@ -2,10 +2,7 @@ import * as readline from 'node:readline';
 
 const root = import.meta.dir + '/..';
 
-const targets: { name: string; script: string }[] = [
-  { name: 'firefox', script: 'dev:firefox' },
-  { name: 'chrome', script: 'dev:chrome' },
-];
+const browsers = ['firefox', 'chrome'] as const;
 
 const devEnv = {
   ...process.env,
@@ -16,7 +13,7 @@ const devEnv = {
 };
 
 const prefixWidth = Math.max(
-  ...targets.map(({ name }) => `[${name}] `.length),
+  ...browsers.map((name) => `[${name}] `.length),
 );
 /** Pad after `]` so log text starts at the same column for every browser. */
 const prefixFor = (name: string): string => `[${name}] `.padEnd(prefixWidth);
@@ -103,8 +100,8 @@ const relayStream = async (
 
 let shuttingDown = false;
 
-const procs = targets.map(({ name, script }) => {
-  const proc = spawnDev(script);
+const procs = browsers.map((name) => {
+  const proc = spawnDev(`dev:${name}`);
   const prefix = prefixFor(name);
   void relayStream(proc.stdout, prefix, (chunk) => {
     process.stdout.write(chunk);
