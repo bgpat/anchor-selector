@@ -1,5 +1,9 @@
-import { defineConfig, devices } from '@playwright/test';
-import { E2E_PROJECTS, type E2eProjectName } from './e2e/browsers';
+import { defineConfig } from '@playwright/test';
+import {
+  E2E_PROJECTS,
+  e2ePlaywrightDeviceUse,
+  type E2eProjectName,
+} from './e2e/browsers';
 
 const port = 4173;
 
@@ -28,7 +32,7 @@ export default defineConfig({
   },
   projects: (Object.keys(E2E_PROJECTS) as E2eProjectName[]).map((name) => ({
       name,
-      use: { ...devices[E2E_PROJECTS[name].device] },
+      use: e2ePlaywrightDeviceUse(name),
       ...(name === 'firefox' ? { testIgnore: FIREFOX_E2E_TEST_IGNORE } : {}),
     }),
   ),

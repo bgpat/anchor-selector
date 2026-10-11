@@ -18,7 +18,7 @@ export const test = base.extend<{ extDir: string }>({
   context: async ({ playwright, extDir }, use, testInfo) => {
     assertE2eProjectName(testInfo.project.name);
     const browserType = withExtension(
-      playwright[E2E_PROJECTS[testInfo.project.name].browser],
+      playwright[E2E_PROJECTS[testInfo.project.name]],
       extDir,
     );
 
