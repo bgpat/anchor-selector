@@ -1,5 +1,10 @@
 import { browser } from 'wxt/browser';
-import { keySignature, type ClickActionName } from '@/util/config';
+import {
+  clickActionName,
+  defaultClickAction,
+  keySignature,
+  type ClickActionName,
+} from '@/util/config';
 import Container from './container';
 import { variables } from '@/util';
 
@@ -70,25 +75,25 @@ export default class Overlay {
       }
     }
     switch (action) {
-      case 'open-current': // deprecated
-      case 'replace-address-bar':
+      case clickActionName.openCurrent:
+      case clickActionName.replaceAddressBar:
         history.pushState(null, '', url.hash);
         break;
-      case 'open-new': // deprecated
-      case 'open-new-tab':
+      case clickActionName.openNew:
+      case clickActionName.openNewTab:
         browser.runtime.sendMessage({ type: 'new-tab', url: url.href });
         break;
-      case 'open-new-window':
+      case clickActionName.openNewWindow:
         browser.runtime.sendMessage({ type: 'new-window', url: url.href });
         break;
-      case 'copy-url':
+      case clickActionName.copyUrl:
         navigator.clipboard.writeText(url.href);
         break;
-      case 'copy-hash':
+      case clickActionName.copyHash:
         navigator.clipboard.writeText(url.hash);
         break;
       default:
-        return this.select(id, null, 'replace-address-bar');
+        return this.select(id, null, defaultClickAction);
     }
     this.close();
   }

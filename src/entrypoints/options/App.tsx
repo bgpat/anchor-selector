@@ -4,6 +4,7 @@ import {
   CLICK_ACTIONS,
   MODIFIER_KEYS,
   cloneStoredConfig,
+  defaultClickAction,
   keySignature,
   type ClickAction,
   type ModifierKey,
@@ -48,10 +49,10 @@ export function App() {
 
   const selectedAction = useMemo(() => {
     if (config == null) {
-      return 'replace-address-bar' as const;
+      return defaultClickAction;
     }
     return (
-      findClickAction(config.click, modifiers)?.action ?? 'replace-address-bar'
+      findClickAction(config.click, modifiers)?.action ?? defaultClickAction
     );
   }, [config, modifiers]);
 
@@ -67,7 +68,7 @@ export function App() {
     (draft: StoredConfig, keys: ModifierKey[]): ClickAction => {
       let entry = findClickAction(draft.click, keys);
       if (entry == null) {
-        entry = { action: 'replace-address-bar', keys: [...keys] };
+        entry = { action: defaultClickAction, keys: [...keys] };
         draft.click.push(entry);
       }
       return entry;

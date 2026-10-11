@@ -1,13 +1,19 @@
 import { browser } from 'wxt/browser';
-import { cloneStoredConfig, type ConfigKey, type StoredConfig } from './config';
+import {
+  clickActionName,
+  cloneStoredConfig,
+  defaultClickAction,
+  type ConfigKey,
+  type StoredConfig,
+} from './config';
 
 const defaultConfig: StoredConfig = {
   hue: 330,
   click: [
-    { action: 'replace-address-bar', keys: [] },
-    { action: 'open-new-tab', keys: ['ctrl'] },
-    { action: 'open-new-window', keys: ['shift'] },
-    { action: 'open-new-tab', keys: ['meta'] },
+    { action: defaultClickAction, keys: [] },
+    { action: clickActionName.openNewTab, keys: ['ctrl'] },
+    { action: clickActionName.openNewWindow, keys: ['shift'] },
+    { action: clickActionName.openNewTab, keys: ['meta'] },
   ],
 };
 

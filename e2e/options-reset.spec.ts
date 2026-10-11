@@ -1,6 +1,7 @@
 import { getE2eBrowserProject } from './browsers';
 import { openOptionsPage } from './helpers/open-options-page';
 import { expect, test } from './fixtures/with-extension';
+import { clickActionName } from '../src/util/config';
 import variables from '../src/util/variables';
 
 const DEFAULT_HUE = variables.config.default.hue;
@@ -20,7 +21,7 @@ test.describe('Options reset', () => {
     await expect(hueSlider).toHaveValue('42');
 
     await page.getByLabel('alt ⌥').check();
-    await page.selectOption('#click-action', 'copy-url');
+    await page.selectOption('#click-action', clickActionName.copyUrl);
     await expect(page.locator('.options-bindings li')).toHaveCount(5);
 
     page.once('dialog', (dialog) => dialog.accept());
