@@ -1,15 +1,24 @@
+import { mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'wxt';
 import { resolveFirefoxBinary } from './scripts/resolve-firefox';
 
 const firefoxBinary = resolveFirefoxBinary();
+const projectRoot = dirname(fileURLToPath(import.meta.url));
+const chromeProfile = resolve(projectRoot, '.wxt/chrome-profile');
+const firefoxProfile = resolve(projectRoot, '.wxt/firefox-profile');
+
+mkdirSync(chromeProfile, { recursive: true });
+mkdirSync(firefoxProfile, { recursive: true });
 
 export default defineConfig({
   srcDir: 'src',
   modules: ['@wxt-dev/module-react'],
   webExt: {
     ...(firefoxBinary ? { binaries: { firefox: firefoxBinary } } : {}),
-    chromiumProfile: '.wxt/chrome-profile',
-    firefoxProfile: '.wxt/firefox-profile',
+    chromiumProfile: chromeProfile,
+    firefoxProfile: firefoxProfile,
     keepProfileChanges: true,
   },
   manifest: {
