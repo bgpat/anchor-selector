@@ -82,6 +82,7 @@ for (const name of files) {
     console.log(`Uploaded ${name} -> ${url}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    console.error(`Upload failed for ${name}: ${message}`);
     errors.push(`${name}: ${message}`);
     lines.push(`#### ${label}`, `_Upload failed: ${message}_`, '');
   }
@@ -106,5 +107,6 @@ if (uploaded === 0) {
 appendFileSync(summaryPath, lines.join('\n'));
 
 if (uploaded === 0 && errors.length > 0) {
+  console.error('All screenshot uploads failed; see job summary for details.');
   process.exit(1);
 }

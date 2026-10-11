@@ -1,0 +1,37 @@
+name: Probe user-attachments upload
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Probe uploads.github.com with GITHUB_TOKEN
+        id: probe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
+        run: |
+          set -euo pipefail
+          png=public/icons/anchor-selector.png
+          status=$(curl -sS -o response.json -w '%{http_code}' \
+            -X POST \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/json" \
+            --data-binary @"${png}" \
+            "https://uploads.github.com/user-attachments/assets?name=probe-actions-token.png&content_type=image/png&repository_id=${GITHUB_REPOSITORY_ID}")
+          echo "http_status=${status}" >> "$GITHUB_OUTPUT"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat response.json >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" = "201" ]; then
+            url=$(jq -r '.url // empty' response.json)
+            echo "upload_url=${url}" >> "$GITHUB_OUTPUT"
+            {
+              echo '### Probe image (if upload succeeded)'
+              echo "![probe](${url})"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
