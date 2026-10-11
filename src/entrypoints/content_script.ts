@@ -1,5 +1,9 @@
-import { installContentScript } from '@/lib/content-script';
+import {
+  ensureContentScriptInstalled,
+  notifyContentScriptReady,
+} from '@/lib/content-script';
 
 export default defineUnlistedScript(() => {
-  installContentScript();
+  const installed = ensureContentScriptInstalled();
+  notifyContentScriptReady(installed === 'installed');
 });

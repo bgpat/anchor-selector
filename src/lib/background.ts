@@ -3,7 +3,6 @@ import {
   runtimeMessageType,
   variables,
   getSelectingBadgeStyle,
-  CONTENT_SCRIPT_MARKER,
 } from '@/util';
 import {
   cloneStoredConfig,
@@ -28,16 +27,20 @@ function browserActionApi(): BrowserActionApi {
   return browser.action;
 }
 
-const selectingTabs = new Set<number>();
-/** Tabs where inject failed after a toolbar click (show badge until URL changes). */
-const injectFailedTabs = new Set<number>();
-
-type OverlayClickResult = { overlayActive?: boolean };
+type OverlayState = { overlayActive?: boolean };
 
 type RuntimeMessage =
-  | { type: typeof runtimeMessageType.ping }
-  | { type: typeof runtimeMessageType.click; config: StoredConfig }
-  | { type: typeof runtimeMessageType.close }
+  | { type: typeof runtimeMessageType.getState }
+  | {
+      type: typeof runtimeMessageType.setSelection;
+      active: boolean;
+      config: StoredConfig;
+    }
+  | {
+      type: typeof runtimeMessageType.contentScriptReady;
+      injected: boolean;
+    }
+  | { type: typeof runtimeMessageType.selectionEnded }
   | { type: typeof runtimeMessageType.getConfig; key: ConfigKey }
   | {
       type: typeof runtimeMessageType.setConfig;
@@ -47,6 +50,21 @@ type RuntimeMessage =
   | { type: typeof runtimeMessageType.newTab; url: string }
   | { type: typeof runtimeMessageType.newWindow; url: string };
 
+const tabChains = new Map<number, Promise<unknown>>();
+
+function runExclusive<T>(tabId: number, fn: () => Promise<T>): Promise<T> {
+  const prev = tabChains.get(tabId) ?? Promise.resolve();
+  const result = prev.then(fn, fn);
+  tabChains.set(
+    tabId,
+    result.then(
+      () => undefined,
+      () => undefined,
+    ),
+  );
+  return result;
+}
+
 async function showSelectingBadge(tabId: number) {
   const { background, text, textColor } = await getSelectingBadgeStyle();
   await browserActionApi().setBadgeBackgroundColor({ tabId, color: background });
@@ -54,133 +72,25 @@ async function showSelectingBadge(tabId: number) {
   await browserActionApi().setBadgeText({ tabId, text });
 }
 
-async function clearSelectingBadge(tabId: number) {
-  await browserActionApi().setBadgeText({ tabId, text: '' });
-}
-
-async function endSelectionForTab(tabId: number) {
-  selectingTabs.delete(tabId);
-  await clearSelectingBadge(tabId);
-  await updateActionForTab({ id: tabId });
-}
-
-async function startSelectionForTab(tabId: number) {
-  selectingTabs.add(tabId);
-  try {
-    await showSelectingBadge(tabId);
-  } catch {
-    selectingTabs.delete(tabId);
-    await updateActionForTab({ id: tabId });
-  }
-}
-
-async function applyOverlayClickResult(
-  tabId: number,
-  result: OverlayClickResult | undefined,
-) {
-  if (result?.overlayActive === false) {
+async function setBadge(tabId: number, active: boolean) {
+  if (!active) {
+    await browserActionApi().setBadgeText({ tabId, text: '' });
     return;
   }
-  if (result?.overlayActive === true || result == null) {
-    await startSelectionForTab(tabId);
-  }
+  await showSelectingBadge(tabId);
 }
 
-const TITLE_READY = 'jump to the anchored element';
-const TITLE_UNAVAILABLE =
-  'Anchor Selector — not available on this page';
-
-function isWebPage(url: string) {
+async function getState(tabId: number): Promise<OverlayState | undefined> {
   try {
-    const { protocol } = new URL(url);
-    return protocol === 'http:' || protocol === 'https:';
+    return (await browser.tabs.sendMessage(tabId, {
+      type: runtimeMessageType.getState,
+    })) as OverlayState;
   } catch {
-    return false;
+    return undefined;
   }
 }
 
-async function getTabUrl(tab: { id?: number; url?: string }) {
-  if (tab.url) {
-    return tab.url;
-  }
-  if (tab.id == null) {
-    return null;
-  }
-  try {
-    return (await browser.tabs.get(tab.id)).url;
-  } catch {
-    return null;
-  }
-}
-
-async function markUnavailable(tabId: number) {
-  injectFailedTabs.delete(tabId);
-  await browserActionApi().setBadgeText({ tabId, text: '' });
-  await browserActionApi().setTitle({ tabId, title: TITLE_UNAVAILABLE });
-  await browserActionApi().disable(tabId);
-}
-
-async function markUnavailableAfterClick(tabId: number) {
-  injectFailedTabs.add(tabId);
-  await browserActionApi().setBadgeText({ tabId, text: '!' });
-  await browserActionApi().setTitle({ tabId, title: TITLE_UNAVAILABLE });
-  await browserActionApi().disable(tabId);
-}
-
-async function markAvailable(tabId: number) {
-  injectFailedTabs.delete(tabId);
-  await browserActionApi().setBadgeText({ tabId, text: '' });
-  await browserActionApi().setTitle({ tabId, title: TITLE_READY });
-  await browserActionApi().enable(tabId);
-}
-
-async function updateActionForTab(tab: { id?: number; url?: string }) {
-  if (tab.id == null || selectingTabs.has(tab.id)) {
-    return;
-  }
-  const url = await getTabUrl(tab);
-  if (!url || !isWebPage(url)) {
-    await markUnavailable(tab.id);
-    return;
-  }
-  if (injectFailedTabs.has(tab.id)) {
-    await markUnavailableAfterClick(tab.id);
-    return;
-  }
-  await markAvailable(tab.id);
-}
-
-function refreshAllTabs() {
-  return browser.tabs
-    .query({})
-    .then((tabs) => Promise.all(tabs.map((tab) => updateActionForTab(tab))));
-}
-
-async function isContentScriptMarkerPresent(tabId: number) {
-  try {
-    const [probe] = await browser.scripting.executeScript({
-      target: { tabId },
-      func: (marker: string) => Boolean(globalThis[marker as keyof typeof globalThis]),
-      args: [CONTENT_SCRIPT_MARKER],
-    });
-    return probe?.result === true;
-  } catch {
-    return false;
-  }
-}
-
-async function isContentScriptReady(tabId: number) {
-  try {
-    await browser.tabs.sendMessage(tabId, {
-      type: runtimeMessageType.ping,
-    });
-    return true;
-  } catch {
-    return isContentScriptMarkerPresent(tabId);
-  }
-}
-
-async function ensureContentScript(tabId: number) {
+async function injectContentScriptBundle(tabId: number) {
   await browser.scripting.executeScript({
     target: { tabId },
     files: ['/content_script.js'],
@@ -191,103 +101,161 @@ async function ensureContentScript(tabId: number) {
   });
 }
 
-export function registerBackground() {
-browser.tabs.onActivated.addListener(({ tabId }) => {
-  browser.tabs.get(tabId).then(updateActionForTab);
-});
-
-browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.url || changeInfo.status === 'loading') {
-    injectFailedTabs.delete(tabId);
+/** Returns page state after the content script can answer, or undefined if injection is impossible. */
+async function ensureInjected(tabId: number): Promise<OverlayState | undefined> {
+  const existing = await getState(tabId);
+  if (existing != null) {
+    return existing;
   }
-  if (changeInfo.status === 'complete' || changeInfo.url) {
-    updateActionForTab({ ...tab, id: tabId });
+  try {
+    await injectContentScriptBundle(tabId);
+  } catch {
+    return undefined;
   }
-});
-
-async function sendClickToTab(tabId: number, config: StoredConfig) {
-  return browser.tabs.sendMessage(tabId, {
-    type: runtimeMessageType.click,
-    config,
-  }) as Promise<OverlayClickResult>;
+  return getState(tabId);
 }
 
-browserActionApi().onClicked.addListener(async (tab) => {
-  if (!tab.url || !isWebPage(tab.url) || tab.id == null) {
+async function setSelection(
+  tabId: number,
+  active: boolean,
+  config: StoredConfig,
+): Promise<OverlayState | undefined> {
+  try {
+    return (await browser.tabs.sendMessage(tabId, {
+      type: runtimeMessageType.setSelection,
+      active,
+      config,
+    })) as OverlayState;
+  } catch {
+    return undefined;
+  }
+}
+
+async function reconcile(tabId: number) {
+  const state = await getState(tabId);
+  await setBadge(tabId, state?.overlayActive === true);
+}
+
+async function toggleSelection(tabId: number) {
+  const config = await variables.config.getAll();
+  const state = await ensureInjected(tabId);
+  if (state == null) {
+    await setBadge(tabId, false);
     return;
   }
-  const config = await variables.config.getAll();
+  const result = await setSelection(tabId, state.overlayActive !== true, config);
+  await setBadge(tabId, result?.overlayActive === true);
+}
+
+const TITLE_READY = 'jump to the anchored element';
+
+async function tabHasSelectingBadge(tabId: number) {
   try {
-    if (!(await isContentScriptReady(tab.id))) {
-      await ensureContentScript(tab.id);
-    }
+    const text = await browserActionApi().getBadgeText({ tabId });
+    return text !== '';
   } catch {
-    if (!(await isContentScriptMarkerPresent(tab.id))) {
-      await markUnavailableAfterClick(tab.id);
+    return false;
+  }
+}
+
+export function registerBackground() {
+  const selectionPorts = new Set<ReturnType<typeof browser.runtime.connect>>();
+  browser.runtime.onConnect.addListener((port) => {
+    selectionPorts.add(port);
+    port.onDisconnect.addListener(() => {
+      selectionPorts.delete(port);
+    });
+  });
+
+  browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (changeInfo.status !== 'complete') {
       return;
     }
-  }
-  await markAvailable(tab.id);
-  try {
-    const result = await sendClickToTab(tab.id, config);
-    await applyOverlayClickResult(tab.id, result);
-  } catch {
-    await endSelectionForTab(tab.id);
-    await markUnavailableAfterClick(tab.id);
-  }
-});
+    void runExclusive(tabId, () => reconcile(tabId));
+  });
 
-browser.runtime.onMessage.addListener(
-  (raw: unknown, sender: { tab?: { id?: number } }) => {
-  const message = raw as RuntimeMessage;
-  switch (message.type) {
-    case runtimeMessageType.ping:
-      break;
-    case runtimeMessageType.close: {
-      const tabId = sender.tab?.id;
-      if (tabId == null) {
-        return;
-      }
-      return endSelectionForTab(tabId);
+  browser.tabs.onRemoved.addListener((tabId) => {
+    tabChains.delete(tabId);
+  });
+
+  browserActionApi().onClicked.addListener((tab) => {
+    const tabId = tab.id;
+    if (tabId == null) {
+      return;
     }
-    case runtimeMessageType.getConfig:
-      return browser.storage.sync.get(message.key).then((stored) => {
-        const merged = {
-          ...cloneStoredConfig(variables.config.default),
-          ...stored,
-        };
-        if (message.key === configKey.click) {
-          return cloneStoredConfig(merged)[configKey.click];
+    void runExclusive(tabId, () => toggleSelection(tabId));
+  });
+
+  browser.runtime.onMessage.addListener(
+    (raw: unknown, sender: { tab?: { id?: number } }) => {
+      const message = raw as RuntimeMessage;
+      switch (message.type) {
+        case runtimeMessageType.contentScriptReady: {
+          const tabId = sender.tab?.id;
+          if (tabId == null) {
+            return;
+          }
+          return runExclusive(tabId, () => reconcile(tabId));
         }
-        return merged[message.key] as StoredConfig[ConfigKey];
-      });
-    case runtimeMessageType.setConfig:
-      return browser.storage.sync.set({ [message.key]: message.value });
-    case runtimeMessageType.newTab:
-      browser.tabs.create({ url: message.url });
-      break;
-    case runtimeMessageType.newWindow:
-      browser.windows.create({ url: message.url });
-      break;
+        case runtimeMessageType.selectionEnded: {
+          const tabId = sender.tab?.id;
+          if (tabId == null) {
+            return;
+          }
+          return runExclusive(tabId, () => reconcile(tabId));
+        }
+        case runtimeMessageType.getConfig:
+          return browser.storage.sync.get(message.key).then((stored) => {
+            const merged = {
+              ...cloneStoredConfig(variables.config.default),
+              ...stored,
+            };
+            if (message.key === configKey.click) {
+              return cloneStoredConfig(merged)[configKey.click];
+            }
+            return merged[message.key] as StoredConfig[ConfigKey];
+          });
+        case runtimeMessageType.setConfig:
+          return browser.storage.sync.set({ [message.key]: message.value });
+        case runtimeMessageType.newTab:
+          browser.tabs.create({ url: message.url });
+          break;
+        case runtimeMessageType.newWindow:
+          browser.windows.create({ url: message.url });
+          break;
+      }
+    },
+  );
+
+  async function initExtension() {
+    await browserActionApi().setTitle({ title: TITLE_READY });
+    const tabs = await browser.tabs.query({});
+    await Promise.all(
+      tabs.map(async (tab) => {
+        if (tab.id == null) {
+          return;
+        }
+        await browserActionApi().setBadgeText({ tabId: tab.id, text: '' });
+      }),
+    );
   }
-  },
-);
 
-async function initActionState() {
-  await browserActionApi().disable();
-  await refreshAllTabs();
-}
+  browser.runtime.onInstalled.addListener(initExtension);
+  browser.runtime.onStartup.addListener(initExtension);
 
-browser.runtime.onInstalled.addListener(initActionState);
-
-browser.runtime.onStartup.addListener(initActionState);
-
-browser.storage.sync.onChanged.addListener((changes) => {
-  if (typeof changes[configKey.hue]?.newValue !== 'number') {
-    return;
-  }
-  for (const tabId of selectingTabs) {
-    void showSelectingBadge(tabId).catch(() => {});
-  }
-});
+  browser.storage.sync.onChanged.addListener((changes) => {
+    if (typeof changes[configKey.hue]?.newValue !== 'number') {
+      return;
+    }
+    void browser.tabs.query({}).then((tabs) =>
+      Promise.all(
+        tabs.map(async (tab) => {
+          if (tab.id == null || !(await tabHasSelectingBadge(tab.id))) {
+            return;
+          }
+          await showSelectingBadge(tab.id).catch(() => {});
+        }),
+      ),
+    );
+  });
 }

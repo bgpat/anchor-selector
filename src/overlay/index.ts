@@ -16,6 +16,29 @@ type ClickModifiers = Partial<
 
 let current: Overlay | null = null;
 
+/** Chrome may inject on `tabs` complete before `document.body` exists. */
+export function waitForDocumentBody(): Promise<void> {
+  if (document.body) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => resolve(), {
+        once: true,
+      });
+      return;
+    }
+    const wait = () => {
+      if (document.body) {
+        resolve();
+        return;
+      }
+      requestAnimationFrame(wait);
+    };
+    wait();
+  });
+}
+
 export default class Overlay {
   static get isActive() {
     return current != null;
@@ -27,11 +50,15 @@ export default class Overlay {
 
   declare container: Container;
   declare callback: () => unknown;
+  declare lifetimePort: ReturnType<typeof browser.runtime.connect> | null;
+  declare ignorePortDisconnect: boolean;
   declare onConfigChanged: (changes: {
     [key: string]: { newValue?: unknown };
   }) => void;
 
   constructor(config: { hue: number }, callback: () => unknown) {
+    this.lifetimePort = null;
+    this.ignorePortDisconnect = false;
     this.container = new Container(this, config);
     this.container.appendTo(document.body);
     this.callback = callback;
@@ -46,6 +73,18 @@ export default class Overlay {
       this.container.setHue(hue);
     };
     browser.storage.sync.onChanged.addListener(this.onConfigChanged);
+    try {
+      this.lifetimePort = browser.runtime.connect();
+      this.lifetimePort.onDisconnect.addListener(() => {
+        this.lifetimePort = null;
+        if (this.ignorePortDisconnect) {
+          return;
+        }
+        void this.close();
+      });
+    } catch {
+      this.lifetimePort = null;
+    }
     current = this;
   }
 
@@ -108,7 +147,19 @@ export default class Overlay {
 
   close() {
     if (this.selecting) {
-      browser.storage.sync.onChanged.removeListener(this.onConfigChanged);
+      this.ignorePortDisconnect = true;
+      try {
+        this.lifetimePort?.disconnect();
+      } catch {
+        // The port is already closed because the extension was disabled.
+      }
+      this.lifetimePort = null;
+      try {
+        browser.storage.sync.onChanged.removeListener(this.onConfigChanged);
+      } catch {
+        // The extension context is already gone.
+      }
+      this.container.disconnect();
       this.container.remove();
       current = null;
     }

@@ -1,4 +1,4 @@
-import { variables } from '@/util';
+import { isExtensionContextValid, variables } from '@/util';
 import { topID, topElement } from '@/anchor-selector';
 import Element from './element';
 import { SVG } from './svg';
@@ -9,6 +9,7 @@ import Label from './label';
 type OverlayControl = {
   readonly selecting: boolean;
   select(id: string | null | undefined, event: MouseEvent): Promise<void>;
+  close(): Promise<unknown>;
 };
 
 type Paintable = Element & {
@@ -18,30 +19,59 @@ type Paintable = Element & {
   ) => void;
 };
 
+type WindowListener = {
+  name: string;
+  listener: (event: Event) => void;
+  capture: boolean;
+};
+
 export default class Container extends Element {
   static class = variables.overlay.class;
 
   declare overlay: OverlayControl;
   declare svg: SVG;
   declare mouse?: { x: number; y: number } | null;
+  declare listeners: WindowListener[];
 
   constructor(overlay: OverlayControl, config: { hue: number }) {
     const svg = new SVG({
       children: [new Background(), new Selecting(config), new Label()],
     });
     super({ children: svg });
-    window.addEventListener(
+    this.listeners = [];
+    this.listen(
       'mousemove',
-      ({ clientX, clientY }) => this.move(clientX, clientY),
+      (event) => {
+        if (this.releaseIfContextDead()) {
+          return;
+        }
+        const { clientX, clientY } = event as MouseEvent;
+        this.move(clientX, clientY);
+      },
       true,
     );
-    window.addEventListener('mouseleave', () => this.move(), true);
-    window.addEventListener(
+    this.listen(
+      'mouseleave',
+      () => {
+        if (this.releaseIfContextDead()) {
+          return;
+        }
+        this.move();
+      },
+      true,
+    );
+    this.listen(
       'click',
-      (e) => overlay.select(topID(e.clientX, e.clientY), e),
+      (event) => {
+        if (this.releaseIfContextDead() || !overlay.selecting) {
+          return;
+        }
+        const mouse = event as MouseEvent;
+        void overlay.select(topID(mouse.clientX, mouse.clientY), mouse);
+      },
       true,
     );
-    [
+    for (const name of [
       'mousedown',
       'mouseover',
       'mouseup',
@@ -49,21 +79,46 @@ export default class Container extends Element {
       'pointerover',
       'pointerup',
       'click',
-    ].forEach((name) =>
-      window.addEventListener(
+    ]) {
+      this.listen(
         name,
-        (e) => {
-          if (overlay.selecting) {
-            e.preventDefault();
-            e.stopPropagation();
+        (event) => {
+          if (this.releaseIfContextDead() || !overlay.selecting) {
+            return;
           }
+          event.preventDefault();
+          event.stopPropagation();
         },
         true,
-      ),
-    );
+      );
+    }
     this.overlay = overlay;
     this.svg = svg;
     window.requestAnimationFrame(() => this.render());
+  }
+
+  disconnect() {
+    for (const { name, listener, capture } of this.listeners) {
+      window.removeEventListener(name, listener, capture);
+    }
+    this.listeners = [];
+  }
+
+  private listen(
+    name: string,
+    listener: (event: Event) => void,
+    capture: boolean,
+  ) {
+    window.addEventListener(name, listener, capture);
+    this.listeners.push({ name, listener, capture });
+  }
+
+  private releaseIfContextDead() {
+    if (isExtensionContextValid()) {
+      return false;
+    }
+    void this.overlay.close();
+    return true;
   }
 
   setHue(hue: number) {
@@ -76,7 +131,7 @@ export default class Container extends Element {
   }
 
   render() {
-    if (!this.overlay.selecting) {
+    if (!this.overlay.selecting || this.releaseIfContextDead()) {
       return;
     }
     const bcr = this.element.getBoundingClientRect();
