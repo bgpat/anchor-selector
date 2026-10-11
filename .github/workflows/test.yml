@@ -11,9 +11,9 @@ jobs:
     name: Lint & typecheck
     runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
 
-      - uses: oven-sh/setup-bun@v2.2.0
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
@@ -37,15 +37,15 @@ jobs:
           - browser: firefox
             outputDir: firefox-mv3
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
 
-      - uses: oven-sh/setup-bun@v2.2.0
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
       - run: bun install --frozen-lockfile
       - run: bun run build:${{ matrix.browser }}
-      - uses: actions/upload-artifact@v4.6.2
+      - uses: actions/upload-artifact@v4
         with:
           name: extension-${{ matrix.browser }}
           path: .output/${{ matrix.outputDir }}
@@ -62,9 +62,9 @@ jobs:
           - browser: chrome
           - browser: firefox
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
 
-      - uses: oven-sh/setup-bun@v2.2.0
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
@@ -86,7 +86,7 @@ jobs:
 
       - name: Upload Playwright HTML report
         if: failure()
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v4
         with:
           name: e2e-report-${{ matrix.browser }}
           path: e2e/report
