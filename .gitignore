@@ -10,3 +10,5 @@ e2e/ci-screenshots/
 e2e/report/
 playwright-report/
 test-results/
+tmp/
+.cursor/
