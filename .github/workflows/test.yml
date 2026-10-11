@@ -7,8 +7,34 @@ on:
   pull_request:
 
 jobs:
-  quality:
-    name: Lint & typecheck
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Verify GitHub Actions lockfile
+        run: |
+          gh extension install github/gh-actions-lock
+          gh actions-lock --verify-local
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/cache@v4
+        id: deps-cache
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-deps-${{ hashFiles('bun.lock') }}
+
+      - run: bun install --frozen-lockfile
+
+  typecheck:
+    name: Typecheck
+    needs: prepare
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -17,12 +43,35 @@ jobs:
         with:
           bun-version: latest
 
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-deps-${{ hashFiles('bun.lock') }}
+
       - run: bun install --frozen-lockfile
-      - name: Verify GitHub Actions lockfile
-        run: |
-          gh extension install github/gh-actions-lock
-          gh actions-lock --verify-local
       - run: bun run typecheck
+
+  lint:
+    name: Lint
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-deps-${{ hashFiles('bun.lock') }}
+
+      - run: bun install --frozen-lockfile
       - run: bun run lint
 
   build:

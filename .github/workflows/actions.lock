@@ -13,10 +13,16 @@ workflows:
         - 'peter-evans/create-pull-request@v8'
         - 'release-drafter/release-drafter@v7'
     '.github/workflows/test.yml':
+        - 'actions/cache@v4'
         - 'actions/checkout@v7'
         - 'actions/upload-artifact@v4'
         - 'oven-sh/setup-bun@v2'
 dependencies:
+    'actions/cache@v4':
+        ref: 'v4'
+        commit: 'sha1-0057852bfaa89a56745cba8c7296529d2fc39830'
+        owner_id: 44036562
+        repo_id: 215566462
     'actions/checkout@v7':
         ref: 'v7'
         commit: 'sha1-3d3c42e5aac5ba805825da76410c181273ba90b1'
