@@ -1,6 +1,8 @@
 /**
  * Run WXT CLI under Node. web-ext’s Firefox debugger path relies on Node’s
  * `domain` behavior; Bun can exit on the first ECONNREFUSED before retries.
+ *
+ * Default FORCE_COLOR when stdout is piped (e.g. dev-all prefixes); honor NO_COLOR.
  */
 const root = import.meta.dir + '/..';
 const cli = `${root}/node_modules/wxt/dist/cli/index.mjs`;

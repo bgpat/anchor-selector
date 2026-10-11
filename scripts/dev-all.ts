@@ -4,13 +4,8 @@ const root = import.meta.dir + '/..';
 
 const browsers = ['firefox', 'chrome'] as const;
 
-const devEnv = {
-  ...process.env,
-  // stdout is piped for prefixes; child processes are not TTY and would disable ANSI.
-  ...(process.env.NO_COLOR
-    ? {}
-    : { FORCE_COLOR: process.env.FORCE_COLOR ?? '1' }),
-};
+/** WXT runs via scripts/wxt.ts, which sets FORCE_COLOR when stdout is not a TTY. */
+const devEnv = process.env;
 
 const prefixWidth = Math.max(
   ...browsers.map((name) => `[${name}] `.length),
