@@ -58,4 +58,4 @@ bun run build
 xvfb-run -a bun run test:e2e
 ```
 
-CI uploads browser-viewable E2E reports as the **`e2e-report`** artifact (open `index.html` in a browser).
+CI embeds E2E screenshots in each job’s **GitHub Actions summary** (no screen recordings).

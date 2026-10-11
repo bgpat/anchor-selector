@@ -15,6 +15,8 @@ mkdirSync(firefoxProfile, { recursive: true });
 export default defineConfig({
   srcDir: 'src',
   modules: ['@wxt-dev/module-react'],
+  /** Match pre-WXT Firefox builds (MV3 + scripting/action APIs). WXT defaults Firefox to MV2. */
+  manifestVersion: 3,
   webExt: {
     ...(firefoxBinary ? { binaries: { firefox: firefoxBinary } } : {}),
     chromiumProfile: chromeProfile,

@@ -6,6 +6,7 @@ dist/
 web-ext-artifacts/
 e2e/firefox-profile/
 e2e/test-results/
+e2e/ci-screenshots/
 e2e/report/
 playwright-report/
 test-results/

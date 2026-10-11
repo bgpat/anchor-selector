@@ -22,7 +22,7 @@
     "test:e2e:firefox": "playwright test --project=firefox",
     "test:e2e:report": "playwright show-report e2e/report",
     "lint": "npm-run-all lint:*",
-    "lint:webext": "wxt build -b firefox && web-ext lint -s .output/firefox-mv2 --warnings-as-errors=false",
+    "lint:webext": "wxt build -b firefox && web-ext lint -s .output/firefox-mv3 --warnings-as-errors=false",
     "lint:css": "stylelint \"src/**/*.css\"",
     "lint:html": "linthtml \"src/entrypoints/**/*.html\"",
     "lint:js": "eslint src e2e scripts",
