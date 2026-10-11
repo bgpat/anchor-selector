@@ -12,20 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - uses: actions/cache@v4
-        id: deps-cache
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-          key: bun-deps-${{ hashFiles('bun.lock') }}
-
-      - run: bun install --frozen-lockfile
+      - uses: $/.github/actions/bun-deps
 
   typecheck:
     name: Typecheck
@@ -33,19 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-          key: bun-deps-${{ hashFiles('bun.lock') }}
-
-      - run: bun install --frozen-lockfile
+      - uses: $/.github/actions/bun-deps
       - run: bun run typecheck
 
   lint:
@@ -54,23 +29,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-          key: bun-deps-${{ hashFiles('bun.lock') }}
-
-      - run: bun install --frozen-lockfile
+      - uses: $/.github/actions/bun-deps
       - run: bun run lint
 
   build:
     name: Build (${{ matrix.browser }})
+    needs: prepare
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -82,12 +46,7 @@ jobs:
             outputDir: firefox-mv3
     steps:
       - uses: actions/checkout@v7
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - run: bun install --frozen-lockfile
+      - uses: $/.github/actions/bun-deps
       - run: bun run build:${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
         with:
@@ -107,12 +66,7 @@ jobs:
           - browser: firefox
     steps:
       - uses: actions/checkout@v7
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - run: bun install --frozen-lockfile
+      - uses: $/.github/actions/bun-deps
       - run: bun run build:${{ matrix.browser }}
 
       - name: Install system dependencies

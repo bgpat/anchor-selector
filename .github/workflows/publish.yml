@@ -22,9 +22,6 @@ jobs:
           - chrome
     steps:
       - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      - run: bun install --frozen-lockfile
+      - uses: $/.github/actions/bun-deps
       - run: bun run zip:${{ matrix.browser }}
       - run: bun run publish:${{ matrix.browser }}

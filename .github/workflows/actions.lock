@@ -4,9 +4,11 @@
 version: 'v0.0.2'
 workflows:
     '.github/workflows/publish.yml':
+        - 'actions/cache@v4'
         - 'actions/checkout@v7'
         - 'oven-sh/setup-bun@v2'
     '.github/workflows/release.yml':
+        - 'actions/cache@v4'
         - 'actions/checkout@v7'
         - 'bgpat/release-asset-action@v2'
         - 'oven-sh/setup-bun@v2'
