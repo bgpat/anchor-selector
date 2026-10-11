@@ -57,16 +57,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - browser: chrome
-          - browser: firefox
+        browser: [chrome, firefox]
     steps:
       - uses: actions/checkout@v7
       - uses: $/.github/actions/bun-deps
       - run: bun run build:${{ matrix.browser }}
 
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y xvfb
+      - name: Install Playwright system dependencies
+        run: bunx playwright install-deps chromium firefox
 
       - name: Install Playwright browsers
         run: bunx playwright install chromium firefox
