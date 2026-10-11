@@ -1,3 +1,5 @@
+# This workflow is managed by gh actions-lock.
+
 name: CI
 
 on:
@@ -9,13 +11,17 @@ jobs:
     name: Lint & typecheck
     runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@v2.2.0
         with:
           bun-version: latest
 
       - run: bun install --frozen-lockfile
+      - name: Verify GitHub Actions lockfile
+        run: |
+          gh extension install github/gh-actions-lock
+          gh actions-lock --verify-local
       - run: bun run typecheck
       - run: bun run lint
 
@@ -31,15 +37,15 @@ jobs:
           - browser: firefox
             outputDir: firefox-mv3
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@v2.2.0
         with:
           bun-version: latest
 
       - run: bun install --frozen-lockfile
       - run: bun run build:${{ matrix.browser }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: extension-${{ matrix.browser }}
           path: .output/${{ matrix.outputDir }}
@@ -56,9 +62,9 @@ jobs:
           - browser: chrome
           - browser: firefox
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@v2.2.0
         with:
           bun-version: latest
 
@@ -80,7 +86,7 @@ jobs:
 
       - name: Upload Playwright HTML report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: e2e-report-${{ matrix.browser }}
           path: e2e/report
