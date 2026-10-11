@@ -6,13 +6,7 @@ import wxtAutoImports from './.wxt/eslint-auto-imports.mjs';
 
 export default [
   {
-    ignores: [
-      '.output/**',
-      'node_modules/**',
-      'e2e/report/**',
-      'e2e/test-results/**',
-      'e2e/firefox-profile/**',
-    ],
+    ignores: ['.output/**', 'node_modules/**'],
   },
   {
     files: ['**/*.{js,mjs,cjs,ts,tsx}'],
@@ -62,7 +56,7 @@ export default [
     },
   },
   {
-    files: ['e2e/**/*.ts', 'scripts/**/*.ts'],
+    files: ['scripts/**/*.ts'],
     languageOptions: {
       globals: {
         Bun: 'readonly',
