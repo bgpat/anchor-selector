@@ -3,21 +3,12 @@ import variables from '@/util/variables';
 import {
   CLICK_ACTIONS,
   MODIFIER_KEYS,
+  cloneStoredConfig,
   keySignature,
   type ClickAction,
   type ModifierKey,
   type StoredConfig,
 } from '@/util/config';
-
-function cloneConfig(config: StoredConfig): StoredConfig {
-  return {
-    hue: config.hue,
-    click: config.click.map((entry) => ({
-      action: entry.action,
-      keys: [...entry.keys],
-    })),
-  };
-}
 
 function findClickAction(
   click: ClickAction[],
@@ -49,7 +40,7 @@ export function App() {
 
   useEffect(() => {
     void variables.config.getAll().then((loaded) => {
-      const next = cloneConfig(loaded as StoredConfig);
+      const next = cloneStoredConfig(loaded as StoredConfig);
       setConfig(next);
       setModifiers([]);
     });
@@ -89,7 +80,7 @@ export function App() {
       return;
     }
     setModifiers(nextKeys);
-    const draft = cloneConfig(config);
+    const draft = cloneStoredConfig(config);
     ensureBinding(draft, nextKeys);
     void persist(draft);
   };
@@ -98,7 +89,7 @@ export function App() {
     if (config == null) {
       return;
     }
-    const draft = cloneConfig(config);
+    const draft = cloneStoredConfig(config);
     const entry = ensureBinding(draft, modifiers);
     entry.action = action;
     void persist(draft);
@@ -115,8 +106,8 @@ export function App() {
     if (!confirm('Do you reset to default?')) {
       return;
     }
-    const defaults = cloneConfig(variables.config.default);
-    await persist(defaults);
+    const defaults = await variables.config.resetToDefaults();
+    setConfig(cloneStoredConfig(defaults));
     setModifiers([]);
   };
 

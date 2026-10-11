@@ -1,5 +1,5 @@
 import { browser } from 'wxt/browser';
-import type { ClickActionName } from '@/util/config';
+import { keySignature, type ClickActionName } from '@/util/config';
 import Container from './container';
 import { variables } from '@/util';
 
@@ -45,12 +45,11 @@ export default class Overlay {
     const config = await variables.config.getAll();
     if (action == null) {
       const modifiers = e ?? {};
+      const pressed = (['alt', 'ctrl', 'meta', 'shift'] as const).filter(
+        (k) => modifiers[`${k}Key`],
+      );
       const match = config.click.find(
-        (a) =>
-          a.keys.sort().join('\0') ===
-          (['alt', 'ctrl', 'meta', 'shift'] as const)
-            .filter((k) => modifiers[`${k}Key`])
-            .join('\0'),
+        (a) => keySignature(a.keys) === keySignature(pressed),
       );
       if (match) {
         action = match.action;

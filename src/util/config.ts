@@ -39,3 +39,13 @@ export const MODIFIER_KEYS: { value: ModifierKey; label: string }[] = [
 export function keySignature(keys: readonly string[]): string {
   return [...keys].sort().join('\0');
 }
+
+export function cloneStoredConfig(config: StoredConfig): StoredConfig {
+  return {
+    hue: config.hue,
+    click: config.click.map((entry) => ({
+      action: entry.action,
+      keys: [...entry.keys],
+    })),
+  };
+}

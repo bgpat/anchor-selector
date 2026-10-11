@@ -1,5 +1,5 @@
 import { browser } from 'wxt/browser';
-import type { ConfigKey, StoredConfig } from './config';
+import { cloneStoredConfig, type ConfigKey, type StoredConfig } from './config';
 
 const defaultConfig: StoredConfig = {
   hue: 330,
@@ -11,27 +11,56 @@ const defaultConfig: StoredConfig = {
   ],
 };
 
+function mergeWithDefaults(partial: Partial<StoredConfig>): StoredConfig {
+  return { ...cloneStoredConfig(defaultConfig), ...partial };
+}
+
+async function readFromStorage<K extends ConfigKey>(
+  key: K,
+): Promise<StoredConfig[K]> {
+  const stored = await browser.storage.sync.get(key);
+  const merged = mergeWithDefaults(stored);
+  if (key === 'click') {
+    return cloneStoredConfig(merged).click as StoredConfig[K];
+  }
+  return merged[key] as StoredConfig[K];
+}
+
+async function writeToStorage<K extends ConfigKey>(
+  key: K,
+  value: StoredConfig[K],
+): Promise<void> {
+  await browser.storage.sync.set({ [key]: value });
+}
+
 const variables = {
   config: {
     default: defaultConfig,
-    async get<K extends ConfigKey>(
-      key: K,
-    ): Promise<StoredConfig[K]> {
-      const fromRuntime = browser.runtime
-        .sendMessage({
+    async get<K extends ConfigKey>(key: K): Promise<StoredConfig[K]> {
+      try {
+        return (await browser.runtime.sendMessage({
           type: 'get-config',
           key,
-        })
-        .catch(() =>
-          browser.storage.sync.get(key).then((v) => {
-            const merged = { ...variables.config.default, ...v };
-            return merged[key];
-          }),
-        );
-      return fromRuntime as Promise<StoredConfig[K]>;
+        })) as StoredConfig[K];
+      } catch {
+        return readFromStorage(key);
+      }
     },
     async set<K extends ConfigKey>(key: K, value: StoredConfig[K]) {
-      return browser.runtime.sendMessage({ type: 'set-config', key, value });
+      try {
+        await browser.runtime.sendMessage({ type: 'set-config', key, value });
+      } catch {
+        await writeToStorage(key, value);
+      }
+    },
+    async resetToDefaults(): Promise<StoredConfig> {
+      const defaults = cloneStoredConfig(defaultConfig);
+      try {
+        await browser.runtime.sendMessage({ type: 'reset-config' });
+      } catch {
+        await browser.storage.sync.set(defaults);
+      }
+      return defaults;
     },
     async getAll(): Promise<StoredConfig> {
       return Promise.all(

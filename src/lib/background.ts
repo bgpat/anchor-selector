@@ -5,7 +5,11 @@ import {
   getSelectingBadgeStyle,
   CONTENT_SCRIPT_MARKER,
 } from '@/util';
-import type { ConfigKey, StoredConfig } from '@/util/config';
+import {
+  cloneStoredConfig,
+  type ConfigKey,
+  type StoredConfig,
+} from '@/util/config';
 
 type BrowserActionApi = typeof browser.action;
 
@@ -35,6 +39,7 @@ type RuntimeMessage =
   | { type: 'close' }
   | { type: 'get-config'; key: ConfigKey }
   | { type: 'set-config'; key: ConfigKey; value: StoredConfig[ConfigKey] }
+  | { type: 'reset-config' }
   | { type: 'new-tab'; url: string }
   | { type: 'new-window'; url: string };
 
@@ -240,15 +245,22 @@ browser.runtime.onMessage.addListener(
       return endSelectionForTab(tabId);
     }
     case 'get-config':
-      return browser.storage.sync
-        .get(message.key)
-        .then(
-          (v) =>
-            ({ ...variables.config.default, ...v })[message.key] as StoredConfig[ConfigKey],
-        );
+      return browser.storage.sync.get(message.key).then((stored) => {
+        const merged = {
+          ...cloneStoredConfig(variables.config.default),
+          ...stored,
+        };
+        if (message.key === 'click') {
+          return cloneStoredConfig(merged).click;
+        }
+        return merged[message.key] as StoredConfig[ConfigKey];
+      });
     case 'set-config':
-      browser.storage.sync.set({ [message.key]: message.value });
-      break;
+      return browser.storage.sync.set({ [message.key]: message.value });
+    case 'reset-config':
+      return browser.storage.sync.set(
+        cloneStoredConfig(variables.config.default),
+      );
     case 'new-tab':
       browser.tabs.create({ url: message.url });
       break;
