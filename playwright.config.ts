@@ -1,5 +1,8 @@
 import { defineConfig } from '@playwright/test';
-import { E2E_PROJECTS, type E2eProjectName } from './e2e/browsers';
+import {
+  E2E_PROJECT_NAMES,
+  e2ePlaywrightBrowser,
+} from './e2e/projects';
 
 const port = 4173;
 
@@ -26,10 +29,9 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
-  projects: (Object.keys(E2E_PROJECTS) as E2eProjectName[]).map((name) => ({
-      name,
-      use: { browserName: E2E_PROJECTS[name] },
-      ...(name === 'firefox' ? { testIgnore: FIREFOX_E2E_TEST_IGNORE } : {}),
-    }),
-  ),
+  projects: E2E_PROJECT_NAMES.map((name) => ({
+    name,
+    use: { browserName: e2ePlaywrightBrowser(name) },
+    ...(name === 'firefox' ? { testIgnore: FIREFOX_E2E_TEST_IGNORE } : {}),
+  })),
 });
