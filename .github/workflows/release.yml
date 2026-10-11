@@ -46,7 +46,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ steps.pr.outputs.pull-request-url != null }}
-      - run: bun run zip && bun run zip:firefox
+      - run: bun run zip:chrome && bun run zip:firefox
       - uses: bgpat/release-asset-action@master
         with:
           pattern: .output/*.zip

@@ -24,5 +24,5 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - run: if [ "${{ matrix.browser }}" = "firefox" ]; then bun run zip:firefox; else bun run zip; fi
+      - run: if [ "${{ matrix.browser }}" = "firefox" ]; then bun run zip:firefox; else bun run zip:chrome; fi
       - run: bun run publish:${{ matrix.browser }}

@@ -29,28 +29,28 @@ bun run dev:firefox
 ### Debug with Chrome
 
 ```bash
-bun run dev
+bun run dev:chrome
 ```
 
 ### Build
 
 ```bash
-bun run build
+bun run build:chrome
 bun run build:firefox
 ```
 
 ### Package for stores
 
 ```bash
-bun run zip
+bun run zip:chrome
 bun run zip:firefox
 ```
 
 ### End-to-end tests (Chrome & Firefox)
 
 ```bash
-bun run build && bun run build:firefox
+bun run build:chrome && bun run build:firefox
 xvfb-run -a bun run test:e2e
 ```
 
-CI uploads screen recordings from each browser as workflow artifacts (`e2e-recording-chrome` / `e2e-recording-firefox`).
+CI uploads browser-viewable E2E reports as the **`e2e-report`** artifact (open `index.html` in a browser).

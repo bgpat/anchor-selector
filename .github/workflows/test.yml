@@ -34,7 +34,7 @@ jobs:
           bun-version: latest
 
       - run: bun install --frozen-lockfile
-      - run: if [ "${{ matrix.browser }}" = "firefox" ]; then bun run build:firefox; else bun run build; fi
+      - run: if [ "${{ matrix.browser }}" = "firefox" ]; then bun run build:firefox; else bun run build:chrome; fi
       - uses: actions/upload-artifact@v4
         with:
           name: extension-${{ matrix.browser }}
@@ -57,7 +57,7 @@ jobs:
           bun-version: latest
 
       - run: bun install --frozen-lockfile
-      - run: if [ "${{ matrix.browser }}" = "firefox" ]; then bun run build:firefox; else bun run build; fi
+      - run: if [ "${{ matrix.browser }}" = "firefox" ]; then bun run build:firefox; else bun run build:chrome; fi
 
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y xvfb
