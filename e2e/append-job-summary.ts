@@ -4,7 +4,10 @@ import path from 'node:path';
 const browser = process.argv[2];
 const summaryPath = process.env.GITHUB_STEP_SUMMARY;
 const screenshotDir = path.resolve('e2e/ci-screenshots');
-const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
+const token =
+  process.env.ATTACHMENT_UPLOAD_PAT ??
+  process.env.GITHUB_TOKEN ??
+  process.env.GH_TOKEN;
 const repositoryId = process.env.GITHUB_REPOSITORY_ID;
 
 if (!summaryPath) {
