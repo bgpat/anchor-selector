@@ -12,7 +12,6 @@ workflows:
         - 'actions/checkout@v7'
         - 'bgpat/release-asset-action@v2'
         - 'oven-sh/setup-bun@v2'
-        - 'peter-evans/create-pull-request@v8'
         - 'release-drafter/release-drafter@v7'
     '.github/workflows/test.yml':
         - 'actions/cache@v6'
@@ -45,11 +44,6 @@ dependencies:
         commit: 'sha1-0c5077e51419868618aeaa5fe8019c62421857d6'
         owner_id: 108928776
         repo_id: 512644635
-    'peter-evans/create-pull-request@v8':
-        ref: 'v8'
-        commit: 'sha1-5f6978faf089d4d20b00c7766989d076bb2fc7f1'
-        owner_id: 18365890
-        repo_id: 197176365
     'release-drafter/release-drafter@v7':
         ref: 'v7'
         commit: 'sha1-978bb0b30c5ee8cdd332ced253758157150d43f0'
