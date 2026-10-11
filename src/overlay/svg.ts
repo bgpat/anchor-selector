@@ -10,12 +10,17 @@ export class SVGElement extends Element {
   set attrs(v: AttrMap) {
     const animate = this.animate;
     const target = animate?.target;
-    if (animate != null && target != null) {
+    if (animate != null && target != null && target in v) {
       const from = this.element.getAttribute(target);
-      const to = v[target];
+      const to = String(v[target]);
       if (from != null && from !== to) {
-        animate.attrs = { from, to };
-        animate.begin();
+        animate.attrs = { from, to, fill: 'freeze' };
+        const { [target]: _, ...rest } = v;
+        super.attrs = rest;
+        if (!animate.begin()) {
+          this.element.setAttribute(target, to);
+        }
+        return;
       }
     }
     super.attrs = v;
@@ -86,10 +91,23 @@ export class Animate extends SVGElement {
     return this.element.getAttribute('attributeName');
   }
 
-  begin() {
-    if (this.enabled()) {
-      (this.element as SVGAnimateElement).beginElement();
+  begin(): boolean {
+    if (!this.enabled()) {
+      return false;
     }
+    const el = this.element as SVGAnimateElement;
+    const target = this.target;
+    const parent = this._parent;
+    const to = el.getAttribute('to');
+    if (target != null && parent != null && to != null) {
+      const onEnd = () => {
+        el.removeEventListener('endEvent', onEnd);
+        parent.element.setAttribute(target, to);
+      };
+      el.addEventListener('endEvent', onEnd);
+    }
+    el.beginElement();
+    return true;
   }
 }
 
