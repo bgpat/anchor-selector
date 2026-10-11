@@ -1,6 +1,6 @@
 {
   "name": "@bgpat/anchor-selector",
-  "version": "0.12.2",
+  "version": "0.12.3",
   "description": "The web-extension to select anchor element.",
   "type": "module",
   "scripts": {
