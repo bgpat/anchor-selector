@@ -11,8 +11,6 @@ export type E2eBrowserProject = {
   /** WXT build output directory name under `.output/` */
   wxtOutputDir: string;
   device: E2eDeviceName;
-  /** Must launch a visible browser (use xvfb in CI when true). */
-  requireHeaded: boolean;
   /** Options page can be opened reliably in Playwright automation. */
   supportsOptionsPage: boolean;
 };

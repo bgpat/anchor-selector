@@ -13,22 +13,16 @@ export const test = base.extend<{ extDir: string }>({
     },
     { scope: 'test' },
   ],
-  context: async ({ playwright, extDir, headless }, use, testInfo) => {
+  context: async ({ playwright, extDir }, use, testInfo) => {
     const browserProject = getE2eBrowserProject(testInfo.project.name);
     const browserType = withExtension(
       playwright[browserProject.playwrightBrowser],
       extDir,
     );
 
-    if (browserProject.requireHeaded && headless) {
-      throw new Error(
-        `${browserProject.name} extension tests must run headed (use xvfb in CI)`,
-      );
-    }
-
     const userDataDir = testInfo.outputPath('user-data');
     const context = await browserType.launchPersistentContext(userDataDir, {
-      headless: browserProject.requireHeaded ? false : headless,
+      headless: false,
     });
     await use(context);
     await context.close();
