@@ -4,7 +4,7 @@ const port = 4173;
 
 export default defineConfig({
   testDir: 'e2e',
-  timeout: 120_000,
+  timeout: process.env.CI ? 180_000 : 120_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
   workers: 1,

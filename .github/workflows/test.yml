@@ -57,10 +57,7 @@ jobs:
           bun-version: latest
 
       - run: bun install --frozen-lockfile
-      - uses: actions/download-artifact@v4
-        with:
-          name: extension-${{ matrix.browser }}
-          path: .output
+      - run: if [ "${{ matrix.browser }}" = "firefox" ]; then bun run build:firefox; else bun run build; fi
 
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y xvfb

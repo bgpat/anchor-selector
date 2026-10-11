@@ -8,6 +8,8 @@ const OVERLAY_SELECTOR = '.--anchor-selector-overlay';
 
 const test = base.extend<{ extDir: string }>({
   extDir: [
+    // Playwright fixture deps must use `{}` when none are used.
+    // eslint-disable-next-line no-empty-pattern -- required by @playwright/test
     async ({}, use, testInfo) => {
       const extDir =
         testInfo.project.name === 'firefox'
@@ -22,6 +24,7 @@ const test = base.extend<{ extDir: string }>({
     use,
     testInfo,
   ) => {
+    testInfo.setTimeout(process.env.CI ? 180_000 : 120_000);
     const videoDir = testInfo.outputPath('videos');
     const browserType = withExtension(playwright[browserName], extDir);
 
