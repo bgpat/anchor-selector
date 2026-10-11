@@ -57,7 +57,14 @@ Optional fallback: `ATTACHMENT_UPLOAD_PAT` (static bearer token).
 
 On each E2E job, `e2e/mint-attachment-oauth-token.sh` exchanges the refresh token for an **`gho_` access token**, then `e2e/append-job-summary.ts` uploads PNGs and writes `![…](https://github.com/user-attachments/assets/…)` to `$GITHUB_STEP_SUMMARY`.
 
-If GitHub **rotates the refresh token**, the mint step logs a workflow warning — update `ATTACHMENT_OAUTH_REFRESH_TOKEN` once (about every 6 months if unused, or whenever rotated).
+If GitHub **rotates the refresh token**, the mint job updates `ATTACHMENT_OAUTH_REFRESH_TOKEN` via the Actions API (`secrets: write`). **Never** write refresh tokens to job summaries or logs.
+
+### If a refresh token was exposed (e.g. in an old workflow Summary)
+
+1. **Revoke** the OAuth App authorization: GitHub → Settings → Applications → Authorized OAuth Apps → your app → Revoke.
+2. **Regenerate** the OAuth App client secret (optional but recommended).
+3. Run **device flow** again and set new `ATTACHMENT_OAUTH_CLIENT_SECRET` / `ATTACHMENT_OAUTH_REFRESH_TOKEN`.
+4. Treat any token that appeared in a public Actions log as **compromised** even after deletion of the run (assume it was copied).
 
 ## Files
 

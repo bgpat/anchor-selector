@@ -48,6 +48,9 @@ jobs:
   attachment-oauth:
     name: Attachment OAuth token
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      secrets: write
     steps:
       - uses: actions/checkout@v7
 
