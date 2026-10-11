@@ -3,17 +3,19 @@ import {
   clickActionName,
   cloneStoredConfig,
   defaultClickAction,
+  modifierKey,
   type ConfigKey,
   type StoredConfig,
 } from './config';
+import { runtimeMessageType } from './type';
 
 const defaultConfig: StoredConfig = {
   hue: 330,
   click: [
     { action: defaultClickAction, keys: [] },
-    { action: clickActionName.openNewTab, keys: ['ctrl'] },
-    { action: clickActionName.openNewWindow, keys: ['shift'] },
-    { action: clickActionName.openNewTab, keys: ['meta'] },
+    { action: clickActionName.openNewTab, keys: [modifierKey.ctrl] },
+    { action: clickActionName.openNewWindow, keys: [modifierKey.shift] },
+    { action: clickActionName.openNewTab, keys: [modifierKey.meta] },
   ],
 };
 
@@ -45,7 +47,7 @@ const variables = {
     async get<K extends ConfigKey>(key: K): Promise<StoredConfig[K]> {
       try {
         return (await browser.runtime.sendMessage({
-          type: 'get-config',
+          type: runtimeMessageType.getConfig,
           key,
         })) as StoredConfig[K];
       } catch {
@@ -54,7 +56,11 @@ const variables = {
     },
     async set<K extends ConfigKey>(key: K, value: StoredConfig[K]) {
       try {
-        await browser.runtime.sendMessage({ type: 'set-config', key, value });
+        await browser.runtime.sendMessage({
+          type: runtimeMessageType.setConfig,
+          key,
+          value,
+        });
       } catch {
         await writeToStorage(key, value);
       }
@@ -62,7 +68,9 @@ const variables = {
     async resetToDefaults(): Promise<StoredConfig> {
       const defaults = cloneStoredConfig(defaultConfig);
       try {
-        await browser.runtime.sendMessage({ type: 'reset-config' });
+        await browser.runtime.sendMessage({
+          type: runtimeMessageType.resetConfig,
+        });
       } catch {
         await browser.storage.sync.set(defaults);
       }

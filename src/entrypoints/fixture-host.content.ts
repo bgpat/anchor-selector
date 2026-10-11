@@ -1,4 +1,5 @@
 import { installContentScript } from '@/lib/content-script';
+import { runtimeMessageType } from '@/util';
 import variables from '@/util/variables';
 import Overlay from '@/overlay';
 
@@ -25,13 +26,15 @@ export default defineContentScript({
           return;
         }
         new Overlay(config, () =>
-          browser.runtime.sendMessage({ type: 'close' }),
+          browser.runtime.sendMessage({ type: runtimeMessageType.close }),
         );
       })();
     });
 
     window.addEventListener('anchor-selector-e2e-options-open', () => {
-      void browser.runtime.sendMessage({ type: 'open-options-e2e' });
+      void browser.runtime.sendMessage({
+        type: runtimeMessageType.openOptionsE2e,
+      });
     });
   },
 });

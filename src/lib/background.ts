@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
 import {
-  type,
+  runtimeMessageType,
   variables,
   getSelectingBadgeStyle,
   CONTENT_SCRIPT_MARKER,
@@ -34,15 +34,19 @@ const injectFailedTabs = new Set<number>();
 type OverlayClickResult = { overlayActive?: boolean };
 
 type RuntimeMessage =
-  | { type: 'ping' }
-  | { type: typeof type.click; config: StoredConfig }
-  | { type: 'close' }
-  | { type: 'get-config'; key: ConfigKey }
-  | { type: 'set-config'; key: ConfigKey; value: StoredConfig[ConfigKey] }
-  | { type: 'reset-config' }
-  | { type: 'new-tab'; url: string }
-  | { type: 'new-window'; url: string }
-  | { type: 'open-options-e2e' };
+  | { type: typeof runtimeMessageType.ping }
+  | { type: typeof runtimeMessageType.click; config: StoredConfig }
+  | { type: typeof runtimeMessageType.close }
+  | { type: typeof runtimeMessageType.getConfig; key: ConfigKey }
+  | {
+      type: typeof runtimeMessageType.setConfig;
+      key: ConfigKey;
+      value: StoredConfig[ConfigKey];
+    }
+  | { type: typeof runtimeMessageType.resetConfig }
+  | { type: typeof runtimeMessageType.newTab; url: string }
+  | { type: typeof runtimeMessageType.newWindow; url: string }
+  | { type: typeof runtimeMessageType.openOptionsE2e };
 
 async function showSelectingBadge(tabId: number) {
   const { background, text, textColor } = await getSelectingBadgeStyle();
@@ -168,7 +172,9 @@ async function isContentScriptMarkerPresent(tabId: number) {
 
 async function isContentScriptReady(tabId: number) {
   try {
-    await browser.tabs.sendMessage(tabId, { type: 'ping' });
+    await browser.tabs.sendMessage(tabId, {
+      type: runtimeMessageType.ping,
+    });
     return true;
   } catch {
     return isContentScriptMarkerPresent(tabId);
@@ -202,7 +208,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 async function sendClickToTab(tabId: number, config: StoredConfig) {
   return browser.tabs.sendMessage(tabId, {
-    type: type.click,
+    type: runtimeMessageType.click,
     config,
   }) as Promise<OverlayClickResult>;
 }
@@ -236,16 +242,16 @@ browser.runtime.onMessage.addListener(
   (raw: unknown, sender: { tab?: { id?: number } }) => {
   const message = raw as RuntimeMessage;
   switch (message.type) {
-    case 'ping':
+    case runtimeMessageType.ping:
       break;
-    case 'close': {
+    case runtimeMessageType.close: {
       const tabId = sender.tab?.id;
       if (tabId == null) {
         return;
       }
       return endSelectionForTab(tabId);
     }
-    case 'get-config':
+    case runtimeMessageType.getConfig:
       return browser.storage.sync.get(message.key).then((stored) => {
         const merged = {
           ...cloneStoredConfig(variables.config.default),
@@ -256,19 +262,19 @@ browser.runtime.onMessage.addListener(
         }
         return merged[message.key] as StoredConfig[ConfigKey];
       });
-    case 'set-config':
+    case runtimeMessageType.setConfig:
       return browser.storage.sync.set({ [message.key]: message.value });
-    case 'reset-config':
+    case runtimeMessageType.resetConfig:
       return browser.storage.sync.set(
         cloneStoredConfig(variables.config.default),
       );
-    case 'new-tab':
+    case runtimeMessageType.newTab:
       browser.tabs.create({ url: message.url });
       break;
-    case 'new-window':
+    case runtimeMessageType.newWindow:
       browser.windows.create({ url: message.url });
       break;
-    case 'open-options-e2e':
+    case runtimeMessageType.openOptionsE2e:
       return browser.tabs.create({
         url: browser.runtime.getURL('/options.html'),
       });
