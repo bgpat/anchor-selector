@@ -12,7 +12,7 @@ jobs:
         uses: release-drafter/release-drafter@v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7
         with:
           ssh-key: ${{ secrets.DEPLOY_KEY }}
       - uses: oven-sh/setup-bun@v2
@@ -47,7 +47,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ steps.pr.outputs.pull-request-url != null }}
       - run: bun run zip
-      - uses: bgpat/release-asset-action@master
+      - uses: bgpat/release-asset-action@v2
         with:
           pattern: .output/*.zip
           github-token: ${{ secrets.GITHUB_TOKEN }}
