@@ -7,10 +7,7 @@ export const test = base.extend<{ extDir: string }>({
     // Playwright fixture deps must use `{}` when none are used.
     // eslint-disable-next-line no-empty-pattern -- required by @playwright/test
     async ({}, use, testInfo) => {
-      const extDir =
-        testInfo.project.name === 'firefox'
-          ? path.resolve('.output/firefox-mv3')
-          : path.resolve('.output/chrome-mv3');
+      const extDir = path.resolve(`.output/${testInfo.project.name}-mv3`);
       await use(extDir);
     },
     { scope: 'test' },
