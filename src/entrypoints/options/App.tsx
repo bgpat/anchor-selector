@@ -104,15 +104,6 @@ export function App() {
     void persist({ ...config, hue });
   };
 
-  const onReset = async () => {
-    if (!confirm('Do you reset to default?')) {
-      return;
-    }
-    const defaults = await variables.config.resetToDefaults();
-    setConfig(cloneStoredConfig(defaults));
-    setModifiers([]);
-  };
-
   if (config == null) {
     return (
       <main>
@@ -199,12 +190,6 @@ export function App() {
           />
         </label>
       </section>
-
-      <footer>
-        <button type="button" onClick={() => void onReset()}>
-          Reset to defaults
-        </button>
-      </footer>
     </main>
   );
 }

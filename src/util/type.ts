@@ -4,7 +4,6 @@ export const runtimeMessageType = {
   close: 'close',
   getConfig: 'get-config',
   setConfig: 'set-config',
-  resetConfig: 'reset-config',
   newTab: 'new-tab',
   newWindow: 'new-window',
 } as const;

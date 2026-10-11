@@ -115,23 +115,4 @@ main {
       }
     }
   }
-
-  & footer {
-    display: flex;
-    justify-content: flex-end;
-
-    & button {
-      padding: 0.45rem 0.85rem;
-      font: inherit;
-      border-radius: 0.45rem;
-      border: 1px solid color-mix(in srgb, canvastext 22%, transparent);
-      background: color-mix(in srgb, canvas 90%, canvastext 10%);
-      color: inherit;
-      cursor: pointer;
-
-      &:hover {
-        background: color-mix(in srgb, canvas 85%, canvastext 15%);
-      }
-    }
-  }
 }

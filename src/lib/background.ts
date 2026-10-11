@@ -44,7 +44,6 @@ type RuntimeMessage =
       key: ConfigKey;
       value: StoredConfig[ConfigKey];
     }
-  | { type: typeof runtimeMessageType.resetConfig }
   | { type: typeof runtimeMessageType.newTab; url: string }
   | { type: typeof runtimeMessageType.newWindow; url: string };
 
@@ -264,10 +263,6 @@ browser.runtime.onMessage.addListener(
       });
     case runtimeMessageType.setConfig:
       return browser.storage.sync.set({ [message.key]: message.value });
-    case runtimeMessageType.resetConfig:
-      return browser.storage.sync.set(
-        cloneStoredConfig(variables.config.default),
-      );
     case runtimeMessageType.newTab:
       browser.tabs.create({ url: message.url });
       break;

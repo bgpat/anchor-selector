@@ -67,17 +67,6 @@ const variables = {
         await writeToStorage(key, value);
       }
     },
-    async resetToDefaults(): Promise<StoredConfig> {
-      const defaults = cloneStoredConfig(defaultConfig);
-      try {
-        await browser.runtime.sendMessage({
-          type: runtimeMessageType.resetConfig,
-        });
-      } catch {
-        await browser.storage.sync.set(defaults);
-      }
-      return defaults;
-    },
     async getAll(): Promise<StoredConfig> {
       return Promise.all(
         CONFIG_KEYS.map((k) =>
