@@ -45,7 +45,3 @@ bun run zip              # Chrome + Firefox
 bun run zip:chrome       # one browser only
 bun run zip:firefox
 ```
-
-### End-to-end tests
-
-Playwright E2E (Chrome & Firefox) is maintained on the [`e2e-test`](https://github.com/bgpat/anchor-selector/tree/e2e-test) branch. This branch keeps `.output/{browser}` build layout and CI build artifacts so E2E can be merged later without rework.
