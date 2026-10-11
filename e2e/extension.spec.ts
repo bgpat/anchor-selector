@@ -31,4 +31,25 @@ test.describe('Anchor Selector extension', () => {
     });
     await saveCiScreenshot(page, testInfo, '03-selected');
   });
+
+  test('applies hue changes while selecting', async ({ page }) => {
+    await page.goto(FIXTURE_URL);
+    await expect(page.locator('#heading')).toBeVisible();
+
+    await activateAnchorSelection(page);
+    const highlight = page.locator(`${OVERLAY_SELECTOR} .selecting path`);
+    await expect(highlight).toBeAttached({ timeout: 10_000 });
+
+    const stroke = () =>
+      highlight.evaluate((el) => (el as SVGElement).style.stroke);
+    const before = await stroke();
+
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent('anchor-selector-e2e-hue', { detail: 120 }),
+      );
+    });
+
+    await expect.poll(stroke).not.toBe(before);
+  });
 });

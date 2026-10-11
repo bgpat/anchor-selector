@@ -8,6 +8,14 @@ export default defineContentScript({
   main() {
     installContentScript();
 
+    window.addEventListener('anchor-selector-e2e-hue', (event) => {
+      const hue = (event as CustomEvent<number>).detail;
+      if (typeof hue !== 'number') {
+        return;
+      }
+      void browser.storage.sync.set({ hue });
+    });
+
     window.addEventListener('anchor-selector-e2e', () => {
       void (async () => {
         const config = await variables.config.getAll();

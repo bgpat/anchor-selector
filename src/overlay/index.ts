@@ -20,11 +20,25 @@ export default class Overlay {
 
   declare container: Container;
   declare callback: () => unknown;
+  declare onConfigChanged: (changes: {
+    [key: string]: { newValue?: unknown };
+  }) => void;
 
   constructor(config: { hue: number }, callback: () => unknown) {
     this.container = new Container(this, config);
     this.container.appendTo(document.body);
     this.callback = callback;
+    this.onConfigChanged = (changes) => {
+      if (!this.selecting) {
+        return;
+      }
+      const hue = changes.hue?.newValue;
+      if (typeof hue !== 'number') {
+        return;
+      }
+      this.container.setHue(hue);
+    };
+    browser.storage.sync.onChanged.addListener(this.onConfigChanged);
     current = this;
   }
 
@@ -81,6 +95,7 @@ export default class Overlay {
 
   close() {
     if (this.selecting) {
+      browser.storage.sync.onChanged.removeListener(this.onConfigChanged);
       this.container.remove();
       current = null;
     }

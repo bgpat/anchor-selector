@@ -66,6 +66,15 @@ export default class Container extends Element {
     window.requestAnimationFrame(() => this.render());
   }
 
+  setHue(hue: number) {
+    for (const child of this.svg.children) {
+      if (child instanceof Selecting) {
+        child.setHue(hue);
+        return;
+      }
+    }
+  }
+
   render() {
     if (!this.overlay.selecting) {
       return;

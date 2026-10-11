@@ -279,4 +279,13 @@ async function initActionState() {
 browser.runtime.onInstalled.addListener(initActionState);
 
 browser.runtime.onStartup.addListener(initActionState);
+
+browser.storage.sync.onChanged.addListener((changes) => {
+  if (typeof changes.hue?.newValue !== 'number') {
+    return;
+  }
+  for (const tabId of selectingTabs) {
+    void showSelectingBadge(tabId).catch(() => {});
+  }
+});
 }

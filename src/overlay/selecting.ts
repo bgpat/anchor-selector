@@ -2,6 +2,21 @@ import { variables } from '@/util';
 import { G, Path, Animate } from './svg';
 import { default as Color } from 'color';
 
+function highlightPaint(hue: number) {
+  const stroke = variables.overlay.selecting.stroke;
+  const fill = variables.overlay.selecting.fill;
+  return {
+    stroke: `rgb(${Color.hsl(hue, stroke.saturation, stroke.lightness)
+      .rgb()
+      .array()
+      .join(' ')} / ${stroke.alpha})`,
+    fill: `rgb(${Color.hsl(hue, fill.saturation, fill.lightness)
+      .rgb()
+      .array()
+      .join(' ')} / ${fill.alpha})`,
+  };
+}
+
 export default class Selecting extends G {
   static class = 'selecting';
 
@@ -20,22 +35,7 @@ export default class Selecting extends G {
       ),
       style: {
         opacity: 0,
-        stroke: `rgb(${Color.hsl(
-          config.hue,
-          variables.overlay.selecting.stroke.saturation,
-          variables.overlay.selecting.stroke.lightness,
-        )
-          .rgb()
-          .array()
-          .join(' ')} / ${variables.overlay.selecting.stroke.alpha})`,
-        fill: `rgb(${Color.hsl(
-          config.hue,
-          variables.overlay.selecting.fill.saturation,
-          variables.overlay.selecting.fill.lightness,
-        )
-          .rgb()
-          .array()
-          .join(' ')} / ${variables.overlay.selecting.fill.alpha})`,
+        ...highlightPaint(config.hue),
       },
     });
     super({ children: path });
@@ -46,6 +46,10 @@ export default class Selecting extends G {
       }
     });
     this.path = path;
+  }
+
+  setHue(hue: number) {
+    this.path.style = highlightPaint(hue);
   }
 
   render(topElement: globalThis.Element | null | undefined) {
