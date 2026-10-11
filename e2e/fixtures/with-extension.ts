@@ -1,7 +1,15 @@
-import { test as base } from '@playwright/test';
+import { test as base, type BrowserName } from '@playwright/test';
 import { withExtension } from 'playwright-webextext';
 import path from 'node:path';
-import { e2ePlaywrightBrowser, type E2eProjectName } from '../projects';
+import type { E2eProjectName } from '../config';
+
+function projectBrowserName(use: { browserName?: BrowserName }): BrowserName {
+  const name = use.browserName;
+  if (name == null) {
+    throw new Error('Playwright project is missing use.browserName');
+  }
+  return name;
+}
 
 export const test = base.extend<{ e2eProject: E2eProjectName; extDir: string }>({
   e2eProject: [
@@ -15,9 +23,9 @@ export const test = base.extend<{ e2eProject: E2eProjectName; extDir: string }>(
   extDir: async ({ e2eProject }, use) => {
     await use(path.resolve(`.output/${e2eProject}`));
   },
-  context: async ({ playwright, extDir, e2eProject }, use, testInfo) => {
+  context: async ({ playwright, extDir }, use, testInfo) => {
     const browserType = withExtension(
-      playwright[e2ePlaywrightBrowser(e2eProject)],
+      playwright[projectBrowserName(testInfo.project.use)],
       extDir,
     );
 

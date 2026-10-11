@@ -1,12 +1,9 @@
 import { defineConfig } from '@playwright/test';
-import { E2E_FIXTURE_PATH, E2E_PORT } from './e2e/constants';
 import {
-  E2E_PROJECT_NAMES,
-  e2ePlaywrightBrowser,
-} from './e2e/projects';
-
-/** Playwright cannot observe moz-extension options tabs opened from the background. */
-const FIREFOX_E2E_TEST_IGNORE = [/options.*\.spec\.ts$/];
+  E2E_FIXTURE_PATH,
+  E2E_PORT,
+  e2ePlaywrightProjects,
+} from './e2e/config';
 
 export default defineConfig({
   testDir: 'e2e',
@@ -28,9 +25,5 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
-  projects: E2E_PROJECT_NAMES.map((name) => ({
-    name,
-    use: { browserName: e2ePlaywrightBrowser(name) },
-    ...(name === 'firefox' ? { testIgnore: FIREFOX_E2E_TEST_IGNORE } : {}),
-  })),
+  projects: e2ePlaywrightProjects(),
 });

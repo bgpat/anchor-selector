@@ -1,4 +1,4 @@
-import { E2E_FIXTURE_PATH, E2E_PORT } from './constants';
+import { E2E_FIXTURE_PATH, E2E_PORT } from './config';
 
 Bun.serve({
   port: E2E_PORT,

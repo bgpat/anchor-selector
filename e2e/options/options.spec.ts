@@ -1,6 +1,6 @@
-import { saveCiScreenshot } from './helpers/ci-screenshot';
-import { openOptionsPage } from './helpers/open-options-page';
-import { expect, test } from './fixtures/with-extension';
+import { saveCiScreenshot } from '../helpers/ci-screenshot';
+import { openOptionsPage } from '../helpers/open-options-page';
+import { expect, test } from '../fixtures/with-extension';
 
 test.describe('Options page', () => {
   test('renders settings UI', async ({ context }, testInfo) => {

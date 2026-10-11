@@ -1,5 +1,5 @@
 import type { BrowserContext, Page } from '@playwright/test';
-import { E2E_FIXTURE_PATH } from '../constants';
+import { E2E_FIXTURE_PATH } from '../config';
 
 async function prepareFixturePage(context: BrowserContext): Promise<Page> {
   const page = context.pages()[0] ?? (await context.newPage());

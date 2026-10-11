@@ -1,4 +1,4 @@
-import { E2E_FIXTURE_PATH } from './constants';
+import { E2E_FIXTURE_PATH } from './config';
 import { activateAnchorSelection } from './helpers/activate-selection';
 import { saveCiScreenshot } from './helpers/ci-screenshot';
 import { expect, test } from './fixtures/with-extension';
