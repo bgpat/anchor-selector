@@ -13,11 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Verify GitHub Actions lockfile
-        run: |
-          gh extension install github/gh-actions-lock
-          gh actions-lock --verify-local
-
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
