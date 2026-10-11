@@ -6,7 +6,7 @@ const summaryPath = process.env.GITHUB_STEP_SUMMARY;
 const screenshotDir = path.resolve('e2e/ci-screenshots');
 const token =
   process.env.ATTACHMENT_UPLOAD_PAT ??
-  process.env.GITHUB_TOKEN ??
+  process.env.ATTACHMENT_UPLOAD_TOKEN ??
   process.env.GH_TOKEN;
 const repositoryId = process.env.GITHUB_REPOSITORY_ID;
 
@@ -32,7 +32,9 @@ function stepLabel(fileName: string): string {
 
 async function uploadScreenshot(filePath: string, fileName: string): Promise<string> {
   if (!token || !repositoryId) {
-    throw new Error('GITHUB_TOKEN and GITHUB_REPOSITORY_ID are required');
+    throw new Error(
+      'ATTACHMENT_UPLOAD_PAT (or OAuth-minted token) and GITHUB_REPOSITORY_ID are required',
+    );
   }
 
   const params = new URLSearchParams({
@@ -95,7 +97,7 @@ for (const name of files) {
 if (uploaded === 0) {
   lines.push(
     '**Could not embed screenshots in this job summary.**',
-    'GitHub may reject `uploads.github.com/user-attachments/assets` for `GITHUB_TOKEN` in Actions (HTTP 404).',
+    'Configure OAuth secrets (`ATTACHMENT_OAUTH_*`) or `ATTACHMENT_UPLOAD_PAT`. `GITHUB_TOKEN` cannot upload (HTTP 404).',
     '',
     `<details><summary>Upload errors (${errors.length})</summary>`,
     '',

@@ -1,22 +1,69 @@
 # E2E screenshots in Actions job summary (attach API)
 
-## Conclusion (verified on branch `experiment/ci-summary-attach`)
+## Conclusion
 
-| Step | `GITHUB_TOKEN` in Actions | User PAT / `gh auth token` |
-|------|----------------------------|----------------------------|
-| `POST uploads.github.com/user-attachments/assets` | **404 Not Found** (run [38123937909](https://github.com/bgpat/anchor-selector/actions/runs/38123937909)) | **201** (local probe) |
-| `![…](https://github.com/user-attachments/assets/…)` in `$GITHUB_STEP_SUMMARY` | Would render if upload succeeded | Same |
-| `![…](data:image/png;base64,…)` | **Stripped** (does not display) | N/A |
+| Credential | `uploads.github.com/user-attachments/assets` |
+|------------|-----------------------------------------------|
+| `GITHUB_TOKEN` | **404** — not supported ([run 38123937909](https://github.com/bgpat/anchor-selector/actions/runs/38123937909)) |
+| OAuth access token (`gho_`) / user PAT | **201** |
+| `data:image/png;base64` in summary | **Stripped** by GitHub |
 
-**Job summary with CI e2e PNGs via the attach / user-attachments upload API is not available with `secrets.GITHUB_TOKEN` alone.** Add a repository secret (for example `ATTACHMENT_UPLOAD_PAT`, classic PAT with `repo` scope) and pass it to the upload step instead of `GITHUB_TOKEN`.
+Use **OAuth refresh → short-lived access token** in CI (preferred here) or a static `ATTACHMENT_UPLOAD_PAT` secret.
 
-`gh pr comment --attach` uses the same upload endpoint; it works locally with gh 2.102.0 but is not a substitute for writing `$GITHUB_STEP_SUMMARY`.
+## OAuth setup (recommended)
 
-## Implementation in this branch
+### 1. Create an OAuth App
 
-- `e2e/append-job-summary.ts` — upload PNGs from `e2e/ci-screenshots/`, append Markdown to `$GITHUB_STEP_SUMMARY`.
-- Request body must use `Content-Type: image/png` (not `application/json`); otherwise HTTP 400.
+https://github.com/settings/developers → **OAuth Apps** → **New OAuth App**
+
+- Enable **expiring user tokens** (or request `offline_access` when authorizing).
+- Scopes: **`repo`** (private repo) or **`public_repo`**.
+
+Save **Client ID** and **Client secret**.
+
+### 2. One-time authorization (device flow)
+
+```bash
+curl -sX POST https://github.com/login/device/code \
+  -H "Accept: application/json" \
+  -d "client_id=YOUR_CLIENT_ID" \
+  -d "scope=repo offline_access"
+```
+
+Open `verification_uri`, enter `user_code`, approve as a user with write access to this repo.
+
+```bash
+curl -sX POST https://github.com/login/oauth/access_token \
+  -H "Accept: application/json" \
+  -d "client_id=YOUR_CLIENT_ID" \
+  -d "client_secret=YOUR_CLIENT_SECRET" \
+  -d "device_code=DEVICE_CODE" \
+  -d "grant_type=urn:ietf:params:oauth:grant-type:device_code"
+```
+
+Store the **`refresh_token`** (`ghr_...`).
+
+### 3. Repository secrets
+
+| Secret | Value |
+|--------|--------|
+| `ATTACHMENT_OAUTH_CLIENT_ID` | OAuth App client ID |
+| `ATTACHMENT_OAUTH_CLIENT_SECRET` | OAuth App client secret |
+| `ATTACHMENT_OAUTH_REFRESH_TOKEN` | `ghr_...` from step 2 |
+
+Optional fallback: `ATTACHMENT_UPLOAD_PAT` (static bearer token).
+
+### 4. CI behavior
+
+On each E2E job, `e2e/mint-attachment-oauth-token.sh` exchanges the refresh token for an **`gho_` access token**, then `e2e/append-job-summary.ts` uploads PNGs and writes `![…](https://github.com/user-attachments/assets/…)` to `$GITHUB_STEP_SUMMARY`.
+
+If GitHub **rotates the refresh token**, the mint step logs a workflow warning — update `ATTACHMENT_OAUTH_REFRESH_TOKEN` once (about every 6 months if unused, or whenever rotated).
+
+## Files
+
+- `e2e/mint-attachment-oauth-token.sh` — refresh → access token
+- `e2e/append-job-summary.ts` — upload + job summary markdown
 
 ## Browser check
 
-Open the **E2E (firefox)** or **E2E (chrome)** job → **Summary** panel on a run of this branch. On failed uploads you should see the error block written by the script. After wiring a PAT, successful runs should show inline images.
+Open **E2E (chrome|firefox)** job → **Summary** on a green run after secrets are configured.
