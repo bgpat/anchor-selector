@@ -21,7 +21,7 @@ type Paintable = Element & {
 
 type WindowListener = {
   name: string;
-  listener: EventListener;
+  listener: (event: Event) => void;
   capture: boolean;
 };
 
@@ -104,7 +104,11 @@ export default class Container extends Element {
     this.listeners = [];
   }
 
-  private listen(name: string, listener: EventListener, capture: boolean) {
+  private listen(
+    name: string,
+    listener: (event: Event) => void,
+    capture: boolean,
+  ) {
     window.addEventListener(name, listener, capture);
     this.listeners.push({ name, listener, capture });
   }
