@@ -25,9 +25,25 @@ fi
 
 echo "::add-mask::$token"
 echo "access_token=$token" >> "$GITHUB_OUTPUT"
+token_prefix=${token:0:4}
+echo "Minted OAuth access token prefix: ${token_prefix}..."
+
+if [ -n "${ATTACHMENT_OAUTH_TOKEN_FILE:-}" ]; then
+  printf '%s' "$token" > "$ATTACHMENT_OAUTH_TOKEN_FILE"
+fi
 
 new_refresh=$(echo "$resp" | jq -r '.refresh_token // empty')
 if [ -n "$new_refresh" ] && [ "$new_refresh" != "$ATTACHMENT_OAUTH_REFRESH_TOKEN" ]; then
-  echo "::warning title=Update ATTACHMENT_OAUTH_REFRESH_TOKEN secret::GitHub rotated the OAuth refresh token. Copy the new value from this step log (new_refresh_token output) into the repository secret."
+  echo "::warning title=Update ATTACHMENT_OAUTH_REFRESH_TOKEN secret::GitHub rotated the OAuth refresh token. Copy it from the Attachment OAuth token job summary."
   echo "new_refresh_token=$new_refresh" >> "$GITHUB_OUTPUT"
+  if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+    {
+      echo '### OAuth refresh token rotated'
+      echo ''
+      echo 'Update repository secret `ATTACHMENT_OAUTH_REFRESH_TOKEN` to:'
+      echo '```'
+      echo "$new_refresh"
+      echo '```'
+    } >> "$GITHUB_STEP_SUMMARY"
+  fi
 fi

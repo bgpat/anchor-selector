@@ -45,9 +45,32 @@ jobs:
           path: .output/${{ matrix.outputDir }}
           if-no-files-found: error
 
+  attachment-oauth:
+    name: Attachment OAuth token
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Mint OAuth access token for attachments
+        env:
+          ATTACHMENT_OAUTH_CLIENT_ID: ${{ vars.ATTACHMENT_OAUTH_CLIENT_ID }}
+          ATTACHMENT_OAUTH_CLIENT_SECRET: ${{ secrets.ATTACHMENT_OAUTH_CLIENT_SECRET }}
+          ATTACHMENT_OAUTH_REFRESH_TOKEN: ${{ secrets.ATTACHMENT_OAUTH_REFRESH_TOKEN }}
+          ATTACHMENT_OAUTH_TOKEN_FILE: /tmp/attachment-oauth-access-token
+        run: bash e2e/mint-attachment-oauth-token.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: attachment-oauth-token
+          path: /tmp/attachment-oauth-access-token
+          if-no-files-found: error
+          retention-days: 1
+
   e2e:
     name: E2E (${{ matrix.browser }})
-    needs: build
+    needs:
+      - build
+      - attachment-oauth
     runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
@@ -74,21 +97,23 @@ jobs:
       - name: Run E2E (headed via Xvfb)
         run: xvfb-run -a bun run test:e2e -- --project=${{ matrix.browser }}
 
-      - name: Mint OAuth access token for attachments
-        id: attachment_oauth
+      - name: Download attachment OAuth token
         if: always()
-        env:
-          ATTACHMENT_OAUTH_CLIENT_ID: ${{ vars.ATTACHMENT_OAUTH_CLIENT_ID }}
-          ATTACHMENT_OAUTH_CLIENT_SECRET: ${{ secrets.ATTACHMENT_OAUTH_CLIENT_SECRET }}
-          ATTACHMENT_OAUTH_REFRESH_TOKEN: ${{ secrets.ATTACHMENT_OAUTH_REFRESH_TOKEN }}
-        run: bash e2e/mint-attachment-oauth-token.sh
+        uses: actions/download-artifact@v4
+        with:
+          name: attachment-oauth-token
+          path: /tmp/attachment-oauth
 
       - name: Add E2E screenshots to job summary
         if: always()
         env:
-          ATTACHMENT_UPLOAD_PAT: ${{ steps.attachment_oauth.outputs.access_token || secrets.ATTACHMENT_UPLOAD_PAT }}
+          ATTACHMENT_UPLOAD_PAT: ${{ secrets.ATTACHMENT_UPLOAD_PAT }}
           GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
-        run: bun e2e/append-job-summary.ts ${{ matrix.browser }}
+        run: |
+          if [ -f /tmp/attachment-oauth/attachment-oauth-access-token ]; then
+            export ATTACHMENT_UPLOAD_PAT="$(cat /tmp/attachment-oauth/attachment-oauth-access-token)"
+          fi
+          bun e2e/append-job-summary.ts ${{ matrix.browser }}
 
       - name: Upload Playwright HTML report
         if: failure()
