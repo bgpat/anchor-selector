@@ -20,21 +20,18 @@ Go to https://chrome.google.com/webstore/detail/anchor-selector/ejnjjcpllmekfiii
 
 Built with [WXT](https://wxt.dev/), TypeScript 7, and React (options page).
 
-### Debug with Firefox
+### Debug
 
 ```bash
-bun run dev:firefox
-```
-
-### Debug with Chrome
-
-```bash
+bun run dev              # Chrome (port 3000) + Firefox (3001) in parallel
 bun run dev:chrome
+bun run dev:firefox
 ```
 
 ### Build
 
 ```bash
+bun run build            # Chrome + Firefox
 bun run build:chrome
 bun run build:firefox
 ```
@@ -50,7 +47,7 @@ bun run zip:firefox
 ### End-to-end tests (Chrome & Firefox)
 
 ```bash
-bun run build:chrome && bun run build:firefox
+bun run build
 xvfb-run -a bun run test:e2e
 ```
 
