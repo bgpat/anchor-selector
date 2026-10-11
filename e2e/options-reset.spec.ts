@@ -1,4 +1,3 @@
-import { getE2eBrowserProject } from './browsers';
 import { openOptionsPage } from './helpers/open-options-page';
 import { expect, test } from './fixtures/with-extension';
 import { clickActionName } from '../src/util/config';
@@ -7,12 +6,7 @@ import variables from '../src/util/variables';
 const DEFAULT_HUE = variables.config.default.hue;
 
 test.describe('Options reset', () => {
-  test('Reset to defaults restores storage', async ({ context }, testInfo) => {
-    test.skip(
-      !getE2eBrowserProject(testInfo.project.name).supportsOptionsPage,
-      'Options page E2E is not supported for this browser project.',
-    );
-
+  test('Reset to defaults restores storage', async ({ context }) => {
     const page = await openOptionsPage(context);
     const hueSlider = page.locator('.options-hue input[type="range"]');
     await expect(hueSlider).toHaveValue(String(DEFAULT_HUE));
@@ -30,7 +24,8 @@ test.describe('Options reset', () => {
     await expect(page.locator('.options-bindings li')).toHaveCount(4);
 
     const storedHue = await page.evaluate(async () => {
-      const v = await chrome.storage.sync.get('hue');
+      const runtime = globalThis.browser ?? globalThis.chrome;
+      const v = await runtime.storage.sync.get('hue');
       return v.hue as number | undefined;
     });
     expect(storedHue).toBe(DEFAULT_HUE);

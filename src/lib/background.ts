@@ -41,7 +41,8 @@ type RuntimeMessage =
   | { type: 'set-config'; key: ConfigKey; value: StoredConfig[ConfigKey] }
   | { type: 'reset-config' }
   | { type: 'new-tab'; url: string }
-  | { type: 'new-window'; url: string };
+  | { type: 'new-window'; url: string }
+  | { type: 'open-options-e2e' };
 
 async function showSelectingBadge(tabId: number) {
   const { background, text, textColor } = await getSelectingBadgeStyle();
@@ -267,6 +268,10 @@ browser.runtime.onMessage.addListener(
     case 'new-window':
       browser.windows.create({ url: message.url });
       break;
+    case 'open-options-e2e':
+      return browser.tabs.create({
+        url: browser.runtime.getURL('/options.html'),
+      });
   }
   },
 );

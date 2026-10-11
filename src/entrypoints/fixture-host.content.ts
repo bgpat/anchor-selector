@@ -30,9 +30,8 @@ export default defineContentScript({
       })();
     });
 
-    window.addEventListener('anchor-selector-e2e-options-url', () => {
-      const url = browser.runtime.getURL('/options.html');
-      window.postMessage({ type: 'anchor-selector-e2e-options-url', url }, '*');
+    window.addEventListener('anchor-selector-e2e-options-open', () => {
+      void browser.runtime.sendMessage({ type: 'open-options-e2e' });
     });
   },
 });

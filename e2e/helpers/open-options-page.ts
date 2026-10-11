@@ -9,36 +9,15 @@ async function prepareFixturePage(context: BrowserContext): Promise<Page> {
   return page;
 }
 
-async function resolveOptionsUrlFromFixture(page: Page): Promise<string> {
-  return page.evaluate(
-    () =>
-      new Promise<string>((resolve, reject) => {
-        const timeout = window.setTimeout(() => {
-          window.removeEventListener('message', onMessage);
-          reject(new Error('Timed out waiting for options URL from extension'));
-        }, 15_000);
-
-        const onMessage = (event: MessageEvent) => {
-          const data = event.data as { type?: string; url?: string };
-          if (data?.type !== 'anchor-selector-e2e-options-url' || !data.url) {
-            return;
-          }
-          window.clearTimeout(timeout);
-          window.removeEventListener('message', onMessage);
-          resolve(data.url);
-        };
-
-        window.addEventListener('message', onMessage);
-        window.dispatchEvent(new CustomEvent('anchor-selector-e2e-options-url'));
-      }),
-  );
-}
-
-/** Opens the extension options UI (Chromium persistent context only). */
+/** Opens the extension options UI in a new tab of the extension context. */
 export async function openOptionsPage(context: BrowserContext): Promise<Page> {
   const fixturePage = await prepareFixturePage(context);
-  const optionsUrl = await resolveOptionsUrlFromFixture(fixturePage);
-  const optionsPage = await context.newPage();
-  await optionsPage.goto(optionsUrl, { waitUntil: 'domcontentloaded' });
+  const pagePromise = context.waitForEvent('page', { timeout: 30_000 });
+  await fixturePage.evaluate(() => {
+    window.dispatchEvent(new CustomEvent('anchor-selector-e2e-options-open'));
+  });
+  const optionsPage = await pagePromise;
+  await optionsPage.waitForURL(/options\.html/, { timeout: 30_000 });
+  await optionsPage.waitForLoadState('domcontentloaded');
   return optionsPage;
 }

@@ -1,22 +1,24 @@
 import { test as base } from '@playwright/test';
 import { withExtension } from 'playwright-webextext';
 import path from 'node:path';
-import { getE2eBrowserProject } from '../browsers';
+import { assertE2eProjectName, e2eExtensionOutputDir, E2E_PROJECTS } from '../browsers';
 
 export const test = base.extend<{ extDir: string }>({
   extDir: [
     // Playwright fixture deps must use `{}` when none are used.
     // eslint-disable-next-line no-empty-pattern -- required by @playwright/test
     async ({}, use, testInfo) => {
-      const { wxtOutputDir } = getE2eBrowserProject(testInfo.project.name);
-      await use(path.resolve(`.output/${wxtOutputDir}`));
+      assertE2eProjectName(testInfo.project.name);
+      await use(
+        path.resolve(`.output/${e2eExtensionOutputDir(testInfo.project.name)}`),
+      );
     },
     { scope: 'test' },
   ],
   context: async ({ playwright, extDir }, use, testInfo) => {
-    const browserProject = getE2eBrowserProject(testInfo.project.name);
+    assertE2eProjectName(testInfo.project.name);
     const browserType = withExtension(
-      playwright[browserProject.playwrightBrowser],
+      playwright[E2E_PROJECTS[testInfo.project.name].browser],
       extDir,
     );
 
