@@ -1,4 +1,8 @@
-import type { ClickAction, ClickActionName, ModifierKey } from '@/util/config';
+import type {
+  ClickAction,
+  ClickActionName,
+  ModifierKey,
+} from '@/util/config';
 import type { E2eAutomation } from '../automation/interface';
 
 type IconClick = Parameters<E2eAutomation['clickExtensionIcon']>[0];
