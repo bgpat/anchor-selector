@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { E2E_BROWSER_PROJECTS } from './e2e/browsers';
 
 const port = 4173;
 
@@ -22,14 +23,8 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
-  projects: [
-    {
-      name: 'chrome',
-      use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-  ],
+  projects: Object.values(E2E_BROWSER_PROJECTS).map((browser) => ({
+    name: browser.name,
+    use: { ...devices[browser.device] },
+  })),
 });

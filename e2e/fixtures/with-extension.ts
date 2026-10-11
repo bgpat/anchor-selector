@@ -1,41 +1,35 @@
 import { test as base } from '@playwright/test';
 import { withExtension } from 'playwright-webextext';
 import path from 'node:path';
+import { getE2eBrowserProject } from '../browsers';
 
 export const test = base.extend<{ extDir: string }>({
   extDir: [
     // Playwright fixture deps must use `{}` when none are used.
     // eslint-disable-next-line no-empty-pattern -- required by @playwright/test
     async ({}, use, testInfo) => {
-      const extDir = path.resolve(`.output/${testInfo.project.name}-mv3`);
-      await use(extDir);
+      const { wxtOutputDir } = getE2eBrowserProject(testInfo.project.name);
+      await use(path.resolve(`.output/${wxtOutputDir}`));
     },
     { scope: 'test' },
   ],
-  context: async (
-    { playwright, browserName, extDir, headless },
-    use,
-    testInfo,
-  ) => {
+  context: async ({ playwright, extDir, headless }, use, testInfo) => {
     testInfo.setTimeout(process.env.CI ? 180_000 : 120_000);
-    const browserType = withExtension(playwright[browserName], extDir);
+    const browserProject = getE2eBrowserProject(testInfo.project.name);
+    const browserType = withExtension(
+      playwright[browserProject.playwrightBrowser],
+      extDir,
+    );
 
-    if (testInfo.project.name === 'chrome') {
-      if (headless) {
-        throw new Error('Chrome extension tests must run headed (use xvfb in CI)');
-      }
-      const userDataDir = testInfo.outputPath('user-data');
-      const context = await browserType.launchPersistentContext(userDataDir, {
-        headless: false,
-      });
-      await use(context);
-      await context.close();
-      return;
+    if (browserProject.requireHeaded && headless) {
+      throw new Error(
+        `${browserProject.name} extension tests must run headed (use xvfb in CI)`,
+      );
     }
 
     const userDataDir = testInfo.outputPath('user-data');
     const context = await browserType.launchPersistentContext(userDataDir, {
-      headless,
+      headless: browserProject.requireHeaded ? false : headless,
     });
     await use(context);
     await context.close();

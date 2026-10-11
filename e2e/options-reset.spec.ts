@@ -1,3 +1,4 @@
+import { getE2eBrowserProject } from './browsers';
 import { openOptionsPage } from './helpers/open-options-page';
 import { expect, test } from './fixtures/with-extension';
 import variables from '../src/util/variables';
@@ -6,7 +7,10 @@ const DEFAULT_HUE = variables.config.default.hue;
 
 test.describe('Options reset', () => {
   test('Reset to defaults restores storage', async ({ context }, testInfo) => {
-    test.skip(testInfo.project.name === 'firefox', 'Options page E2E is Chrome-only.');
+    test.skip(
+      !getE2eBrowserProject(testInfo.project.name).supportsOptionsPage,
+      'Options page E2E is not supported for this browser project.',
+    );
 
     const page = await openOptionsPage(context);
     const hueSlider = page.locator('.options-hue input[type="range"]');
