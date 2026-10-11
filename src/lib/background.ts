@@ -7,6 +7,22 @@ import {
 } from '@/util';
 import type { ConfigKey, StoredConfig } from '@/util/config';
 
+type BrowserActionApi = typeof browser.action;
+
+/** Firefox MV2 exposes this as `browser.browserAction`; MV3 and Chrome use `browser.action`. */
+function browserActionApi(): BrowserActionApi {
+  const firefoxAction = (
+    browser as typeof browser & { browserAction?: BrowserActionApi }
+  ).browserAction;
+  if (browser.action) {
+    return browser.action;
+  }
+  if (firefoxAction) {
+    return firefoxAction;
+  }
+  return browser.action;
+}
+
 const selectingTabs = new Set<number>();
 /** Tabs where inject failed after a toolbar click (show badge until URL changes). */
 const injectFailedTabs = new Set<number>();
@@ -24,13 +40,13 @@ type RuntimeMessage =
 
 async function showSelectingBadge(tabId: number) {
   const { background, text, textColor } = await getSelectingBadgeStyle();
-  await browser.action.setBadgeBackgroundColor({ tabId, color: background });
-  await browser.action.setBadgeTextColor({ tabId, color: textColor });
-  await browser.action.setBadgeText({ tabId, text });
+  await browserActionApi().setBadgeBackgroundColor({ tabId, color: background });
+  await browserActionApi().setBadgeTextColor({ tabId, color: textColor });
+  await browserActionApi().setBadgeText({ tabId, text });
 }
 
 async function clearSelectingBadge(tabId: number) {
-  await browser.action.setBadgeText({ tabId, text: '' });
+  await browserActionApi().setBadgeText({ tabId, text: '' });
 }
 
 async function endSelectionForTab(tabId: number) {
@@ -90,23 +106,23 @@ async function getTabUrl(tab: { id?: number; url?: string }) {
 
 async function markUnavailable(tabId: number) {
   injectFailedTabs.delete(tabId);
-  await browser.action.setBadgeText({ tabId, text: '' });
-  await browser.action.setTitle({ tabId, title: TITLE_UNAVAILABLE });
-  await browser.action.disable(tabId);
+  await browserActionApi().setBadgeText({ tabId, text: '' });
+  await browserActionApi().setTitle({ tabId, title: TITLE_UNAVAILABLE });
+  await browserActionApi().disable(tabId);
 }
 
 async function markUnavailableAfterClick(tabId: number) {
   injectFailedTabs.add(tabId);
-  await browser.action.setBadgeText({ tabId, text: '!' });
-  await browser.action.setTitle({ tabId, title: TITLE_UNAVAILABLE });
-  await browser.action.disable(tabId);
+  await browserActionApi().setBadgeText({ tabId, text: '!' });
+  await browserActionApi().setTitle({ tabId, title: TITLE_UNAVAILABLE });
+  await browserActionApi().disable(tabId);
 }
 
 async function markAvailable(tabId: number) {
   injectFailedTabs.delete(tabId);
-  await browser.action.setBadgeText({ tabId, text: '' });
-  await browser.action.setTitle({ tabId, title: TITLE_READY });
-  await browser.action.enable(tabId);
+  await browserActionApi().setBadgeText({ tabId, text: '' });
+  await browserActionApi().setTitle({ tabId, title: TITLE_READY });
+  await browserActionApi().enable(tabId);
 }
 
 async function updateActionForTab(tab: { id?: number; url?: string }) {
@@ -185,7 +201,7 @@ async function sendClickToTab(tabId: number, config: StoredConfig) {
   }) as Promise<OverlayClickResult>;
 }
 
-browser.action.onClicked.addListener(async (tab) => {
+browserActionApi().onClicked.addListener(async (tab) => {
   if (!tab.url || !isWebPage(tab.url) || tab.id == null) {
     return;
   }
@@ -244,7 +260,7 @@ browser.runtime.onMessage.addListener(
 );
 
 async function initActionState() {
-  await browser.action.disable();
+  await browserActionApi().disable();
   await refreshAllTabs();
 }
 
