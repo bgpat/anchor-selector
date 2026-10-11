@@ -23,7 +23,7 @@
     "lint:html": "linthtml \"src/entrypoints/**/*.html\"",
     "lint:js": "eslint src scripts",
     "publish": "npm-run-all publish:*",
-    "publish:firefox": "web-ext-submit --source-dir .output/firefox --channel listed --upload-source-code .output/*-sources.zip --api-key=$JWT_ISSUER --api-secret=$JWT_SECRET",
+    "publish:firefox": "bash -ec 'web-ext-submit --source-dir .output/firefox --channel listed --upload-source-code .output/*-sources.zip --amo-metadata <(jq -n --rawfile notes README.md \"{version:{approval_notes:\\$notes}}\") --api-key='\"'\"'$JWT_ISSUER'\"'\"' --api-secret='\"'\"'$JWT_SECRET'\"'\"''",
     "publish:chrome": "chrome-webstore-upload upload --source .output/*-chrome.zip --auto-publish",
     "postversion": "echo \"Version is read from package.json by WXT\""
   },
