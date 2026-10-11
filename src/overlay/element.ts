@@ -1,24 +1,49 @@
-// @ts-nocheck
+export type AttrMap = Record<string, string | number>;
+export type StyleMap = Record<string, string | number>;
+
+type ElementChild = Element | string | number;
+
+type ElementInit = {
+  tag?: string;
+  ns?: string | null;
+  class?: string | string[];
+  children?: ElementChild | ElementChild[];
+  attrs?: AttrMap;
+  style?: StyleMap;
+  props?: Record<string, unknown>;
+};
+
+export type ElementAnimate = {
+  readonly target: string | null;
+  attrs: AttrMap;
+  begin(): void;
+};
+
 export default class Element {
   static tag = 'div';
 
-  constructor(opt) {
-    let p = { ...opt };
+  declare element: globalThis.Element;
+  declare children: Element[];
+  declare animate?: ElementAnimate;
+
+  constructor(opt: ElementInit = {}) {
+    let p: ElementInit = { ...opt };
     const gpo = Object.getPrototypeOf;
-    for (let i = gpo(this).constructor; i != null; i = gpo(i)) {
+    for (let i: object | null = gpo(this).constructor; i != null; i = gpo(i)) {
       p = {
-        ...i,
+        ...(i as unknown as ElementInit),
         ...p,
       };
       if (i === Element || i === Object) {
         break;
       }
     }
-    let e;
+    const tag = p.tag as string;
+    let e: globalThis.Element;
     if (p.ns == null) {
-      e = document.createElement(p.tag);
+      e = document.createElement(tag);
     } else {
-      e = document.createElementNS(p.ns, p.tag);
+      e = document.createElementNS(p.ns, tag);
     }
     this.element = e;
     let children = p.children || [];
@@ -33,41 +58,42 @@ export default class Element {
     this.props = p.props || {};
   }
 
-  appendTo(parent) {
+  appendTo(parent: Node) {
     parent.appendChild(this.element);
   }
 
-  append(child) {
-    let elem;
+  append(child: ElementChild) {
+    let elem: Element | undefined;
     if (child instanceof Element) {
       elem = child;
     }
     if (elem == null) {
-      elem = new Wrapper(document.createTextNode(child.toString()));
+      elem = new Wrapper(document.createTextNode(String(child)));
     }
     this.element.appendChild(elem.element);
-    elem.parent = this;
+    (elem as Element & { parent?: Element }).parent = this;
     this.children.push(elem);
   }
 
   remove() {
-    if (this.parent != null) {
-      this.parent.children.splice(this.parent.children.indexOf(this), 1);
+    const parent = (this as Element & { parent?: Element }).parent;
+    if (parent != null) {
+      parent.children.splice(parent.children.indexOf(this), 1);
     }
-    this.element.parentNode.removeChild(this.element);
+    this.element.parentNode!.removeChild(this.element);
   }
 
-  on(...args) {
+  on(...args: Parameters<globalThis.Element['addEventListener']>) {
     this.element.addEventListener(...args);
   }
 
-  get attrs() {
+  get attrs(): Record<string, string> {
     return Array.from(this.element.attributes)
       .map((a) => ({
         k: a.name,
         v: a.value,
       }))
-      .reduce(
+      .reduce<Record<string, string>>(
         (o, { k, v }) => ({
           ...o,
           [k]: v,
@@ -76,17 +102,17 @@ export default class Element {
       );
   }
 
-  set attrs(v) {
-    Object.entries(v).forEach(([k, v]) => {
-      this.element.setAttribute(k, v);
+  set attrs(v: AttrMap) {
+    Object.entries(v).forEach(([k, value]) => {
+      this.element.setAttribute(k, String(value));
     });
   }
 
-  get class() {
+  get class(): string | null {
     return this.element.getAttribute('class');
   }
 
-  set class(v) {
+  set class(v: string | string[] | null | undefined) {
     if (Array.isArray(v)) {
       this.element.setAttribute('class', v.join(' '));
       return;
@@ -96,30 +122,37 @@ export default class Element {
     }
   }
 
-  get style() {
-    return this.element.style;
+  get style(): CSSStyleDeclaration {
+    return (this.element as HTMLElement | SVGElement).style;
   }
 
-  set style(v) {
-    Object.entries(v).forEach(([k, v]) => {
-      this.element.style[k] = v;
+  set style(v: StyleMap | CSSStyleDeclaration) {
+    if (v instanceof CSSStyleDeclaration) {
+      return;
+    }
+    const style = (this.element as HTMLElement | SVGElement).style;
+    Object.entries(v).forEach(([k, value]) => {
+      (style as unknown as Record<string, string>)[k] = String(value);
     });
   }
 
-  get props() {
+  get props(): globalThis.Element {
     return this.element;
   }
 
-  set props(v) {
-    Object.entries(v).forEach(([k, v]) => {
-      this.element[k] = v;
+  set props(v: Record<string, unknown> | globalThis.Element) {
+    if (v instanceof globalThis.Element) {
+      return;
+    }
+    Object.entries(v).forEach(([k, value]) => {
+      (this.element as unknown as Record<string, unknown>)[k] = value;
     });
   }
 }
 
 export class Wrapper extends Element {
-  constructor(e) {
+  constructor(e: Node) {
     super();
-    this.element = e;
+    this.element = e as globalThis.Element;
   }
 }

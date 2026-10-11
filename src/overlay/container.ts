@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { variables } from '@/util';
 import { topID, topElement } from '@/anchor-selector';
 import Element from './element';
@@ -7,10 +6,26 @@ import Background from './background';
 import Selecting from './selecting';
 import Label from './label';
 
+type OverlayControl = {
+  readonly selecting: boolean;
+  select(id: string | null | undefined, event: MouseEvent): Promise<void>;
+};
+
+type Paintable = Element & {
+  render?: (
+    target: globalThis.Element | null | undefined,
+    bounds: DOMRect,
+  ) => void;
+};
+
 export default class Container extends Element {
   static class = variables.overlay.class;
 
-  constructor(overlay, config) {
+  declare overlay: OverlayControl;
+  declare svg: SVG;
+  declare mouse?: { x: number; y: number } | null;
+
+  constructor(overlay: OverlayControl, config: { hue: number }) {
     const svg = new SVG({
       children: [new Background(), new Selecting(config), new Label()],
     });
@@ -58,11 +73,14 @@ export default class Container extends Element {
     const bcr = this.element.getBoundingClientRect();
     const te = this.mouse && topElement(this.mouse.x, this.mouse.y);
     this.svg.size(bcr.width, bcr.height);
-    this.svg.children.forEach((e) => e.render && e.render(te, bcr));
+    this.svg.children.forEach((child) => {
+      const e = child as Paintable;
+      e.render && e.render(te, bcr);
+    });
     window.requestAnimationFrame(() => this.render());
   }
 
-  move(x, y) {
+  move(x?: number, y?: number) {
     if (!this.overlay.selecting) {
       return;
     }

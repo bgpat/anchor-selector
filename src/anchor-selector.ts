@@ -1,11 +1,10 @@
-// @ts-nocheck
 import { variables } from '@/util';
 
-function elements(x, y) {
+function elements(x: number, y: number) {
   return Array.from(document.elementsFromPoint(x, y));
 }
 
-function invisibleElements(x, y) {
+function invisibleElements(x: number, y: number) {
   return Array.from(document.querySelectorAll('a[name], [id]'))
     .filter((e) => e.checkVisibility())
     .map((element) => ({
@@ -24,18 +23,19 @@ function invisibleElements(x, y) {
     .map((i) => i.element);
 }
 
-export function topElement(x, y) {
+export function topElement(x: number, y: number) {
   return [...invisibleElements(x, y), ...elements(x, y)].find((e) => {
     if (e.id !== '') {
       return true;
     }
-    if (e.tagName === 'A' && e.name !== '') {
-      return true;
-    }
+    return e.tagName === 'A' && (e as HTMLAnchorElement).name !== '';
   });
 }
 
-export function topID(x, y) {
+export function topID(x: number, y: number) {
   const e = topElement(x, y);
-  return e && (e.id || e.name);
+  if (e == null) {
+    return;
+  }
+  return e.id || (e as HTMLAnchorElement).name;
 }

@@ -4,8 +4,7 @@ import type { StoredConfig } from '@/util/config';
 import Overlay from '@/overlay';
 
 type ContentMessage =
-  | { type: 'ping' }
-  | { type: typeof type.click; config: StoredConfig };
+  { type: 'ping' } | { type: typeof type.click; config: StoredConfig };
 
 export function installContentScript() {
   if (globalThis[CONTENT_SCRIPT_MARKER]) {
@@ -18,23 +17,25 @@ export function installContentScript() {
     switch (message.type) {
       case 'ping':
         return Promise.resolve();
-      case type.click:
-        if (Overlay.isActive) {
-          return Overlay.current.close().then(() => ({ overlayActive: false }));
+      case type.click: {
+        const overlay = Overlay.current;
+        if (overlay) {
+          return overlay.close().then(() => ({ overlayActive: false }));
         }
-        new Overlay(
-          message.config,
-          () => browser.runtime.sendMessage({ type: 'close' }),
+        new Overlay(message.config, () =>
+          browser.runtime.sendMessage({ type: 'close' }),
         );
         return { overlayActive: true };
+      }
     }
   });
 
   window.addEventListener(
     'keydown',
     ({ key }) => {
-      if (key === 'Escape' && Overlay.isActive) {
-        void Overlay.current.close();
+      const overlay = Overlay.current;
+      if (key === 'Escape' && overlay) {
+        void overlay.close();
       }
     },
     false,

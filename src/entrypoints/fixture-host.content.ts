@@ -11,8 +11,9 @@ export default defineContentScript({
     window.addEventListener('anchor-selector-e2e', () => {
       void (async () => {
         const config = await variables.config.getAll();
-        if (Overlay.isActive) {
-          await Overlay.current.close();
+        const overlay = Overlay.current;
+        if (overlay) {
+          await overlay.close();
           return;
         }
         new Overlay(config, () =>

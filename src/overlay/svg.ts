@@ -1,20 +1,21 @@
-// @ts-nocheck
-import Element from './element';
+import Element, { type AttrMap } from './element';
 
 export class SVGElement extends Element {
   static ns = 'http://www.w3.org/2000/svg';
 
-  get attrs() {
+  get attrs(): Record<string, string> {
     return super.attrs;
   }
 
-  set attrs(v) {
-    if (this.animate != null) {
-      let from = this.element.getAttribute(this.animate.target);
-      let to = v[this.animate.target];
+  set attrs(v: AttrMap) {
+    const animate = this.animate;
+    const target = animate?.target;
+    if (animate != null && target != null) {
+      const from = this.element.getAttribute(target);
+      const to = v[target];
       if (from != null && from !== to) {
-        this.animate.attrs = { from, to };
-        this.animate.begin();
+        animate.attrs = { from, to };
+        animate.begin();
       }
     }
     super.attrs = v;
@@ -24,7 +25,7 @@ export class SVGElement extends Element {
 export class SVG extends SVGElement {
   static tag = 'svg';
 
-  size(width, height) {
+  size(width: number, height: number) {
     this.attrs = { width, height };
   }
 }
@@ -33,64 +34,73 @@ export class G extends SVGElement {
   static tag = 'g';
 }
 
+type Point = { x: number; y: number };
+
 export class Path extends SVGElement {
   static tag = 'path';
 
-  get d() {
+  get d(): string | null {
     return this.element.getAttribute('d');
   }
 
-  set d(v) {
-    if (Array.isArray(v)) {
-      v = v
-        .map((p) =>
-          [
-            ...p.map((p, i) => {
-              return `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`;
-            }),
-            'Z',
-          ].join(' '),
-        )
-        .join(' ');
-    }
-    this.attrs = { d: v };
+  set d(v: string | Point[][] | null) {
+    const value = Array.isArray(v)
+      ? v
+          .map((ring) =>
+            [
+              ...ring.map((point, i) => {
+                return `${i === 0 ? 'M' : 'L'}${point.x},${point.y}`;
+              }),
+              'Z',
+            ].join(' '),
+          )
+          .join(' ')
+      : v;
+    this.attrs = { d: value ?? '' };
   }
 }
 
 export class Animate extends SVGElement {
   static tag = 'animate';
 
-  constructor(attrs, enabled = () => true) {
+  declare enabled: () => boolean;
+  declare _parent?: Element;
+
+  constructor(attrs: AttrMap, enabled: () => boolean = () => true) {
     super({ attrs });
     this.enabled = enabled;
   }
 
-  get parent() {
+  get parent(): Element | undefined {
     return this._parent;
   }
 
-  set parent(v) {
+  set parent(v: Element | undefined) {
     this._parent = v;
-    v.animate = this;
+    if (v != null) {
+      v.animate = this;
+    }
   }
 
-  get target() {
+  get target(): string | null {
     return this.element.getAttribute('attributeName');
   }
 
   begin() {
-    this.enabled() && this.element.beginElement();
+    if (this.enabled()) {
+      (this.element as SVGAnimateElement).beginElement();
+    }
   }
 }
 
 export class Text extends SVGElement {
   static tag = 'text';
 
-  get value() {
+  get value(): string | null {
     return this.element.textContent;
   }
 
-  set value(v) {
+  set value(v: string | null) {
     this.element.textContent = v;
   }
 }

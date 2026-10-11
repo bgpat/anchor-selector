@@ -1,9 +1,10 @@
-// @ts-nocheck
 import { variables } from '@/util';
 import { G, Path } from './svg';
 
 export default class Background extends G {
   static class = 'background';
+
+  declare path: Path;
 
   constructor() {
     const path = new Path();
@@ -11,7 +12,8 @@ export default class Background extends G {
     this.path = path;
   }
 
-  render(topElement, { left, top, right, bottom }) {
+  render(_topElement: globalThis.Element | null | undefined, bounds: DOMRect) {
+    const { left, top, right, bottom } = bounds;
     this.path.d = Array.from(document.querySelectorAll('[id], a[name]'))
       .filter((e) => e.checkVisibility())
       .map((e) => e.getBoundingClientRect())
@@ -25,7 +27,7 @@ export default class Background extends G {
           (top <= bcr.top && bcr.top <= bottom) ||
           (top <= bcr.bottom && bcr.bottom <= bottom),
       )
-      .map(({left, top, right, bottom, width, height}) => {
+      .map(({ left, top, right, bottom, width, height }) => {
         let pad = 0;
         const swh = variables.overlay.strokeWidth * 0.5;
         if (width <= swh || height <= swh) {

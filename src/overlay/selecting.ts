@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { variables } from '@/util';
 import { G, Path, Animate } from './svg';
 import { default as Color } from 'color';
@@ -6,8 +5,10 @@ import { default as Color } from 'color';
 export default class Selecting extends G {
   static class = 'selecting';
 
-  constructor(config) {
-    const path = new Path({
+  declare path: Path;
+
+  constructor(config: { hue: number }) {
+    const path: Path = new Path({
       children: new Animate(
         {
           attributeName: 'd',
@@ -15,7 +16,7 @@ export default class Selecting extends G {
           repeatCount: 1,
           ...variables.animation.ease,
         },
-        () => path.style.opacity > 0,
+        () => Number(path.style.opacity) > 0,
       ),
       style: {
         opacity: 0,
@@ -38,7 +39,8 @@ export default class Selecting extends G {
       },
     });
     super({ children: path });
-    path.on('transitionend', (e) => {
+    path.on('transitionend', (event) => {
+      const e = event as TransitionEvent;
       if (e.propertyName === 'opacity' && path.style.opacity === '0') {
         path.element.removeAttribute('d');
       }
@@ -46,12 +48,13 @@ export default class Selecting extends G {
     this.path = path;
   }
 
-  render(topElement) {
+  render(topElement: globalThis.Element | null | undefined) {
     this.path.style = { opacity: +!!topElement };
     if (topElement == null) {
       return;
     }
-    const { left, top, right, bottom, width , height } = topElement.getBoundingClientRect();
+    const { left, top, right, bottom, width, height } =
+      topElement.getBoundingClientRect();
     let pad = 0;
     const swh = variables.overlay.strokeWidth * 0.5;
     if (width <= swh || height <= swh) {

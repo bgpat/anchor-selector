@@ -1,20 +1,27 @@
-// @ts-nocheck
 import { browser } from 'wxt/browser';
+import type { ClickActionName } from '@/util/config';
 import Container from './container';
 import { variables } from '@/util';
 
-let current = null;
+type ClickModifiers = Partial<
+  Pick<MouseEvent, 'altKey' | 'ctrlKey' | 'metaKey' | 'shiftKey'>
+>;
+
+let current: Overlay | null = null;
 
 export default class Overlay {
   static get isActive() {
     return current != null;
   }
 
-  static get current() {
+  static get current(): Overlay | null {
     return current;
   }
 
-  constructor(config, callback) {
+  declare container: Container;
+  declare callback: () => unknown;
+
+  constructor(config: { hue: number }, callback: () => unknown) {
     this.container = new Container(this, config);
     this.container.appendTo(document.body);
     this.callback = callback;
@@ -25,19 +32,24 @@ export default class Overlay {
     return this === current;
   }
 
-  async select(id, e = {}, action) {
+  async select(
+    id: string | null | undefined,
+    e: ClickModifiers | null = {},
+    action?: ClickActionName,
+  ): Promise<void> {
     if (!this.selecting) {
       return;
     }
-    let url = new URL(location);
+    const url = new URL(location.href);
     url.hash = id == null ? url.hash : `#${id}`;
-    let config = await variables.config.getAll();
+    const config = await variables.config.getAll();
     if (action == null) {
-      let match = config.click.find(
+      const modifiers = e ?? {};
+      const match = config.click.find(
         (a) =>
           a.keys.sort().join('\0') ===
-          ['alt', 'ctrl', 'meta', 'shift']
-            .filter((k) => e[`${k}Key`])
+          (['alt', 'ctrl', 'meta', 'shift'] as const)
+            .filter((k) => modifiers[`${k}Key`])
             .join('\0'),
       );
       if (match) {
@@ -47,7 +59,7 @@ export default class Overlay {
     switch (action) {
       case 'open-current': // deprecated
       case 'replace-address-bar':
-        history.pushState(null, null, url.hash);
+        history.pushState(null, '', url.hash);
         break;
       case 'open-new': // deprecated
       case 'open-new-tab':
