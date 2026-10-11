@@ -17,7 +17,7 @@ workflows:
     '.github/workflows/test.yml':
         - 'actions/cache@v6'
         - 'actions/checkout@v7'
-        - 'actions/upload-artifact@v4'
+        - 'actions/upload-artifact@v7'
         - 'oven-sh/setup-bun@v2'
 dependencies:
     'actions/cache@v6':
@@ -30,9 +30,9 @@ dependencies:
         commit: 'sha1-3d3c42e5aac5ba805825da76410c181273ba90b1'
         owner_id: 44036562
         repo_id: 197814629
-    'actions/upload-artifact@v4':
-        ref: 'v4'
-        commit: 'sha1-ea165f8d65b6e75b540449e92b4886f43607fa02'
+    'actions/upload-artifact@v7':
+        ref: 'v7'
+        commit: 'sha1-cf430e030ddbb5b0abf93d22962f4752f3646cd9'
         owner_id: 44036562
         repo_id: 192625955
     'bgpat/release-asset-action@v2':
