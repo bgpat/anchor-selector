@@ -50,6 +50,7 @@ Store the **`refresh_token`** (`ghr_...`).
 | `ATTACHMENT_OAUTH_CLIENT_ID` | **Variable** | OAuth App client ID |
 | `ATTACHMENT_OAUTH_CLIENT_SECRET` | Secret | OAuth App client secret |
 | `ATTACHMENT_OAUTH_REFRESH_TOKEN` | Secret | `ghr_...` from step 2 |
+| `ATTACHMENT_OAUTH_SECRET_UPDATER_PAT` | Secret | Fine-grained PAT: **Secrets** read/write on this repo only (persists rotated `ghr_` without logging it) |
 
 Optional fallback: `ATTACHMENT_UPLOAD_PAT` (static bearer token).
 
@@ -57,7 +58,7 @@ Optional fallback: `ATTACHMENT_UPLOAD_PAT` (static bearer token).
 
 On each E2E job, `e2e/mint-attachment-oauth-token.sh` exchanges the refresh token for an **`gho_` access token**, then `e2e/append-job-summary.ts` uploads PNGs and writes `![…](https://github.com/user-attachments/assets/…)` to `$GITHUB_STEP_SUMMARY`.
 
-If GitHub **rotates the refresh token**, the mint job updates `ATTACHMENT_OAUTH_REFRESH_TOKEN` via the Actions API (`secrets: write`). **Never** write refresh tokens to job summaries or logs.
+If GitHub **rotates the refresh token**, the mint job updates `ATTACHMENT_OAUTH_REFRESH_TOKEN` using `ATTACHMENT_OAUTH_SECRET_UPDATER_PAT` and `gh secret set`. **Never** write refresh tokens to job summaries or logs.
 
 ### If a refresh token was exposed (e.g. in an old workflow Summary)
 

@@ -35,11 +35,14 @@ fi
 new_refresh=$(echo "$resp" | jq -r '.refresh_token // empty')
 if [ -n "$new_refresh" ] && [ "$new_refresh" != "$ATTACHMENT_OAUTH_REFRESH_TOKEN" ]; then
   echo "::add-mask::$new_refresh"
-  if [ -n "${GITHUB_REPOSITORY:-}" ] && command -v gh >/dev/null 2>&1; then
-    printf '%s' "$new_refresh" | gh secret set ATTACHMENT_OAUTH_REFRESH_TOKEN --repo "$GITHUB_REPOSITORY"
-    echo "::notice title=OAuth refresh token rotated::Updated repository secret ATTACHMENT_OAUTH_REFRESH_TOKEN (never log the token)."
-  else
-    echo "::error title=OAuth refresh token rotated::GitHub issued a new refresh token but it could not be saved. Re-run device flow and update ATTACHMENT_OAUTH_REFRESH_TOKEN locally. Do not print tokens in CI logs." >&2
+  if [ -z "${ATTACHMENT_OAUTH_SECRET_UPDATER_PAT:-}" ]; then
+    echo "::error title=OAuth refresh token rotated::Configure repository secret ATTACHMENT_OAUTH_SECRET_UPDATER_PAT (fine-grained PAT: Secrets read/write on this repo only), then re-run CI. Do not paste refresh tokens into logs or summaries." >&2
     exit 1
   fi
+  if [ -z "${GITHUB_REPOSITORY:-}" ] || ! command -v gh >/dev/null 2>&1; then
+    echo "::error title=OAuth refresh token rotated::Cannot persist rotated refresh token in this environment." >&2
+    exit 1
+  fi
+  GH_TOKEN="$ATTACHMENT_OAUTH_SECRET_UPDATER_PAT" printf '%s' "$new_refresh" | gh secret set ATTACHMENT_OAUTH_REFRESH_TOKEN --repo "$GITHUB_REPOSITORY"
+  echo "::notice title=OAuth refresh token rotated::Updated ATTACHMENT_OAUTH_REFRESH_TOKEN via Secrets API."
 fi
