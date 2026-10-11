@@ -76,9 +76,7 @@ jobs:
 
       - name: Mint OAuth access token for attachments
         id: attachment_oauth
-        if: >-
-          always() &&
-          secrets.ATTACHMENT_OAUTH_REFRESH_TOKEN != ''
+        if: always()
         env:
           ATTACHMENT_OAUTH_CLIENT_ID: ${{ vars.ATTACHMENT_OAUTH_CLIENT_ID }}
           ATTACHMENT_OAUTH_CLIENT_SECRET: ${{ secrets.ATTACHMENT_OAUTH_CLIENT_SECRET }}

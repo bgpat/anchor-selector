@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [ -z "${ATTACHMENT_OAUTH_REFRESH_TOKEN:-}" ]; then
+  echo "ATTACHMENT_OAUTH_REFRESH_TOKEN not set; skipping OAuth mint."
+  exit 0
+fi
+
 : "${ATTACHMENT_OAUTH_CLIENT_ID:?ATTACHMENT_OAUTH_CLIENT_ID is required}"
 : "${ATTACHMENT_OAUTH_CLIENT_SECRET:?ATTACHMENT_OAUTH_CLIENT_SECRET is required}"
-: "${ATTACHMENT_OAUTH_REFRESH_TOKEN:?ATTACHMENT_OAUTH_REFRESH_TOKEN is required}"
 : "${GITHUB_OUTPUT:?GITHUB_OUTPUT is required}"
 
 resp=$(curl -sS -X POST https://github.com/login/oauth/access_token \
