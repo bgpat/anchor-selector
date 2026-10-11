@@ -9,7 +9,7 @@ on:
 jobs:
   quality:
     name: Lint & typecheck
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
@@ -27,7 +27,7 @@ jobs:
 
   build:
     name: Build (${{ matrix.browser }})
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -54,7 +54,7 @@ jobs:
   e2e:
     name: E2E (${{ matrix.browser }})
     needs: build
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
