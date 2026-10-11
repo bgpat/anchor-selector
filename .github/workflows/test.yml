@@ -83,4 +83,3 @@ jobs:
           name: e2e-report-${{ matrix.browser }}
           path: e2e/report
           if-no-files-found: ignore
-          retention-days: 14
