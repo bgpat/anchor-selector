@@ -1,7 +1,8 @@
 export const runtimeMessageType = {
-  ping: 'ping',
-  click: 'click',
-  close: 'close',
+  getState: 'get-state',
+  setSelection: 'set-selection',
+  contentScriptReady: 'content-script-ready',
+  selectionEnded: 'selection-ended',
   getConfig: 'get-config',
   setConfig: 'set-config',
   newTab: 'new-tab',
