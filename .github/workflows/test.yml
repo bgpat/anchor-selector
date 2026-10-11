@@ -25,7 +25,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chrome, firefox]
+        include:
+          - browser: chrome
+            outputDir: chrome-mv3
+          - browser: firefox
+            outputDir: firefox-mv2
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -34,11 +38,11 @@ jobs:
           bun-version: latest
 
       - run: bun install --frozen-lockfile
-      - run: if [ "${{ matrix.browser }}" = "firefox" ]; then bun run build:firefox; else bun run build:chrome; fi
+      - run: bun run build:${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
         with:
           name: extension-${{ matrix.browser }}
-          path: .output/${{ matrix.browser == 'firefox' && 'firefox-mv2' || 'chrome-mv3' }}
+          path: .output/${{ matrix.outputDir }}
           if-no-files-found: error
 
   e2e:
@@ -48,7 +52,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chrome, firefox]
+        include:
+          - browser: chrome
+          - browser: firefox
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -57,7 +63,7 @@ jobs:
           bun-version: latest
 
       - run: bun install --frozen-lockfile
-      - run: if [ "${{ matrix.browser }}" = "firefox" ]; then bun run build:firefox; else bun run build:chrome; fi
+      - run: bun run build:${{ matrix.browser }}
 
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y xvfb
