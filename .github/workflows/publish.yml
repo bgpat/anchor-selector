@@ -25,15 +25,4 @@ jobs:
       - uses: actions/checkout@v7
       - uses: $/.github/actions/bun-deps
       - run: bun run zip:${{ matrix.browser }}
-      - if: matrix.browser == 'chrome'
-        run: bun run publish:chrome
-      - if: matrix.browser == 'firefox'
-        shell: bash
-        run: |
-          bunx web-ext-submit \
-            --source-dir .output/firefox \
-            --channel listed \
-            --upload-source-code .output/*-sources.zip \
-            --amo-metadata <(jq -n --rawfile notes README.md '{version:{approval_notes:$notes}}') \
-            --api-key="$JWT_ISSUER" \
-            --api-secret="$JWT_SECRET"
+      - run: bun run publish:${{ matrix.browser }}
