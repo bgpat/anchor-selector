@@ -18,14 +18,30 @@ Go to https://chrome.google.com/webstore/detail/anchor-selector/ejnjjcpllmekfiii
 
 ## Development
 
-### Debug with Firefox
+Built with [WXT](https://wxt.dev/), TypeScript 7, and React (options page).
+
+### Debug
 
 ```bash
-npm start
+bun run dev              # Firefox (3001) + Chrome (3000)
+bun run dev:firefox
+bun run dev:chrome
 ```
+
+Non-default Firefox installs can set `webExt.binaries.firefox` in [`wxt.config.ts`](wxt.config.ts) (path or web-ext alias such as `flatpak:org.mozilla.firefox`).
 
 ### Build
 
 ```bash
-npm run build
+bun run build            # Chrome + Firefox
+bun run build:chrome
+bun run build:firefox
+```
+
+### Package for stores
+
+```bash
+bun run zip              # Chrome + Firefox
+bun run zip:chrome       # one browser only
+bun run zip:firefox
 ```

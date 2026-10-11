@@ -1,0 +1,25 @@
+name: Bun dependencies
+description: Setup Bun, restore shared dependency cache, and install from bun.lock
+
+inputs:
+  bun-version:
+    description: Bun version passed to oven-sh/setup-bun
+    required: false
+    default: latest
+
+runs:
+  using: composite
+  steps:
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: ${{ inputs.bun-version }}
+
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.bun/install/cache
+          node_modules
+        key: bun-deps-${{ hashFiles('bun.lock') }}
+
+    - run: bun install --frozen-lockfile
+      shell: bash

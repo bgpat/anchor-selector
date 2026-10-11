@@ -1,0 +1,65 @@
+/* stylelint-disable selector-class-pattern */
+.--anchor-selector-overlay {
+  border: none;
+  top: 0;
+  left: 0;
+  margin: 0;
+  position: fixed !important;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 2147483647;
+  background: transparent;
+  pointer-events: none;
+}
+
+.--anchor-selector-overlay > svg > .background > path {
+  fill: transparent;
+  stroke: rgb(128 128 128 / 30%);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 6;
+  stroke-dashoffset: 6;
+}
+
+.--anchor-selector-overlay > svg > .selecting > path {
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 6;
+  stroke-dashoffset: 6;
+  animation: anchor-selector-active 0.3s linear 0s infinite;
+  animation-fill-mode: forwards;
+  transition: opacity 0.3s;
+  cursor: pointer;
+}
+
+.--anchor-selector-overlay > svg > .label > .label-content {
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.--anchor-selector-overlay > svg > .label > .label-content > text {
+  font-weight: bold;
+  font-size: 24px;
+  font-family: monospace;
+}
+
+.--anchor-selector-overlay > svg > .label > .label-content > .text-bg {
+  fill: rgb(255 255 255 / 95%);
+  stroke: rgb(255  255  255 / 95%);
+  stroke-width: 5;
+}
+
+.--anchor-selector-overlay > svg > .label > .label-content > .text-fg {
+  fill: rgb(0 0 0 / 80%);
+}
+
+@keyframes anchor-selector-active {
+  0% {
+    stroke-dashoffset: 12;
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+  }
+}

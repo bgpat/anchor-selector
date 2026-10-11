@@ -1,3 +1,9 @@
 node_modules/
+.worktrees/
+.output/
+.wxt/
 dist/
 web-ext-artifacts/
+test-results/
+tmp/
+.cursor/

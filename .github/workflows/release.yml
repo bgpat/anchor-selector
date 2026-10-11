@@ -1,3 +1,5 @@
+# This workflow is managed by gh actions-lock.
+
 name: release
 on:
   push:
@@ -6,26 +8,23 @@ on:
   workflow_dispatch:
 jobs:
   update-draft-release:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
     steps:
       - id: release-drafter
         uses: release-drafter/release-drafter@v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7
         with:
           ssh-key: ${{ secrets.DEPLOY_KEY }}
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: npm
-      - run: npm install
+      - uses: $/.github/actions/bun-deps
       - run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git reset --hard
           git clean -fd
-          npm version ${VERSION#v} --no-git-tag-version --allow-same-version
+          bunx dot-json package.json version ${VERSION#v}
+          bun install
         env:
           VERSION: ${{ steps.release-drafter.outputs.tag_name }}
       - id: pr
@@ -46,10 +45,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ steps.pr.outputs.pull-request-url != null }}
-      - run: npm run build
-      - uses: bgpat/release-asset-action@master
+      - run: bun run zip
+      - uses: bgpat/release-asset-action@v2
         with:
-          pattern: web-ext-artifacts/*
+          pattern: .output/*.zip
           github-token: ${{ secrets.GITHUB_TOKEN }}
           release-id: ${{ steps.release-drafter.outputs.id }}
           allow-overwrite: true

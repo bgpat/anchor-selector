@@ -1,3 +1,5 @@
+# This workflow is managed by gh actions-lock.
+
 name: publish
 on:
   release:
@@ -5,7 +7,7 @@ on:
       - released
 jobs:
   publish:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
     env:
       CLIENT_ID: ${{ secrets.CLIENT_ID }}
       CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
@@ -19,11 +21,7 @@ jobs:
           - firefox
           - chrome
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-          cache: npm
-      - run: npm install
-      - run: npm run build
-      - run: npm run publish:${{ matrix.browser }}
+      - uses: actions/checkout@v7
+      - uses: $/.github/actions/bun-deps
+      - run: bun run zip:${{ matrix.browser }}
+      - run: bun run publish:${{ matrix.browser }}

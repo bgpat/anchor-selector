@@ -1,0 +1,17 @@
+import { default as Color } from 'color';
+import { configKey } from './config';
+import variables from './variables';
+
+/** Action badge while selecting (icon unchanged; works on Chrome and Firefox). */
+export function getSelectingBadgeStyle() {
+  return variables.config.get(configKey.hue).then((hue) => {
+    const { saturation, lightness } = variables.overlay.selecting.stroke;
+    const background = Color.hsl(hue, saturation, lightness).hex();
+    return {
+      background,
+      // U+200B zero-width space: no visible glyph; pill size is still browser-defined.
+      text: '\u200B',
+      textColor: '#FFFFFF',
+    };
+  });
+}
