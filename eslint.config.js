@@ -62,7 +62,7 @@ export default [
     },
   },
   {
-    files: ['e2e/**/*.ts'],
+    files: ['e2e/**/*.ts', 'scripts/**/*.ts'],
     languageOptions: {
       globals: {
         Bun: 'readonly',

@@ -4,7 +4,7 @@
   "description": "The web-extension to select anchor element.",
   "type": "module",
   "scripts": {
-    "dev": "npm-run-all --parallel dev:chrome dev:firefox",
+    "dev": "bun scripts/dev-all.ts",
     "dev:chrome": "wxt -b chrome -p 3000",
     "dev:firefox": "wxt -b firefox -p 3001",
     "build": "npm-run-all build:chrome build:firefox",
@@ -25,7 +25,7 @@
     "lint:webext": "wxt build -b firefox && web-ext lint -s .output/firefox-mv2 --warnings-as-errors=false",
     "lint:css": "stylelint \"src/**/*.css\"",
     "lint:html": "linthtml \"src/entrypoints/**/*.html\"",
-    "lint:js": "eslint src e2e",
+    "lint:js": "eslint src e2e scripts",
     "publish": "npm-run-all publish:*",
     "publish:firefox": "web-ext-submit --api-key=$JWT_ISSUER --api-secret=$JWT_SECRET",
     "publish:chrome": "chrome-webstore-upload upload --source .output/*-chrome.zip --auto-publish",

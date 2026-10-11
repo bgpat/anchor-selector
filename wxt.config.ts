@@ -1,8 +1,17 @@
 import { defineConfig } from 'wxt';
+import { resolveFirefoxBinary } from './scripts/resolve-firefox';
+
+const firefoxBinary = resolveFirefoxBinary();
 
 export default defineConfig({
   srcDir: 'src',
   modules: ['@wxt-dev/module-react'],
+  webExt: {
+    ...(firefoxBinary ? { binaries: { firefox: firefoxBinary } } : {}),
+    chromiumProfile: '.wxt/chrome-profile',
+    firefoxProfile: '.wxt/firefox-profile',
+    keepProfileChanges: true,
+  },
   manifest: {
     name: 'Anchor Selector',
     description: 'Select link anchor element',
