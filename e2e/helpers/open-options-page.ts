@@ -1,10 +1,9 @@
 import type { BrowserContext, Page } from '@playwright/test';
-
-const FIXTURE_URL = 'http://127.0.0.1:4173/anchor-page.html';
+import { E2E_FIXTURE_PATH } from '../constants';
 
 async function prepareFixturePage(context: BrowserContext): Promise<Page> {
   const page = context.pages()[0] ?? (await context.newPage());
-  await page.goto(FIXTURE_URL, { waitUntil: 'domcontentloaded' });
+  await page.goto(E2E_FIXTURE_PATH, { waitUntil: 'domcontentloaded' });
   await page.locator('#heading').waitFor({ state: 'visible', timeout: 15_000 });
   return page;
 }

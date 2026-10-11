@@ -1,13 +1,13 @@
+import { E2E_FIXTURE_PATH } from './constants';
 import { activateAnchorSelection } from './helpers/activate-selection';
 import { saveCiScreenshot } from './helpers/ci-screenshot';
 import { expect, test } from './fixtures/with-extension';
 
-const FIXTURE_URL = 'http://127.0.0.1:4173/anchor-page.html';
 const OVERLAY_SELECTOR = '.--anchor-selector-overlay';
 
 test.describe('Anchor Selector extension', () => {
   test('selects an element and updates the page hash', async ({ page }, testInfo) => {
-    await page.goto(FIXTURE_URL);
+    await page.goto(E2E_FIXTURE_PATH);
     await expect(page.locator('#heading')).toBeVisible();
     await saveCiScreenshot(page, testInfo, '01-fixture');
 
@@ -17,9 +17,8 @@ test.describe('Anchor Selector extension', () => {
 
     const heading = page.locator('#heading');
     const box = await heading.boundingBox();
-    expect(box).not.toBeNull();
     if (box == null) {
-      return;
+      throw new Error('Expected #heading to have a bounding box');
     }
 
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -33,7 +32,7 @@ test.describe('Anchor Selector extension', () => {
   });
 
   test('applies hue changes while selecting', async ({ page }) => {
-    await page.goto(FIXTURE_URL);
+    await page.goto(E2E_FIXTURE_PATH);
     await expect(page.locator('#heading')).toBeVisible();
 
     await activateAnchorSelection(page);
