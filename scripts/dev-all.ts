@@ -4,9 +4,6 @@ const root = import.meta.dir + '/..';
 
 const browsers = ['firefox', 'chrome'] as const;
 
-/** WXT runs via scripts/wxt.ts, which sets FORCE_COLOR when stdout is not a TTY. */
-const devEnv = process.env;
-
 const prefixWidth = Math.max(
   ...browsers.map((name) => `[${name}] `.length),
 );
@@ -28,7 +25,7 @@ const spawnDev = (script: string): Subprocess => {
     stdout: 'pipe',
     stderr: 'pipe',
     stdin: 'pipe',
-    env: devEnv,
+    env: process.env,
   });
 };
 
