@@ -44,6 +44,7 @@ async function uploadScreenshot(filePath: string, fileName: string): Promise<str
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
+        'Content-Type': 'image/png',
       },
       body: readFileSync(filePath),
     },
