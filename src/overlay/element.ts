@@ -16,7 +16,7 @@ type ElementInit = {
 export type ElementAnimate = {
   readonly target: string | null;
   attrs: AttrMap;
-  begin(): void;
+  begin(): boolean;
 };
 
 export default class Element {
