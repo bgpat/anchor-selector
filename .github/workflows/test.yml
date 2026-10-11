@@ -39,11 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - browser: chrome
-            outputDir: chrome-mv3
-          - browser: firefox
-            outputDir: firefox-mv3
+        browser: [chrome, firefox]
     steps:
       - uses: actions/checkout@v7
       - uses: $/.github/actions/bun-deps
@@ -51,7 +47,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: extension-${{ matrix.browser }}
-          path: .output/${{ matrix.outputDir }}
+          path: .output/${{ matrix.browser }}-mv3
           if-no-files-found: error
 
   e2e:
