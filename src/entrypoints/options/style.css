@@ -12,13 +12,15 @@ body {
 }
 
 .options {
-  max-width: 28rem;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: min(52rem, 100%);
   margin: 0 auto;
-  padding: 1.25rem 1rem 2rem;
+  padding: 0.5rem 0.35rem 1rem;
 }
 
 .options-loading {
-  padding: 1.25rem;
+  padding: 0.5rem 0.35rem;
 }
 
 .options-header h1 {
@@ -28,14 +30,14 @@ body {
 }
 
 .options-header p {
-  margin: 0 0 1.25rem;
+  margin: 0 0 0.75rem;
   color: color-mix(in srgb, canvastext 70%, transparent);
   font-size: 0.95rem;
 }
 
 .options-section {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.65rem 0.75rem;
   border: 1px solid color-mix(in srgb, canvastext 18%, transparent);
   border-radius: 0.75rem;
   background: color-mix(in srgb, canvas 92%, canvastext 8%);
@@ -48,8 +50,8 @@ body {
 }
 
 .options-fieldset {
-  margin: 0 0 1rem;
-  padding: 0.75rem;
+  margin: 0 0 0.65rem;
+  padding: 0.5rem 0.55rem;
   border: 1px solid color-mix(in srgb, canvastext 14%, transparent);
   border-radius: 0.5rem;
 }
@@ -92,8 +94,8 @@ body {
 }
 
 .options-bindings {
-  margin: 1rem 0 0;
-  padding-left: 1.15rem;
+  margin: 0.65rem 0 0;
+  padding-left: 1rem;
   font-size: 0.85rem;
   color: color-mix(in srgb, canvastext 80%, transparent);
 }
