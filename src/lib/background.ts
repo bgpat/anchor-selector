@@ -46,8 +46,7 @@ type RuntimeMessage =
     }
   | { type: typeof runtimeMessageType.resetConfig }
   | { type: typeof runtimeMessageType.newTab; url: string }
-  | { type: typeof runtimeMessageType.newWindow; url: string }
-  | { type: typeof runtimeMessageType.openOptionsE2e };
+  | { type: typeof runtimeMessageType.newWindow; url: string };
 
 async function showSelectingBadge(tabId: number) {
   const { background, text, textColor } = await getSelectingBadgeStyle();
@@ -275,10 +274,6 @@ browser.runtime.onMessage.addListener(
     case runtimeMessageType.newWindow:
       browser.windows.create({ url: message.url });
       break;
-    case runtimeMessageType.openOptionsE2e:
-      return browser.tabs.create({
-        url: browser.runtime.getURL('/options.html'),
-      });
   }
   },
 );

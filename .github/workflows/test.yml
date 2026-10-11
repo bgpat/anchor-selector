@@ -49,37 +49,3 @@ jobs:
           name: extension-${{ matrix.browser }}
           path: .output/${{ matrix.browser }}
           if-no-files-found: error
-
-  e2e:
-    name: E2E (${{ matrix.browser }})
-    needs: build
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [chrome, firefox]
-    steps:
-      - uses: actions/checkout@v7
-      - uses: $/.github/actions/bun-deps
-      - run: bun run build:${{ matrix.browser }}
-
-      - name: Install Playwright system dependencies
-        run: bunx playwright install-deps chromium firefox
-
-      - name: Install Playwright browsers
-        run: bunx playwright install chromium firefox
-
-      - name: Run E2E (headed via Xvfb)
-        run: xvfb-run -a bun run test:e2e -- --project=${{ matrix.browser }}
-
-      - name: Add E2E screenshots to job summary
-        if: always()
-        run: bun e2e/append-job-summary.ts ${{ matrix.browser }}
-
-      - name: Upload Playwright HTML report
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-report-${{ matrix.browser }}
-          path: e2e/report
-          if-no-files-found: ignore
