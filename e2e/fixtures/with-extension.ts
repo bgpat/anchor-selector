@@ -20,9 +20,9 @@ export const test = base.extend<{ extDir: string }>({
     testInfo.setTimeout(process.env.CI ? 180_000 : 120_000);
     const browserType = withExtension(playwright[browserName], extDir);
 
-    if (browserName === 'chromium') {
+    if (testInfo.project.name === 'chrome') {
       if (headless) {
-        throw new Error('Chromium extension tests must run headed (use xvfb in CI)');
+        throw new Error('Chrome extension tests must run headed (use xvfb in CI)');
       }
       const userDataDir = testInfo.outputPath('user-data');
       const context = await browserType.launchPersistentContext(userDataDir, {
