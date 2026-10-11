@@ -114,25 +114,29 @@ export function App() {
   };
 
   if (config == null) {
-    return <p className="options-loading">Loading…</p>;
+    return (
+      <main>
+        <p>Loading…</p>
+      </main>
+    );
   }
 
   const huePreview = `hsl(${config.hue}, 100%, 50%)`;
 
   return (
-    <div className="options">
-      <header className="options-header">
+    <main>
+      <header>
         <h1>Anchor Selector</h1>
         <p>Configure click behavior and highlight color.</p>
       </header>
 
-      <section className="options-section" aria-labelledby="click-heading">
+      <section aria-labelledby="click-heading">
         <h2 id="click-heading">Click</h2>
-        <fieldset className="options-fieldset">
+        <fieldset>
           <legend>Modifier keys</legend>
-          <div className="options-modifiers">
+          <div>
             {MODIFIER_KEYS.map(({ value, label }) => (
-              <label key={value} className="options-check">
+              <label key={value}>
                 <input
                   type="checkbox"
                   checked={modifiers.includes(value)}
@@ -149,7 +153,7 @@ export function App() {
           </div>
         </fieldset>
 
-        <label className="options-label" htmlFor="click-action">
+        <label htmlFor="click-action">
           Action for selected keys
           <select
             id="click-action"
@@ -166,16 +170,16 @@ export function App() {
           </select>
         </label>
 
-        <ul className="options-bindings">
+        <ul>
           {config.click.map((entry) => (
             <li key={keySignature(entry.keys)}>{formatBinding(entry)}</li>
           ))}
         </ul>
       </section>
 
-      <section className="options-section" aria-labelledby="color-heading">
+      <section aria-labelledby="color-heading">
         <h2 id="color-heading">Color</h2>
-        <label className="options-hue">
+        <label>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="32"
@@ -196,11 +200,11 @@ export function App() {
         </label>
       </section>
 
-      <footer className="options-footer">
-        <button type="button" className="options-reset" onClick={() => void onReset()}>
+      <footer>
+        <button type="button" onClick={() => void onReset()}>
           Reset to defaults
         </button>
       </footer>
-    </div>
+    </main>
   );
 }
