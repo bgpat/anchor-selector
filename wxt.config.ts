@@ -17,6 +17,8 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   /** Match pre-WXT Firefox builds (MV3 + scripting/action APIs). WXT defaults Firefox to MV2. */
   manifestVersion: 3,
+  /** Align with CI/E2E paths: `.output/chrome`, `.output/firefox` (MV is in manifestVersion). */
+  outDirTemplate: '{{browser}}',
   webExt: {
     ...(firefoxBinary ? { binaries: { firefox: firefoxBinary } } : {}),
     chromiumProfile: chromeProfile,

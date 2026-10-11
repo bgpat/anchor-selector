@@ -1,11 +1,7 @@
 import { test as base } from '@playwright/test';
 import { withExtension } from 'playwright-webextext';
 import path from 'node:path';
-import {
-  assertE2eProjectName,
-  e2eExtensionOutputDir,
-  e2ePlaywrightBrowser,
-} from '../projects';
+import { assertE2eProjectName, e2ePlaywrightBrowser } from '../projects';
 
 export const test = base.extend<{ extDir: string }>({
   extDir: [
@@ -14,7 +10,7 @@ export const test = base.extend<{ extDir: string }>({
     async ({}, use, testInfo) => {
       assertE2eProjectName(testInfo.project.name);
       await use(
-        path.resolve(`.output/${e2eExtensionOutputDir(testInfo.project.name)}`),
+        path.resolve(`.output/${testInfo.project.name}`),
       );
     },
     { scope: 'test' },
