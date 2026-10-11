@@ -1,6 +1,19 @@
+import { execSync } from 'node:child_process';
 import { accessSync, constants } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+
+function whichOnPath(command: string): string | undefined {
+  try {
+    const found = execSync(`command -v ${command}`, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    return found || undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 function isExecutable(path: string): boolean {
   try {
@@ -34,7 +47,7 @@ export function resolveFirefoxBinary(): string | undefined {
       }
       continue;
     }
-    const onPath = Bun.which(candidate);
+    const onPath = whichOnPath(candidate);
     if (onPath) {
       return onPath;
     }
