@@ -3,9 +3,9 @@ import { openOptionsPage } from './helpers/open-options-page';
 import { expect, test } from './fixtures/with-extension';
 
 test.describe('Options page', () => {
-  test('renders settings UI', async ({ context, browserName }, testInfo) => {
+  test('renders settings UI', async ({ context }, testInfo) => {
     test.skip(
-      browserName === 'firefox',
+      testInfo.project.name === 'firefox',
       'Playwright Firefox cannot navigate to moz-extension options pages for screenshots.',
     );
     const page = await openOptionsPage(context);

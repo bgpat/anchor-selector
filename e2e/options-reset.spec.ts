@@ -5,8 +5,8 @@ import variables from '../src/util/variables';
 const DEFAULT_HUE = variables.config.default.hue;
 
 test.describe('Options reset', () => {
-  test('Reset to defaults restores storage', async ({ context, browserName }) => {
-    test.skip(browserName === 'firefox', 'Options page E2E is Chrome-only.');
+  test('Reset to defaults restores storage', async ({ context }, testInfo) => {
+    test.skip(testInfo.project.name === 'firefox', 'Options page E2E is Chrome-only.');
 
     const page = await openOptionsPage(context);
     const hueSlider = page.locator('.options-hue input[type="range"]');
