@@ -24,6 +24,11 @@ export default defineConfig({
     chromiumProfile: chromeProfile,
     firefoxProfile: firefoxProfile,
     keepProfileChanges: true,
+    firefoxPref: {
+      /** Avoid the post-crash troubleshooting / safe-mode dialog during dev restarts. */
+      'toolkit.startup.max_resumed_crashes': -1,
+      'browser.sessionstore.max_resumed_crashes': -1,
+    },
   },
   manifest: {
     name: 'Anchor Selector',
