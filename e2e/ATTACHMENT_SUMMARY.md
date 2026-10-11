@@ -43,13 +43,13 @@ curl -sX POST https://github.com/login/oauth/access_token \
 
 Store the **`refresh_token`** (`ghr_...`).
 
-### 3. Repository secrets
+### 3. Repository configuration
 
-| Secret | Value |
-|--------|--------|
-| `ATTACHMENT_OAUTH_CLIENT_ID` | OAuth App client ID |
-| `ATTACHMENT_OAUTH_CLIENT_SECRET` | OAuth App client secret |
-| `ATTACHMENT_OAUTH_REFRESH_TOKEN` | `ghr_...` from step 2 |
+| Name | Kind | Value |
+|------|------|--------|
+| `ATTACHMENT_OAUTH_CLIENT_ID` | **Variable** | OAuth App client ID |
+| `ATTACHMENT_OAUTH_CLIENT_SECRET` | Secret | OAuth App client secret |
+| `ATTACHMENT_OAUTH_REFRESH_TOKEN` | Secret | `ghr_...` from step 2 |
 
 Optional fallback: `ATTACHMENT_UPLOAD_PAT` (static bearer token).
 

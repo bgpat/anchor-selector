@@ -80,7 +80,7 @@ jobs:
           always() &&
           secrets.ATTACHMENT_OAUTH_REFRESH_TOKEN != ''
         env:
-          ATTACHMENT_OAUTH_CLIENT_ID: ${{ secrets.ATTACHMENT_OAUTH_CLIENT_ID }}
+          ATTACHMENT_OAUTH_CLIENT_ID: ${{ vars.ATTACHMENT_OAUTH_CLIENT_ID }}
           ATTACHMENT_OAUTH_CLIENT_SECRET: ${{ secrets.ATTACHMENT_OAUTH_CLIENT_SECRET }}
           ATTACHMENT_OAUTH_REFRESH_TOKEN: ${{ secrets.ATTACHMENT_OAUTH_REFRESH_TOKEN }}
         run: bash e2e/mint-attachment-oauth-token.sh
