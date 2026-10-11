@@ -1,9 +1,9 @@
 import { openOptionsPage } from './helpers/open-options-page';
 import { expect, test } from './fixtures/with-extension';
-import { clickActionName } from '../src/util/config';
+import { clickActionName, configKey } from '../src/util/config';
 import variables from '../src/util/variables';
 
-const DEFAULT_HUE = variables.config.default.hue;
+const DEFAULT_HUE = variables.config.default[configKey.hue];
 
 test.describe('Options reset', () => {
   test('Reset to defaults restores storage', async ({ context }) => {
@@ -23,11 +23,11 @@ test.describe('Options reset', () => {
     await expect(hueSlider).toHaveValue(String(DEFAULT_HUE));
     await expect(page.locator('.options-bindings li')).toHaveCount(4);
 
-    const storedHue = await page.evaluate(async () => {
+    const storedHue = await page.evaluate(async (hueKey) => {
       const runtime = globalThis.browser ?? globalThis.chrome;
-      const v = await runtime.storage.sync.get('hue');
-      return v.hue as number | undefined;
-    });
+      const v = await runtime.storage.sync.get(hueKey);
+      return v[hueKey] as number | undefined;
+    }, configKey.hue);
     expect(storedHue).toBe(DEFAULT_HUE);
 
     await page.reload({ waitUntil: 'domcontentloaded' });

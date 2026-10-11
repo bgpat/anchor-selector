@@ -37,12 +37,22 @@ export type ClickAction = {
   keys: ModifierKey[];
 };
 
-export type StoredConfig = {
-  hue: number;
-  click: ClickAction[];
-};
+export const configKey = {
+  hue: 'hue',
+  click: 'click',
+} as const;
 
-export type ConfigKey = keyof StoredConfig;
+export type ConfigKey = (typeof configKey)[keyof typeof configKey];
+
+export const CONFIG_KEYS: readonly ConfigKey[] = [
+  configKey.hue,
+  configKey.click,
+];
+
+export type StoredConfig = {
+  [configKey.hue]: number;
+  [configKey.click]: ClickAction[];
+};
 
 export const CLICK_ACTIONS: { value: ClickActionName; label: string }[] = [
   { value: clickActionName.replaceAddressBar, label: 'Replace address bar' },
@@ -65,8 +75,8 @@ export function keySignature(keys: readonly string[]): string {
 
 export function cloneStoredConfig(config: StoredConfig): StoredConfig {
   return {
-    hue: config.hue,
-    click: config.click.map((entry) => ({
+    [configKey.hue]: config[configKey.hue],
+    [configKey.click]: config[configKey.click].map((entry) => ({
       action: entry.action,
       keys: [...entry.keys],
     })),

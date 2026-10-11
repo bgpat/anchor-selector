@@ -7,6 +7,7 @@ import {
 } from '@/util';
 import {
   cloneStoredConfig,
+  configKey,
   type ConfigKey,
   type StoredConfig,
 } from '@/util/config';
@@ -257,8 +258,8 @@ browser.runtime.onMessage.addListener(
           ...cloneStoredConfig(variables.config.default),
           ...stored,
         };
-        if (message.key === 'click') {
-          return cloneStoredConfig(merged).click;
+        if (message.key === configKey.click) {
+          return cloneStoredConfig(merged)[configKey.click];
         }
         return merged[message.key] as StoredConfig[ConfigKey];
       });
@@ -292,7 +293,7 @@ browser.runtime.onInstalled.addListener(initActionState);
 browser.runtime.onStartup.addListener(initActionState);
 
 browser.storage.sync.onChanged.addListener((changes) => {
-  if (typeof changes.hue?.newValue !== 'number') {
+  if (typeof changes[configKey.hue]?.newValue !== 'number') {
     return;
   }
   for (const tabId of selectingTabs) {

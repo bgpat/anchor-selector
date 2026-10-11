@@ -1,7 +1,9 @@
 import { browser } from 'wxt/browser';
 import {
+  CONFIG_KEYS,
   clickActionName,
   cloneStoredConfig,
+  configKey,
   defaultClickAction,
   modifierKey,
   type ConfigKey,
@@ -10,8 +12,8 @@ import {
 import { runtimeMessageType } from './type';
 
 const defaultConfig: StoredConfig = {
-  hue: 330,
-  click: [
+  [configKey.hue]: 330,
+  [configKey.click]: [
     { action: defaultClickAction, keys: [] },
     { action: clickActionName.openNewTab, keys: [modifierKey.ctrl] },
     { action: clickActionName.openNewWindow, keys: [modifierKey.shift] },
@@ -28,8 +30,8 @@ async function readFromStorage<K extends ConfigKey>(
 ): Promise<StoredConfig[K]> {
   const stored = await browser.storage.sync.get(key);
   const merged = mergeWithDefaults(stored);
-  if (key === 'click') {
-    return cloneStoredConfig(merged).click as StoredConfig[K];
+  if (key === configKey.click) {
+    return cloneStoredConfig(merged)[configKey.click] as StoredConfig[K];
   }
   return merged[key] as StoredConfig[K];
 }
@@ -78,7 +80,7 @@ const variables = {
     },
     async getAll(): Promise<StoredConfig> {
       return Promise.all(
-        (Object.keys(defaultConfig) as ConfigKey[]).map((k) =>
+        CONFIG_KEYS.map((k) =>
           this.get(k).then((v) => ({ [k]: v })),
         ),
       ).then((v) => v.reduce((a, c) => ({ ...a, ...c }), {}) as StoredConfig);

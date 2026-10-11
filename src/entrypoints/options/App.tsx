@@ -4,6 +4,7 @@ import {
   CLICK_ACTIONS,
   MODIFIER_KEYS,
   cloneStoredConfig,
+  configKey,
   defaultClickAction,
   keySignature,
   type ClickAction,
@@ -59,8 +60,8 @@ export function App() {
   const persist = useCallback(async (next: StoredConfig) => {
     setConfig(next);
     await Promise.all([
-      variables.config.set('hue', next.hue),
-      variables.config.set('click', next.click),
+      variables.config.set(configKey.hue, next[configKey.hue]),
+      variables.config.set(configKey.click, next[configKey.click]),
     ]);
   }, []);
 

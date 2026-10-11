@@ -1,5 +1,6 @@
 import { installContentScript } from '@/lib/content-script';
 import { runtimeMessageType } from '@/util';
+import { configKey } from '@/util/config';
 import variables from '@/util/variables';
 import Overlay from '@/overlay';
 
@@ -14,7 +15,7 @@ export default defineContentScript({
       if (typeof hue !== 'number') {
         return;
       }
-      void browser.storage.sync.set({ hue });
+      void browser.storage.sync.set({ [configKey.hue]: hue });
     });
 
     window.addEventListener('anchor-selector-e2e', () => {

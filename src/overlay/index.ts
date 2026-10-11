@@ -1,6 +1,7 @@
 import { browser } from 'wxt/browser';
 import {
   clickActionName,
+  configKey,
   defaultClickAction,
   keySignature,
   MODIFIER_KEY_PRESS_ORDER,
@@ -38,7 +39,7 @@ export default class Overlay {
       if (!this.selecting) {
         return;
       }
-      const hue = changes.hue?.newValue;
+      const hue = changes[configKey.hue]?.newValue;
       if (typeof hue !== 'number') {
         return;
       }
