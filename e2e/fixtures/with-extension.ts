@@ -14,7 +14,6 @@ export const test = base.extend<{ extDir: string }>({
     { scope: 'test' },
   ],
   context: async ({ playwright, extDir, headless }, use, testInfo) => {
-    testInfo.setTimeout(process.env.CI ? 180_000 : 120_000);
     const browserProject = getE2eBrowserProject(testInfo.project.name);
     const browserType = withExtension(
       playwright[browserProject.playwrightBrowser],
