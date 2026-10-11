@@ -15,19 +15,44 @@ export type ClickActionName =
 
 export const defaultClickAction = clickActionName.replaceAddressBar;
 
-export type ModifierKey = 'shift' | 'ctrl' | 'alt' | 'meta';
+export const modifierKey = {
+  shift: 'shift',
+  ctrl: 'ctrl',
+  alt: 'alt',
+  meta: 'meta',
+} as const;
+
+export type ModifierKey = (typeof modifierKey)[keyof typeof modifierKey];
+
+/** Order used when reading pressed modifier keys from a mouse event. */
+export const MODIFIER_KEY_PRESS_ORDER: readonly ModifierKey[] = [
+  modifierKey.alt,
+  modifierKey.ctrl,
+  modifierKey.meta,
+  modifierKey.shift,
+];
 
 export type ClickAction = {
   action: ClickActionName;
   keys: ModifierKey[];
 };
 
-export type StoredConfig = {
-  hue: number;
-  click: ClickAction[];
-};
+export const configKey = {
+  hue: 'hue',
+  click: 'click',
+} as const;
 
-export type ConfigKey = keyof StoredConfig;
+export type ConfigKey = (typeof configKey)[keyof typeof configKey];
+
+export const CONFIG_KEYS: readonly ConfigKey[] = [
+  configKey.hue,
+  configKey.click,
+];
+
+export type StoredConfig = {
+  [configKey.hue]: number;
+  [configKey.click]: ClickAction[];
+};
 
 export const CLICK_ACTIONS: { value: ClickActionName; label: string }[] = [
   { value: clickActionName.replaceAddressBar, label: 'Replace address bar' },
@@ -38,10 +63,10 @@ export const CLICK_ACTIONS: { value: ClickActionName; label: string }[] = [
 ];
 
 export const MODIFIER_KEYS: { value: ModifierKey; label: string }[] = [
-  { value: 'shift', label: 'shift ⇧' },
-  { value: 'ctrl', label: 'ctrl ⌃' },
-  { value: 'alt', label: 'alt ⌥' },
-  { value: 'meta', label: 'meta ⌘' },
+  { value: modifierKey.shift, label: 'shift ⇧' },
+  { value: modifierKey.ctrl, label: 'ctrl ⌃' },
+  { value: modifierKey.alt, label: 'alt ⌥' },
+  { value: modifierKey.meta, label: 'meta ⌘' },
 ];
 
 export function keySignature(keys: readonly string[]): string {
@@ -50,8 +75,8 @@ export function keySignature(keys: readonly string[]): string {
 
 export function cloneStoredConfig(config: StoredConfig): StoredConfig {
   return {
-    hue: config.hue,
-    click: config.click.map((entry) => ({
+    [configKey.hue]: config[configKey.hue],
+    [configKey.click]: config[configKey.click].map((entry) => ({
       action: entry.action,
       keys: [...entry.keys],
     })),

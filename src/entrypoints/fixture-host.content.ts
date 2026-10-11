@@ -1,4 +1,6 @@
 import { installContentScript } from '@/lib/content-script';
+import { runtimeMessageType } from '@/util';
+import { configKey } from '@/util/config';
 import variables from '@/util/variables';
 import Overlay from '@/overlay';
 
@@ -13,7 +15,7 @@ export default defineContentScript({
       if (typeof hue !== 'number') {
         return;
       }
-      void browser.storage.sync.set({ hue });
+      void browser.storage.sync.set({ [configKey.hue]: hue });
     });
 
     window.addEventListener('anchor-selector-e2e', () => {
@@ -25,13 +27,15 @@ export default defineContentScript({
           return;
         }
         new Overlay(config, () =>
-          browser.runtime.sendMessage({ type: 'close' }),
+          browser.runtime.sendMessage({ type: runtimeMessageType.close }),
         );
       })();
     });
 
     window.addEventListener('anchor-selector-e2e-options-open', () => {
-      void browser.runtime.sendMessage({ type: 'open-options-e2e' });
+      void browser.runtime.sendMessage({
+        type: runtimeMessageType.openOptionsE2e,
+      });
     });
   },
 });

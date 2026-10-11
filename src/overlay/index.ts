@@ -1,12 +1,14 @@
 import { browser } from 'wxt/browser';
 import {
   clickActionName,
+  configKey,
   defaultClickAction,
   keySignature,
+  MODIFIER_KEY_PRESS_ORDER,
   type ClickActionName,
 } from '@/util/config';
 import Container from './container';
-import { variables } from '@/util';
+import { runtimeMessageType, variables } from '@/util';
 
 type ClickModifiers = Partial<
   Pick<MouseEvent, 'altKey' | 'ctrlKey' | 'metaKey' | 'shiftKey'>
@@ -37,7 +39,7 @@ export default class Overlay {
       if (!this.selecting) {
         return;
       }
-      const hue = changes.hue?.newValue;
+      const hue = changes[configKey.hue]?.newValue;
       if (typeof hue !== 'number') {
         return;
       }
@@ -64,7 +66,7 @@ export default class Overlay {
     const config = await variables.config.getAll();
     if (action == null) {
       const modifiers = e ?? {};
-      const pressed = (['alt', 'ctrl', 'meta', 'shift'] as const).filter(
+      const pressed = MODIFIER_KEY_PRESS_ORDER.filter(
         (k) => modifiers[`${k}Key`],
       );
       const match = config.click.find(
@@ -81,10 +83,16 @@ export default class Overlay {
         break;
       case clickActionName.openNew:
       case clickActionName.openNewTab:
-        browser.runtime.sendMessage({ type: 'new-tab', url: url.href });
+        browser.runtime.sendMessage({
+          type: runtimeMessageType.newTab,
+          url: url.href,
+        });
         break;
       case clickActionName.openNewWindow:
-        browser.runtime.sendMessage({ type: 'new-window', url: url.href });
+        browser.runtime.sendMessage({
+          type: runtimeMessageType.newWindow,
+          url: url.href,
+        });
         break;
       case clickActionName.copyUrl:
         navigator.clipboard.writeText(url.href);

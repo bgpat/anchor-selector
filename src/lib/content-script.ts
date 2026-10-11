@@ -1,10 +1,11 @@
 import { browser } from 'wxt/browser';
-import { type, CONTENT_SCRIPT_MARKER } from '@/util';
+import { runtimeMessageType, CONTENT_SCRIPT_MARKER } from '@/util';
 import type { StoredConfig } from '@/util/config';
 import Overlay from '@/overlay';
 
 type ContentMessage =
-  { type: 'ping' } | { type: typeof type.click; config: StoredConfig };
+  | { type: typeof runtimeMessageType.ping }
+  | { type: typeof runtimeMessageType.click; config: StoredConfig };
 
 export function installContentScript() {
   if (globalThis[CONTENT_SCRIPT_MARKER]) {
@@ -15,15 +16,15 @@ export function installContentScript() {
   browser.runtime.onMessage.addListener((raw: unknown) => {
     const message = raw as ContentMessage;
     switch (message.type) {
-      case 'ping':
+      case runtimeMessageType.ping:
         return Promise.resolve();
-      case type.click: {
+      case runtimeMessageType.click: {
         const overlay = Overlay.current;
         if (overlay) {
           return overlay.close().then(() => ({ overlayActive: false }));
         }
         new Overlay(message.config, () =>
-          browser.runtime.sendMessage({ type: 'close' }),
+          browser.runtime.sendMessage({ type: runtimeMessageType.close }),
         );
         return { overlayActive: true };
       }
