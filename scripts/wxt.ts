@@ -13,8 +13,6 @@ const proc = Bun.spawn([nodeBin, cli, ...process.argv.slice(2)], {
   stderr: 'inherit',
   env: {
     ...process.env,
-    // Vite also binds `o` + enter; WXT uses the same for restartBrowser — disable Vite's.
-    CI: process.env.CI ?? 'true',
     ...(process.env.NO_COLOR
       ? {}
       : { FORCE_COLOR: process.env.FORCE_COLOR ?? '1' }),

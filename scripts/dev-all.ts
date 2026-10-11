@@ -1,32 +1,18 @@
 import * as readline from 'node:readline';
-import { resolveFirefoxBinary } from './resolve-firefox';
 
 const root = import.meta.dir + '/..';
 
 const targets: { name: string; script: string }[] = [
+  { name: 'firefox', script: 'dev:firefox' },
   { name: 'chrome', script: 'dev:chrome' },
 ];
 
-const firefoxBin = resolveFirefoxBinary();
-if (firefoxBin) {
-  targets.push({ name: 'firefox', script: 'dev:firefox' });
-} else {
-  console.warn(
-    '[dev] Firefox executable not found — starting Chrome only.\n' +
-      '      Install Firefox or set FIREFOX_BIN to the firefox binary path.',
-  );
-}
-
 const devEnv = {
   ...process.env,
-  // Vite also listens for `o` + enter on stdin.isTTY; without this, WXT and Vite
-  // both reopen the browser and Firefox can show the crash / safe-mode dialog.
-  CI: process.env.CI ?? 'true',
-  // stdout is piped for prefixes; keep ANSI colors (CI and non-TTY would disable them).
+  // stdout is piped for prefixes; child processes are not TTY and would disable ANSI.
   ...(process.env.NO_COLOR
     ? {}
     : { FORCE_COLOR: process.env.FORCE_COLOR ?? '1' }),
-  ...(firefoxBin ? { FIREFOX_BIN: firefoxBin } : {}),
 };
 
 const prefixWidth = Math.max(

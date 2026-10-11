@@ -2,9 +2,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'wxt';
-import { resolveFirefoxBinary } from './scripts/resolve-firefox';
 
-const firefoxBinary = resolveFirefoxBinary();
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 const chromeProfile = resolve(projectRoot, '.wxt/chrome-profile');
 const firefoxProfile = resolve(projectRoot, '.wxt/firefox-profile');
@@ -20,7 +18,6 @@ export default defineConfig({
   /** Per-browser build dirs: `.output/chrome`, `.output/firefox` (MV is in manifestVersion). */
   outDirTemplate: '{{browser}}',
   webExt: {
-    ...(firefoxBinary ? { binaries: { firefox: firefoxBinary } } : {}),
     chromiumProfile: chromeProfile,
     firefoxProfile: firefoxProfile,
     keepProfileChanges: true,

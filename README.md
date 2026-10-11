@@ -23,17 +23,12 @@ Built with [WXT](https://wxt.dev/), TypeScript 7, and React (options page).
 ### Debug
 
 ```bash
-bun run dev              # Chrome (3000) + Firefox (3001); Chrome keeps running if Firefox is missing
+bun run dev              # Firefox (3001) + Chrome (3000)
+bun run dev:firefox
 bun run dev:chrome
-bun run dev:firefox
 ```
 
-If Firefox does not open, set the binary explicitly (Snap / custom installs):
-
-```bash
-export FIREFOX_BIN=/path/to/firefox   # e.g. /snap/bin/firefox
-bun run dev:firefox
-```
+Non-default Firefox installs can set `webExt.binaries.firefox` in [`wxt.config.ts`](wxt.config.ts) (path or web-ext alias such as `flatpak:org.mozilla.firefox`).
 
 ### Build
 
