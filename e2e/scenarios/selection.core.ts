@@ -176,8 +176,7 @@ export const selectionCoreScenarios = [
   {
     id: 'selection.overlay-shows-target-label',
     title: 'ホバー中の要素 id が overlay のラベルに出る',
-    description:
-      '選択モードで #heading 上にポインタを置くと、ラベルは #heading になる。',
+    description: '選択モードで #heading 上にポインタを置くと、ラベルは #heading になる。',
     tags: ['selection', 'overlay'],
     steps: [
       { kind: 'page.goto', path: E2E_FIXTURE_PATH },

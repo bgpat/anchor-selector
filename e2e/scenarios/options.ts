@@ -35,8 +35,7 @@ export const optionsScenarios = [
   {
     id: 'options.hue-persists',
     title: 'オプションの色を変えると保存される',
-    description:
-      'Color のスライダーを動かすと、画面上の値と storage の hue が一致する。',
+    description: 'Color のスライダーを動かすと、画面上の値と storage の hue が一致する。',
     tags: ['options'],
     steps: [
       { kind: 'extension.options.open' },

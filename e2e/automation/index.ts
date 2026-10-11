@@ -1,4 +1,8 @@
-export type { DomBox, E2eAutomation, ExtensionIconButton } from './interface';
+export type {
+  DomBox,
+  E2eAutomation,
+  ExtensionIconButton,
+} from './interface';
 export {
   assertionKindExtraQuery,
   assertionKindQuery,
