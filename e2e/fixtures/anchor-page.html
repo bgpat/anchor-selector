@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Anchor selector fixture</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: sans-serif;
+      }
+
+      #heading {
+        margin: 24px 240px 24px 24px;
+        min-height: 320px;
+      }
+
+      #secondary {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 180px;
+        height: 72px;
+      }
+
+      .plain {
+        margin: 24px;
+      }
+
+      a[name='legacy'] {
+        display: inline-block;
+        margin: 24px;
+      }
+
+      #outer {
+        position: relative;
+        width: 220px;
+        height: 140px;
+        margin: 24px;
+      }
+
+      #inner {
+        position: absolute;
+        top: 40px;
+        left: 40px;
+        width: 100px;
+        height: 60px;
+      }
+
+      [data-e2e='invisible-host'] {
+        position: relative;
+        width: 80px;
+        height: 24px;
+        margin: 24px;
+      }
+
+      #invisible-anchor {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 0;
+      }
+
+      [data-e2e='near-invisible'] {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 4px;
+        height: 4px;
+        background: #ccc;
+      }
+
+      #footer {
+        margin-top: 150vh;
+        min-height: 80px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 id="heading">Pick this heading anchor</h1>
+    <div id="secondary">Secondary anchor</div>
+    <p class="plain" data-e2e="plain">No anchor here</p>
+    <a name="legacy">Named anchor</a>
+    <div id="outer">
+      Outer
+      <div id="inner">Inner</div>
+    </div>
+    <div data-e2e="invisible-host">
+      <span id="invisible-anchor"></span>
+      <span data-e2e="near-invisible"></span>
+    </div>
+    <h2 id="footer">Footer anchor</h2>
+  </body>
+</html>
