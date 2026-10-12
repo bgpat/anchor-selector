@@ -56,6 +56,12 @@ export class ScreenRecorder {
         '60',
         '-i',
         `${display}+${x},${y}`,
+        // Identical frames, such as the one-second holds, stay on screen for
+        // the same duration but are stored once.
+        '-vf',
+        'mpdecimate',
+        '-fps_mode',
+        'vfr',
         '-c:v',
         'libx264',
         '-preset',

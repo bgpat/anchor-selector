@@ -43,6 +43,8 @@ function fitVideo(path: string): string | null {
         '-y',
         '-i',
         current,
+        '-fps_mode',
+        'vfr',
         '-c:v',
         'libx264',
         '-preset',
