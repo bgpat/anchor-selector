@@ -14,6 +14,7 @@ import type { BrowserReport, ScenarioReport } from './report';
 import './bun-globals';
 
 const EVENTUAL_TIMEOUT_MS = 2500;
+const ACTION_PAUSE_MS = 1000;
 const SCENARIO_TIMEOUT_MS = Number(
   process.env.E2E_SCENARIO_TIMEOUT_MS ?? 180000,
 );
@@ -97,6 +98,9 @@ async function runScenario(
     strokeBefore: null,
   };
   for (const [index, step] of scenario.steps.entries()) {
+    if (index > 0) {
+      await pause(ACTION_PAUSE_MS);
+    }
     const watchesStroke = step.expect?.some(
       (assertion) => assertion.kind === 'overlay.highlight.strokeChanged',
     );
@@ -114,6 +118,11 @@ async function runScenario(
   // Scenario-level expectations describe the state after the last step.
   // Earlier steps, such as opening the fixture, do not satisfy them yet.
   await checkAll(scenario.expect, automation, baseline, 'scenario');
+  await pause(ACTION_PAUSE_MS);
+}
+
+function pause(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function videoName(id: string): string {
@@ -283,6 +292,7 @@ async function runRecording(
     } catch (error) {
       failure = errorMessage(error);
       console.error(failure);
+      await pause(ACTION_PAUSE_MS);
       const pngPath = join(resultsDir, `${scenario.id}.png`);
       try {
         await automation.capturePng(pngPath);
