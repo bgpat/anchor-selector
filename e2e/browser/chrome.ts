@@ -170,6 +170,26 @@ export class ChromeAutomation extends PageAutomation {
         : input.button === 'middle'
           ? 'middle'
           : 'left';
+    if (button === 'left') {
+      try {
+        await atspiClick({
+          name: 'jump to the anchored element',
+          role: 'push button',
+          prefer: 'top',
+          timeout: 5,
+        });
+        return;
+      } catch {
+        await atspiClick({
+          name: EXTENSION_NAME,
+          role: 'push button',
+          exact: true,
+          prefer: 'top',
+          timeout: 2,
+        });
+        return;
+      }
+    }
     const match = await this.toolbarExtensionButton(5);
     if (match == null) {
       const dump = await atspiDump();

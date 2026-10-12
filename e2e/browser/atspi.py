@@ -128,6 +128,54 @@ def collect(args):
     return found
 
 
+def action_iface(obj):
+    for getter_name in ("get_action_iface", "queryAction"):
+        getter = getattr(obj, getter_name, None)
+        if getter is None:
+            continue
+        try:
+            iface = getter()
+        except Exception:
+            continue
+        if iface is not None:
+            return iface
+    return None
+
+
+def do_click_action(obj):
+    iface = action_iface(obj)
+    if iface is None:
+        return False
+    try:
+        count = iface.get_n_actions()
+    except Exception:
+        try:
+            count = iface.nActions
+        except Exception:
+            return False
+    chosen = 0 if count else None
+    for index in range(count):
+        try:
+            name = iface.get_action_name(index) or ""
+        except Exception:
+            try:
+                name = iface.getName(index) or ""
+            except Exception:
+                name = ""
+        if name.lower() in ("click", "press", "activate"):
+            chosen = index
+            break
+    if chosen is None:
+        return False
+    try:
+        return bool(iface.do_action(chosen))
+    except Exception:
+        try:
+            return bool(iface.doAction(chosen))
+        except Exception:
+            return False
+
+
 def click_box(box, button):
     x = int(box["x"] + box["width"] / 2)
     y = int(box["y"] + box["height"] / 2)
@@ -137,11 +185,46 @@ def click_box(box, button):
         "right": ("b3p", "b3r"),
     }[button]
     Atspi.generate_mouse_event(x, y, "abs")
-    time.sleep(0.05)
-    Atspi.generate_mouse_event(x, y, press)
-    time.sleep(0.05)
-    Atspi.generate_mouse_event(x, y, release)
+    time.sleep(0.15)
+    if button == "left":
+        Atspi.generate_mouse_event(x, y, "b1c")
+    else:
+        Atspi.generate_mouse_event(x, y, press)
+        time.sleep(0.05)
+        Atspi.generate_mouse_event(x, y, release)
     return {"x": x, "y": y, **box}
+
+
+def matching_objects(args):
+    found = []
+    for _depth, name, role, _box, obj in candidates(args.app, 4000):
+        if not name_matches(name, args.name, args.exact):
+            continue
+        if args.exclude and args.exclude in name:
+            continue
+        if args.role and args.role.lower() != role.lower():
+            continue
+        rect = extents(obj)
+        if rect is None or rect.width <= 0 or rect.height <= 0:
+            continue
+        found.append(
+            (
+                {
+                    "name": name,
+                    "role": role,
+                    "x": rect.x,
+                    "y": rect.y,
+                    "width": rect.width,
+                    "height": rect.height,
+                },
+                obj,
+            )
+        )
+    if args.prefer == "top":
+        found.sort(key=lambda item: (item[0]["y"], item[0]["x"]))
+    elif args.prefer == "bottom":
+        found.sort(key=lambda item: (-item[0]["y"], item[0]["x"]))
+    return found
 
 
 def dump(args):
@@ -149,14 +232,18 @@ def dump(args):
         print(f"{'  ' * depth}{role}: {name}{box}")
 
 
-def wait_for(args):
+def wait_for_objects(args):
     deadline = time.time() + args.timeout
     found = []
     while True:
-        found = collect(args)
+        found = matching_objects(args)
         if found or time.time() >= deadline:
             return found
         time.sleep(0.2)
+
+
+def wait_for(args):
+    return [box for box, _obj in wait_for_objects(args)]
 
 
 def main():
@@ -206,13 +293,16 @@ def main():
         print(json.dumps(clicked))
         return
 
-    found = wait_for(args)
+    found = wait_for_objects(args)
     if not found:
         print("accessible object not found", file=sys.stderr)
         sys.exit(1)
-    chosen = found[0]
+    chosen, obj = found[0]
     if args.command == "find":
         print(json.dumps({"match": chosen, "count": len(found)}))
+        return
+    if args.button == "left" and do_click_action(obj):
+        print(json.dumps({"action": "click", **chosen}))
         return
     print(json.dumps(click_box(chosen, args.button)))
 
