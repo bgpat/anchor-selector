@@ -64,9 +64,9 @@ jobs:
       - uses: actions/checkout@v7
       - uses: $/.github/actions/bun-deps
       - name: Install browser automation packages
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb at-spi2-core python3-gi gir1.2-atspi-2.0 ffmpeg xclip dbus-x11 libgtk-3-0 libdbus-glib-1-2 libxt6 libnss3 libx11-xcb1 libasound2t64
+        uses: $/.github/actions/apt-install
+        with:
+          packages: xvfb at-spi2-core python3-gi gir1.2-atspi-2.0 ffmpeg xclip dbus-x11 libgtk-3-0 libdbus-glib-1-2 libxt6 libnss3 libx11-xcb1 libasound2t64
       - run: bun run build:${{ matrix.browser }}
       - name: Run e2e
         run: dbus-run-session -- xvfb-run -a -s '-screen 0 960x600x24' bun run e2e:${{ matrix.browser }}
@@ -91,9 +91,9 @@ jobs:
       - uses: actions/checkout@v7
       - uses: $/.github/actions/bun-deps
       - name: Install ffmpeg
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+        uses: $/.github/actions/apt-install
+        with:
+          packages: ffmpeg
       - uses: actions/download-artifact@v7.0.0
         continue-on-error: true
         with:

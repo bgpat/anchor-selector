@@ -1,0 +1,33 @@
+name: Cached apt install
+description: Install apt packages, reusing the package lists and archives from the last run
+
+inputs:
+  packages:
+    description: Package names separated by spaces
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - id: os
+      shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: |
+        . /etc/os-release
+        {
+          echo "version=${VERSION_ID}"
+          echo "packages=$(echo "$PACKAGES" | tr -s ' ' ',')"
+        } >> "$GITHUB_OUTPUT"
+
+    - uses: actions/cache@v6
+      id: apt
+      with:
+        path: ~/apt-cache
+        key: apt-${{ steps.os.outputs.version }}-${{ runner.arch }}-${{ steps.os.outputs.packages }}
+
+    - shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+        CACHE_HIT: ${{ steps.apt.outputs.cache-hit }}
+      run: bash "$GITHUB_ACTION_PATH/install.sh"
