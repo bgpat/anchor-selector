@@ -177,8 +177,7 @@ def do_click_action(obj):
             return False
 
 
-def warp_x_pointer(x, y):
-    """x11grab records the X pointer. AT-SPI absolute moves leave it in place on Xvfb."""
+def load_x11():
     x11 = ctypes.CDLL("libX11.so.6")
     x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
     x11.XOpenDisplay.restype = ctypes.c_void_p
@@ -202,25 +201,75 @@ def warp_x_pointer(x, y):
     x11.XSync.restype = ctypes.c_int
     x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
     x11.XCloseDisplay.restype = ctypes.c_int
+    x11.XQueryPointer.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_ulong,
+        ctypes.POINTER(ctypes.c_ulong),
+        ctypes.POINTER(ctypes.c_ulong),
+        ctypes.POINTER(ctypes.c_int),
+        ctypes.POINTER(ctypes.c_int),
+        ctypes.POINTER(ctypes.c_int),
+        ctypes.POINTER(ctypes.c_int),
+        ctypes.POINTER(ctypes.c_uint),
+    ]
+    x11.XQueryPointer.restype = ctypes.c_int
+    return x11
+
+
+def pointer_position(x11, display, root):
+    root_ret = ctypes.c_ulong()
+    child = ctypes.c_ulong()
+    root_x = ctypes.c_int()
+    root_y = ctypes.c_int()
+    win_x = ctypes.c_int()
+    win_y = ctypes.c_int()
+    mask = ctypes.c_uint()
+    x11.XQueryPointer(
+        display,
+        root,
+        ctypes.byref(root_ret),
+        ctypes.byref(child),
+        ctypes.byref(root_x),
+        ctypes.byref(root_y),
+        ctypes.byref(win_x),
+        ctypes.byref(win_y),
+        ctypes.byref(mask),
+    )
+    return root_x.value, root_y.value
+
+
+def warp_x_pointer(x, y, duration_ms):
+    """x11grab records the X pointer. AT-SPI absolute moves leave it in place on Xvfb."""
+    x11 = load_x11()
     display = x11.XOpenDisplay(None)
     if not display:
         raise RuntimeError("XOpenDisplay failed")
     try:
         root = x11.XDefaultRootWindow(display)
-        x11.XWarpPointer(display, 0, root, 0, 0, 0, 0, int(x), int(y))
-        x11.XFlush(display)
+        x = int(x)
+        y = int(y)
+        start_x, start_y = pointer_position(x11, display, root)
+        steps = 1 if duration_ms <= 0 else max(1, int(duration_ms) // 16)
+        for index in range(1, steps + 1):
+            if index == steps:
+                next_x, next_y = x, y
+            else:
+                next_x = start_x + (x - start_x) * index // steps
+                next_y = start_y + (y - start_y) * index // steps
+            x11.XWarpPointer(display, 0, root, 0, 0, 0, 0, next_x, next_y)
+            x11.XFlush(display)
+            if index < steps:
+                time.sleep(duration_ms / steps / 1000)
         x11.XSync(display, False)
     finally:
         x11.XCloseDisplay(display)
 
 
-def move_pointer(x, y):
+def move_pointer(x, y, duration_ms=1000):
     x = int(x)
     y = int(y)
-    try:
-        Atspi.generate_mouse_event(x, y, "abs")
-    finally:
-        warp_x_pointer(x, y)
+    warp_x_pointer(x, y, duration_ms)
+    Atspi.generate_mouse_event(x, y, "abs")
 
 
 def click_box(box, button):
@@ -321,6 +370,7 @@ def main():
     move_command = sub.add_parser("move")
     move_command.add_argument("--x", type=int, required=True)
     move_command.add_argument("--y", type=int, required=True)
+    move_command.add_argument("--duration", type=int, default=1000)
 
     xy_command = sub.add_parser("click-xy")
     xy_command.add_argument("--x", type=int, required=True)
@@ -337,7 +387,7 @@ def main():
         return
 
     if args.command == "move":
-        move_pointer(args.x, args.y)
+        move_pointer(args.x, args.y, args.duration)
         return
 
     if args.command == "click-xy":

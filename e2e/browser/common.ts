@@ -432,7 +432,7 @@ export abstract class PageAutomation implements E2eAutomation {
       for (const modifier of input.modifiers ?? []) {
         actions.keyDown(modifierSelenium[modifier]);
       }
-      actions.move({ origin: element, duration: 0 }).click();
+      actions.move({ origin: element, duration: 1000 }).click();
       for (const modifier of input.modifiers ?? []) {
         actions.keyUp(modifierSelenium[modifier]);
       }
@@ -454,21 +454,43 @@ export abstract class PageAutomation implements E2eAutomation {
    * Geckodriver throws MoveTargetOutOfBoundsError instead of scrolling.
    * Its action viewport can also be shorter than window.innerHeight.
    */
+  /** Keep the recorded pointer traveling with the WebDriver move, then surface its error. */
+  private async withPointerTravel(
+    travel: Promise<void>,
+    perform: () => Promise<void>,
+  ): Promise<void> {
+    const moving = travel.then(
+      () => null,
+      (error: unknown) => error,
+    );
+    let performError: unknown;
+    try {
+      await perform();
+    } catch (error) {
+      performError = error;
+    }
+    const travelError = await moving;
+    if (performError) {
+      throw performError;
+    }
+    if (travelError) {
+      throw travelError;
+    }
+  }
+
   private async runPointerAction(
     element: WebElement,
     perform: () => Promise<void>,
   ): Promise<void> {
     await this.revealElement(element);
-    await this.pointAt(element);
     try {
-      await perform();
+      await this.withPointerTravel(this.pointAt(element), perform);
     } catch (caught) {
       if (!(caught instanceof seleniumError.MoveTargetOutOfBoundsError)) {
         throw caught;
       }
       await this.scrollElementIntoView(element);
-      await this.pointAt(element);
-      await perform();
+      await this.withPointerTravel(this.pointAt(element), perform);
     }
   }
 
@@ -526,7 +548,7 @@ export abstract class PageAutomation implements E2eAutomation {
       await this.runPointerAction(element, async () => {
         await this.driver
           .actions()
-          .move({ origin: element, duration: 0 })
+          .move({ origin: element, duration: 1000 })
           .perform();
       });
       if (this.relayPageEvents) {
@@ -558,11 +580,17 @@ export abstract class PageAutomation implements E2eAutomation {
       }
       return;
     }
-    await this.pointAtViewport(input.x, input.y);
-    await this.driver
-      .actions()
-      .move({ x: input.x, y: input.y, origin: Origin.VIEWPORT, duration: 0 })
-      .perform();
+    await this.withPointerTravel(this.pointAtViewport(input.x, input.y), () =>
+      this.driver
+        .actions()
+        .move({
+          x: input.x,
+          y: input.y,
+          origin: Origin.VIEWPORT,
+          duration: 1000,
+        })
+        .perform(),
+    );
     if (this.relayPageEvents) {
       await this.relayToContentScript({
         type: 'mousemove',
@@ -662,10 +690,27 @@ export abstract class PageAutomation implements E2eAutomation {
 
   async scrollBy(input: { x?: number; y?: number }): Promise<void> {
     await this.preparePage();
-    await this.driver.executeScript(
-      'window.scrollBy(arguments[0], arguments[1])',
+    await this.driver.executeAsyncScript(
+      `const dx = arguments[0];
+      const dy = arguments[1];
+      const duration = arguments[2];
+      const done = arguments[arguments.length - 1];
+      const x0 = window.scrollX;
+      const y0 = window.scrollY;
+      const started = performance.now();
+      const step = (now) => {
+        const t = Math.min(1, (now - started) / duration);
+        window.scrollTo(x0 + dx * t, y0 + dy * t);
+        if (t < 1) {
+          requestAnimationFrame(step);
+          return;
+        }
+        done();
+      };
+      requestAnimationFrame(step);`,
       input.x ?? 0,
       input.y ?? 0,
+      1000,
     );
   }
 
