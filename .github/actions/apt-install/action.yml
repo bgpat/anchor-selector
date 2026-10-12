@@ -2,6 +2,9 @@ name: Cached apt install
 description: Install apt packages, reusing the package lists and archives from the last run
 
 inputs:
+  key:
+    description: Cache version, such as v1. Bump it when the package list changes.
+    required: true
   packages:
     description: Package names separated by spaces
     required: true
@@ -11,20 +14,15 @@ runs:
   steps:
     - id: os
       shell: bash
-      env:
-        PACKAGES: ${{ inputs.packages }}
       run: |
         . /etc/os-release
-        {
-          echo "version=${VERSION_ID}"
-          echo "packages=$(echo "$PACKAGES" | tr -s ' ' ',')"
-        } >> "$GITHUB_OUTPUT"
+        echo "version=${VERSION_ID}" >> "$GITHUB_OUTPUT"
 
     - uses: actions/cache@v6
       id: apt
       with:
         path: ~/apt-cache
-        key: apt-${{ steps.os.outputs.version }}-${{ runner.arch }}-${{ steps.os.outputs.packages }}
+        key: apt-${{ steps.os.outputs.version }}-${{ runner.arch }}-${{ inputs.key }}
 
     - shell: bash
       env:

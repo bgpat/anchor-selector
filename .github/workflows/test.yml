@@ -66,6 +66,7 @@ jobs:
       - name: Install browser automation packages
         uses: $/.github/actions/apt-install
         with:
+          key: e2e-v1
           packages: xvfb at-spi2-core python3-gi gir1.2-atspi-2.0 ffmpeg xclip dbus-x11 libgtk-3-0 libdbus-glib-1-2 libxt6 libnss3 libx11-xcb1 libasound2t64
       - run: bun run build:${{ matrix.browser }}
       - name: Run e2e
@@ -93,6 +94,7 @@ jobs:
       - name: Install ffmpeg
         uses: $/.github/actions/apt-install
         with:
+          key: ffmpeg-v1
           packages: ffmpeg
       - uses: actions/download-artifact@v7.0.0
         continue-on-error: true
