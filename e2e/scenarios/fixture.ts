@@ -6,9 +6,6 @@ export const E2E_FIXTURE_PATH = '/anchor-page.html';
 /** Second document used for navigation and history scenarios. */
 export const E2E_FIXTURE_PATH_2 = '/anchor-page-2.html';
 
-/** Regular expression source matched against the fixture tab URL. */
-export const fixturePathPattern = '/anchor-page\\.html$';
-
 /** Regular expression source matched against the second fixture URL. */
 export const fixturePath2Pattern = '/anchor-page-2\\.html$';
 

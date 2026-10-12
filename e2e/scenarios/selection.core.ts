@@ -2,7 +2,6 @@ import { withRecording } from './record';
 import type { E2eScenario } from './types';
 import {
   E2E_FIXTURE_PATH,
-  headingHash,
   headingLabel,
   headingSelector,
   pointerOutside,
@@ -28,54 +27,6 @@ export const selectionCoreScenarios = withRecording('selection', [
     ],
   },
   {
-    id: 'selection.toolbar-toggles-off',
-    title: '選択中にもう一度アイコンを左クリックすると選択モードが終わる',
-    description: '選択モード中の左クリックは overlay を閉じ、バッジを消す。',
-    tags: ['smoke', 'selection'],
-    steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
-      { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'extension.icon.click', button: 'left' },
-    ],
-    expect: [
-      { kind: 'overlay.visible', visible: false },
-      { kind: 'extension.badge.text', text: '' },
-    ],
-  },
-  {
-    id: 'selection.click-heading-updates-hash',
-    title: '見出しをクリックすると hash が更新され、選択とバッジが終わる',
-    description:
-      '選択モードで #heading をクリックするとアドレスバーの hash がその id になり、overlay と選択中バッジが消える。',
-    tags: ['smoke', 'selection'],
-    steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
-      { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'page.element.click', selector: headingSelector },
-    ],
-    expect: [
-      { kind: 'page.url.hash', value: headingHash },
-      { kind: 'overlay.visible', visible: false },
-      { kind: 'extension.badge.text', text: '' },
-    ],
-  },
-  {
-    id: 'selection.escape-cancels',
-    title: 'Escape で選択を中断する',
-    description:
-      '選択モード中に Escape を押すと overlay が閉じ、hash は変わらない。',
-    tags: ['selection'],
-    steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
-      { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'page.keyboard.press', key: 'Escape' },
-    ],
-    expect: [
-      { kind: 'overlay.visible', visible: false },
-      { kind: 'page.url.hash', value: '' },
-    ],
-  },
-  {
     id: 'selection.overlay-follows-pointer',
     title:
       'マウス移動に合わせてハイライトが動き、移った直後はアニメーションする',
@@ -83,8 +34,6 @@ export const selectionCoreScenarios = withRecording('selection', [
       'ポインタを別の id 要素へ移すとハイライト矩形がその要素に合い、移った直後は形状アニメーションが進行している。',
     tags: ['selection', 'overlay'],
     steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
-      { kind: 'extension.icon.click', button: 'left' },
       {
         kind: 'page.pointer.move',
         selector: headingSelector,
@@ -109,15 +58,21 @@ export const selectionCoreScenarios = withRecording('selection', [
     ],
   },
   {
+    id: 'selection.overlay-shows-target-label',
+    title: 'ホバー中の要素 id が overlay のラベルに出る',
+    description:
+      '選択モードで #heading 上にポインタを置くと、ラベルは #heading になる。',
+    tags: ['selection', 'overlay'],
+    steps: [{ kind: 'page.element.hover', selector: headingSelector }],
+    expect: [{ kind: 'overlay.label.text', text: headingLabel }],
+  },
+  {
     id: 'selection.overlay-follows-scroll',
     title: 'スクロールに合わせて overlay のハイライトが動く',
     description:
       'ポインタを固定したままスクロールしても、ハイライトは同じ要素の新しい表示位置に合う。',
     tags: ['selection', 'overlay'],
     steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
-      { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'page.pointer.move', selector: headingSelector },
       {
         kind: 'page.scroll.by',
         y: scrollDeltaY,
@@ -137,9 +92,6 @@ export const selectionCoreScenarios = withRecording('selection', [
       '選択 overlay を開いたあと storage の hue を更新すると、表示中のハイライトの stroke が変わる。',
     tags: ['selection', 'overlay'],
     steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
-      { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'page.pointer.move', selector: headingSelector },
       {
         kind: 'extension.storage.sync.set',
         values: { hue: hueWhileSelecting },
@@ -148,27 +100,12 @@ export const selectionCoreScenarios = withRecording('selection', [
     ],
   },
   {
-    id: 'selection.overlay-shows-target-label',
-    title: 'ホバー中の要素 id が overlay のラベルに出る',
-    description:
-      '選択モードで #heading 上にポインタを置くと、ラベルは #heading になる。',
-    tags: ['selection', 'overlay'],
-    steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
-      { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'page.element.hover', selector: headingSelector },
-    ],
-    expect: [{ kind: 'overlay.label.text', text: headingLabel }],
-  },
-  {
     id: 'selection.pointer-leave-clears-highlight',
     title: 'ポインタがページ外に出るとハイライトが消える',
     description:
       '選択モードのままポインタが viewport 外へ出るとハイライトは消え、選択モード自体は続く。',
     tags: ['selection', 'overlay'],
     steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
-      { kind: 'extension.icon.click', button: 'left' },
       {
         kind: 'page.pointer.move',
         selector: headingSelector,
@@ -182,5 +119,31 @@ export const selectionCoreScenarios = withRecording('selection', [
       },
     ],
     expect: [{ kind: 'overlay.visible', visible: true }],
+  },
+  {
+    id: 'selection.escape-cancels',
+    title: 'Escape で選択を中断する',
+    description:
+      '選択モード中に Escape を押すと overlay が閉じ、hash は変わらない。',
+    tags: ['selection'],
+    steps: [{ kind: 'page.keyboard.press', key: 'Escape' }],
+    expect: [
+      { kind: 'overlay.visible', visible: false },
+      { kind: 'page.url.hash', value: '' },
+    ],
+  },
+  {
+    id: 'selection.toolbar-toggles-off',
+    title: '選択中にもう一度アイコンを左クリックすると選択モードが終わる',
+    description: '選択モード中の左クリックは overlay を閉じ、バッジを消す。',
+    tags: ['smoke', 'selection'],
+    steps: [
+      { kind: 'extension.icon.click', button: 'left' },
+      { kind: 'extension.icon.click', button: 'left' },
+    ],
+    expect: [
+      { kind: 'overlay.visible', visible: false },
+      { kind: 'extension.badge.text', text: '' },
+    ],
   },
 ] as const satisfies readonly E2eScenario[]);

@@ -4,7 +4,6 @@ import {
   E2E_FIXTURE_PATH,
   E2E_FIXTURE_PATH_2,
   fixturePath2Pattern,
-  fixturePathPattern,
   headingHash,
   headingSelector,
   innerHash,
@@ -31,7 +30,6 @@ const selectionTargetScenarios = [
       'id も name もない要素をクリックすると hash は空のまま選択モードが終わる。',
     tags: ['selection', 'edge'],
     steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
       { kind: 'extension.icon.click', button: 'left' },
       { kind: 'page.element.click', selector: plainSelector },
     ],
@@ -41,15 +39,40 @@ const selectionTargetScenarios = [
     ],
   },
   {
+    id: 'selection.click-heading-updates-hash',
+    title: '見出しをクリックすると hash が更新され、選択とバッジが終わる',
+    description:
+      '選択モードで #heading をクリックするとアドレスバーの hash がその id になり、overlay と選択中バッジが消える。',
+    tags: ['smoke', 'selection'],
+    steps: [
+      { kind: 'extension.icon.click', button: 'left' },
+      { kind: 'page.element.click', selector: headingSelector },
+    ],
+    expect: [
+      { kind: 'page.url.hash', value: headingHash },
+      { kind: 'overlay.visible', visible: false },
+      { kind: 'extension.badge.text', text: '' },
+    ],
+  },
+  {
+    id: 'selection.reopen-after-complete',
+    title: '選択完了後にもう一度アイコンを左クリックすると選択を再開できる',
+    description:
+      '一度要素を選んでモードが終わったあと、アイコンの左クリックで overlay が再び開く。',
+    tags: ['selection', 'edge'],
+    steps: [{ kind: 'extension.icon.click', button: 'left' }],
+    expect: [
+      { kind: 'overlay.visible', visible: true },
+      { kind: 'extension.badge.nonEmpty' },
+      { kind: 'page.url.hash', value: headingHash },
+    ],
+  },
+  {
     id: 'selection.named-anchor',
     title: 'name 属性のアンカーをクリックするとその名前が hash になる',
     description: 'a[name="legacy"] を選ぶと hash は #legacy になる。',
     tags: ['selection', 'edge'],
-    steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
-      { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'page.element.click', selector: legacyAnchorSelector },
-    ],
+    steps: [{ kind: 'page.element.click', selector: legacyAnchorSelector }],
     expect: [
       { kind: 'page.url.hash', value: legacyHash },
       { kind: 'overlay.visible', visible: false },
@@ -61,7 +84,6 @@ const selectionTargetScenarios = [
     description: '入れ子の内側 #inner をクリックすると hash は #inner になる。',
     tags: ['selection', 'edge'],
     steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
       { kind: 'extension.icon.click', button: 'left' },
       { kind: 'page.element.click', selector: innerSelector },
     ],
@@ -74,29 +96,10 @@ const selectionTargetScenarios = [
       '表示サイズが 0 の #invisible-anchor の近くをクリックすると、その id が hash になる。',
     tags: ['selection', 'edge'],
     steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
       { kind: 'extension.icon.click', button: 'left' },
       { kind: 'page.element.click', selector: nearInvisibleSelector },
     ],
     expect: [{ kind: 'page.url.hash', value: invisibleHash }],
-  },
-  {
-    id: 'selection.reopen-after-complete',
-    title: '選択完了後にもう一度アイコンを左クリックすると選択を再開できる',
-    description:
-      '一度要素を選んでモードが終わったあと、アイコンの左クリックで overlay が再び開く。',
-    tags: ['selection', 'edge'],
-    steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
-      { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'page.element.click', selector: headingSelector },
-      { kind: 'extension.icon.click', button: 'left' },
-    ],
-    expect: [
-      { kind: 'overlay.visible', visible: true },
-      { kind: 'extension.badge.nonEmpty' },
-      { kind: 'page.url.hash', value: headingHash },
-    ],
   },
 ] as const satisfies readonly E2eScenario[];
 
@@ -137,7 +140,6 @@ const selectionSessionScenarios = [
       '選択中に別ドキュメントを開くと overlay とバッジが消え、履歴の戻ると進むのどちらでも overlay は残らない。',
     tags: ['selection', 'edge'],
     steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
       { kind: 'extension.icon.click', button: 'left' },
       {
         kind: 'page.navigate',
@@ -151,7 +153,10 @@ const selectionSessionScenarios = [
         kind: 'page.history.back',
         expect: [
           { kind: 'overlay.visible', visible: false },
-          { kind: 'page.url.matches', pattern: fixturePathPattern },
+          {
+            kind: 'page.url.matches',
+            pattern: '/anchor-page\\.html(?:#.*)?$',
+          },
         ],
       },
       {
@@ -164,13 +169,23 @@ const selectionSessionScenarios = [
     ],
   },
   {
+    id: 'selection.reload-clears',
+    title: '選択中に再読み込みすると選択が解除される',
+    description: '選択モードのままページを再読み込みすると overlay が消える。',
+    tags: ['selection', 'edge'],
+    steps: [
+      { kind: 'extension.icon.click', button: 'left' },
+      { kind: 'page.reload' },
+    ],
+    expect: [...selectionOff],
+  },
+  {
     id: 'extension.re-enable-no-duplicate',
     title: '無効化で選択が消え、再有効化しても overlay は重複しない',
     description:
       '選択モード中に無効化すると overlay とバッジが消える。再有効化してもう一度選択モードにすると overlay のルートは 1 つだけになる。',
     tags: ['selection', 'edge', 'extension'],
     steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
       { kind: 'extension.icon.click', button: 'left' },
       {
         kind: 'extension.setEnabled',
@@ -189,18 +204,6 @@ const selectionSessionScenarios = [
       { kind: 'overlay.root.count', count: 1 },
       { kind: 'overlay.visible', visible: true },
     ],
-  },
-  {
-    id: 'selection.reload-clears',
-    title: '選択中に再読み込みすると選択が解除される',
-    description: '選択モードのままページを再読み込みすると overlay が消える。',
-    tags: ['selection', 'edge'],
-    steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
-      { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'page.reload' },
-    ],
-    expect: [...selectionOff],
   },
   {
     id: 'selection.uninjectable-page',
@@ -222,5 +225,5 @@ const selectionSessionScenarios = [
 export const selectionEdgeScenarios = [
   ...withRecording('selection', selectionTargetScenarios),
   ...withRecording('actions', modifierActionScenarios),
-  ...withRecording('session', selectionSessionScenarios),
+  ...withRecording('selection', selectionSessionScenarios),
 ];
