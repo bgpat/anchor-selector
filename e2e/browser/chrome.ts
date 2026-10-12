@@ -170,32 +170,22 @@ export class ChromeAutomation extends PageAutomation {
         : input.button === 'middle'
           ? 'middle'
           : 'left';
-    if (button === 'left') {
-      try {
-        await atspiClick({
-          name: 'jump to the anchored element',
-          role: 'push button',
-          prefer: 'top',
-          timeout: 5,
-        });
-        return;
-      } catch {
-        await atspiClick({
-          name: EXTENSION_NAME,
-          role: 'push button',
-          exact: true,
-          prefer: 'top',
-          timeout: 2,
-        });
-        return;
-      }
-    }
     const match = await this.toolbarExtensionButton(5);
     if (match == null) {
       const dump = await atspiDump();
       throw new Error(
         `${EXTENSION_NAME} toolbar button was not found\n${dump.slice(0, 2000)}`,
       );
+    }
+    if (button === 'left') {
+      await atspiClick({
+        name: match.name,
+        role: 'push button',
+        exact: true,
+        prefer: 'top',
+        timeout: 3,
+      });
+      return;
     }
     const x = Math.round(match.x + match.width / 2);
     const y = Math.round(match.y + match.height / 2);
@@ -220,6 +210,23 @@ export class ChromeAutomation extends PageAutomation {
     });
     if (input.enabled) {
       await this.reopenProbe();
+      await this.pinActionButton();
+    }
+  }
+
+  override async pressKey(input: { key: string }): Promise<void> {
+    await this.preparePage();
+    const url = await this.driver.getCurrentUrl();
+    const socket = await this.pageSocket(url);
+    const code = input.key === 'Escape' ? 27 : 0;
+    for (const type of ['keyDown', 'keyUp']) {
+      await cdpCommand(socket, 'Input.dispatchKeyEvent', {
+        type,
+        key: input.key,
+        code: input.key,
+        windowsVirtualKeyCode: code,
+        nativeVirtualKeyCode: code,
+      });
     }
   }
 
@@ -428,7 +435,7 @@ export class ChromeAutomation extends PageAutomation {
     }
   }
 
-  private async optionsPageEvaluate<T>(expression: string): Promise<T> {
+  private async debuggerAddress(): Promise<string> {
     const capabilities = await this.driver.getCapabilities();
     const chromeOptions = capabilities.get('goog:chromeOptions') as
       { debuggerAddress?: string } | undefined;
@@ -436,13 +443,34 @@ export class ChromeAutomation extends PageAutomation {
     if (address == null || address === '') {
       throw new Error('Chrome debugger address is missing');
     }
-    const response = await fetch(`http://${address}/json/list`);
-    const targets = (await response.json()) as {
+    return address;
+  }
+
+  private async pageTargets(): Promise<
+    { type: string; url: string; webSocketDebuggerUrl?: string }[]
+  > {
+    const response = await fetch(
+      `http://${await this.debuggerAddress()}/json/list`,
+    );
+    return (await response.json()) as {
       type: string;
       url: string;
       webSocketDebuggerUrl?: string;
     }[];
-    const target = targets.find(
+  }
+
+  private async pageSocket(url: string): Promise<string> {
+    const target = (await this.pageTargets()).find(
+      (item) => item.url === url && item.webSocketDebuggerUrl != null,
+    );
+    if (target?.webSocketDebuggerUrl == null) {
+      throw new Error(`page target was not found: ${url}`);
+    }
+    return target.webSocketDebuggerUrl;
+  }
+
+  private async optionsPageEvaluate<T>(expression: string): Promise<T> {
+    const target = (await this.pageTargets()).find(
       (item) =>
         item.url.includes('options.html') && item.webSocketDebuggerUrl != null,
     );
@@ -575,6 +603,43 @@ export class ChromeAutomation extends PageAutomation {
       text,
     );
   }
+}
+
+function cdpCommand(
+  webSocketUrl: string,
+  method: string,
+  params: object,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const socket = new WebSocket(webSocketUrl);
+    const timer = setTimeout(() => {
+      socket.close();
+      reject(new Error(`CDP ${method} timed out`));
+    }, 5000);
+    socket.addEventListener('open', () => {
+      socket.send(JSON.stringify({ id: 1, method, params }));
+    });
+    socket.addEventListener('message', (event: MessageEvent) => {
+      const message = JSON.parse(String(event.data)) as {
+        id?: number;
+        error?: { message?: string };
+      };
+      if (message.id !== 1) {
+        return;
+      }
+      clearTimeout(timer);
+      socket.close();
+      if (message.error) {
+        reject(new Error(message.error.message || `CDP ${method} failed`));
+        return;
+      }
+      resolve();
+    });
+    socket.addEventListener('error', () => {
+      clearTimeout(timer);
+      reject(new Error(`CDP ${method} websocket failed`));
+    });
+  });
 }
 
 function evaluateOnTarget<T>(
