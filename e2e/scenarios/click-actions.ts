@@ -31,6 +31,7 @@ function actionScenario(input: {
     title: input.title,
     description: input.description,
     tags: ['action'],
+    recording: 'actions',
     steps: [
       { kind: 'extension.storage.sync.set', values: input.preset },
       { kind: 'page.goto', path: E2E_FIXTURE_PATH },

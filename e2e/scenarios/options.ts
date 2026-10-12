@@ -2,26 +2,21 @@ import { clickActionName, modifierKey } from '@/util/config';
 import type { E2eScenario } from './types';
 import { E2E_FIXTURE_PATH, headingSelector } from './fixture';
 import { hueForNextSelection, hueFromOptions } from './presets';
+import { withRecording } from './record';
 
 /** Matches `formatBinding` in `src/entrypoints/options/App.tsx`. */
 const shiftCopyHashBindingLabel = '[shift ⇧]: Copy only hash';
 
-export const optionsScenarios = [
+export const optionsScenarios = withRecording('options', [
   {
     id: 'options.opens-from-extension',
-    title: '拡張機能の UI からオプションページを開く',
-    description: '拡張機能の UI 操作でオプションページが開く。',
-    tags: ['options'],
-    steps: [{ kind: 'extension.options.open' }],
-    expect: [{ kind: 'options.page.open' }],
-  },
-  {
-    id: 'options.renders-sections',
-    title: 'オプションページに設定の見出しが出る',
-    description: 'オプションページにタイトルと Click / Color の節が見える。',
+    title: '拡張機能の UI からオプションページを開き、設定の見出しが出る',
+    description:
+      'オプションページが開き、タイトルと Click / Color の節が見える。',
     tags: ['options'],
     steps: [{ kind: 'extension.options.open' }],
     expect: [
+      { kind: 'options.page.open' },
       { kind: 'page.heading.visible', name: 'Anchor Selector', level: 1 },
       { kind: 'page.heading.visible', name: 'Click', level: 2 },
       { kind: 'page.heading.visible', name: 'Color', level: 2 },
@@ -87,4 +82,4 @@ export const optionsScenarios = [
     ],
     expect: [{ kind: 'overlay.highlight.hue', hue: hueForNextSelection }],
   },
-] as const satisfies readonly E2eScenario[];
+] as const satisfies readonly E2eScenario[]);

@@ -98,23 +98,48 @@ function markdown(
     );
   }
   lines.push('');
+  const shown = new Set<string>();
   for (const scenario of report.scenarios) {
-    if (scenario.status === 'skipped') {
+    if (scenario.video == null || shown.has(scenario.video)) {
       continue;
     }
-    lines.push(`### \`${scenario.id}\``, '', scenario.title, '');
-    if (scenario.error) {
-      lines.push('```', scenario.error, '```', '');
+    shown.add(scenario.video);
+    const covered = report.scenarios.filter(
+      (item) => item.video === scenario.video,
+    );
+    const heading = scenario.video.replace(/\.webm$/, '');
+    lines.push(`### \`${heading}\``, '');
+    for (const item of covered) {
+      lines.push(`- ${item.status} \`${item.id}\` ${item.title}`);
+      if (item.error) {
+        lines.push('', '```', item.error, '```', '');
+      }
     }
-    const attachment = scenario.video ? attachments.get(scenario.video) : null;
+    lines.push('');
+    const attachment = attachments.get(scenario.video);
     if (attachment) {
-      lines.push(`![${scenario.title}](${attachment})`, '');
-    } else if (scenario.video) {
+      lines.push(`![${heading}](${attachment})`, '');
+    } else {
       lines.push(
         `Video exceeded the 10MB attachment limit. See the \`e2e-${report.browser}\` Actions artifact.`,
         '',
       );
     }
+  }
+  for (const scenario of report.scenarios) {
+    if (scenario.video != null || scenario.error == null) {
+      continue;
+    }
+    lines.push(
+      `### \`${scenario.id}\``,
+      '',
+      scenario.title,
+      '',
+      '```',
+      scenario.error,
+      '```',
+      '',
+    );
   }
   return `${lines.join('\n')}\n`;
 }

@@ -9,7 +9,7 @@ import { e2eScenarios } from '../scenarios/index';
 import type { E2eAssertion, E2eScenario, E2eStep } from '../scenarios/types';
 import type { E2eAutomation } from '../automation/interface';
 import { explainAssertion, type AssertionBaseline } from './assertions';
-import { ScreenRecorder, saveLastFrame, transcodeWebm } from './record';
+import { ScreenRecorder, transcodeWebm } from './record';
 import type { BrowserReport, ScenarioReport } from './report';
 import './bun-globals';
 
@@ -170,9 +170,9 @@ async function main(): Promise<void> {
   };
 
   try {
-    for (const scenario of selected) {
+    for (const group of recordingsOf(selected)) {
       report.scenarios.push(
-        await runOne(browserName, scenario, fixtureOrigin, resultsDir),
+        ...(await runRecording(browserName, group, fixtureOrigin, resultsDir)),
       );
       writeReport();
     }
@@ -192,75 +192,137 @@ async function main(): Promise<void> {
   }
 }
 
-async function runOne(
+function recordingsOf(scenarios: readonly E2eScenario[]): E2eScenario[][] {
+  const order: string[] = [];
+  const groups = new Map<string, E2eScenario[]>();
+  for (const scenario of scenarios) {
+    const id = scenario.recording ?? scenario.id;
+    const group = groups.get(id);
+    if (group == null) {
+      groups.set(id, [scenario]);
+      order.push(id);
+      continue;
+    }
+    group.push(scenario);
+  }
+  return order.map((id) => groups.get(id) ?? []);
+}
+
+function skippedReport(scenario: E2eScenario): ScenarioReport {
+  console.log(`skipped\t${scenario.id}\t${scenario.skipUntil}`);
+  return {
+    id: scenario.id,
+    title: scenario.title,
+    status: 'skipped',
+    durationMs: 0,
+    video: null,
+    error: null,
+    failureImage: null,
+  };
+}
+
+async function runRecording(
   browserName: BrowserName,
-  scenario: E2eScenario,
+  scenarios: readonly E2eScenario[],
   fixtureOrigin: string,
   resultsDir: string,
-): Promise<ScenarioReport> {
-  if (scenario.skipUntil != null) {
-    console.log(`skipped\t${scenario.id}\t${scenario.skipUntil}`);
-    return {
-      id: scenario.id,
-      title: scenario.title,
-      status: 'skipped',
-      durationMs: 0,
-      video: null,
-      error: null,
-      failureImage: null,
-    };
+): Promise<ScenarioReport[]> {
+  const recording = scenarios[0]?.recording ?? scenarios[0]?.id ?? 'e2e';
+  const video = videoName(recording);
+  const mkvPath = join(resultsDir, `${recording}.mkv`);
+  const webmPath = join(resultsDir, video);
+  const runnable = scenarios.some((scenario) => scenario.skipUntil == null);
+  if (!runnable) {
+    return scenarios.map((scenario) => skippedReport(scenario));
   }
 
-  const started = Date.now();
-  const video = videoName(scenario.id);
-  const mkvPath = join(resultsDir, `${scenario.id}.mkv`);
-  const webmPath = join(resultsDir, video);
-  const pngPath = join(resultsDir, `${scenario.id}.png`);
-  const recorder = new ScreenRecorder();
-  let failure: string | null = null;
+  const reports: ScenarioReport[] = [];
   let closeBrowser: (() => Promise<void>) | null = null;
+  let automation: E2eAutomation | null = null;
+  const recorder = new ScreenRecorder();
+  let recordingError: string | null = null;
   try {
     const session = await Promise.race([
       launch(browserName, fixtureOrigin),
       timeout(SCENARIO_TIMEOUT_MS, 'browser launch'),
     ]);
     closeBrowser = session.close;
+    automation = session.automation;
     recorder.start(mkvPath, await session.automation.windowRect());
     await recorder.assertStarted();
-    await Promise.race([
-      runScenario(session.automation, scenario),
-      timeout(SCENARIO_TIMEOUT_MS, scenario.id),
-    ]);
   } catch (error) {
-    failure = errorMessage(error);
-    console.error(failure);
-  } finally {
-    await recorder.stop().catch(() => undefined);
-    await closeBrowser?.().catch(() => undefined);
+    recordingError = errorMessage(error);
+    console.error(recordingError);
   }
 
-  let failureImage: string | null = null;
-  try {
-    if (failure != null) {
-      saveLastFrame(mkvPath, pngPath);
-      failureImage = `${scenario.id}.png`;
+  for (const scenario of scenarios) {
+    if (scenario.skipUntil != null) {
+      reports.push(skippedReport(scenario));
+      continue;
     }
-    transcodeWebm(mkvPath, webmPath);
-  } catch (error) {
-    failure ??= `recording failed: ${errorMessage(error)}`;
-  } finally {
-    rmSync(mkvPath, { force: true });
+    if (automation == null) {
+      reports.push({
+        id: scenario.id,
+        title: scenario.title,
+        status: 'failed',
+        durationMs: 0,
+        video: null,
+        error: recordingError,
+        failureImage: null,
+      });
+      continue;
+    }
+    const started = Date.now();
+    let failure: string | null = null;
+    let failureImage: string | null = null;
+    try {
+      await Promise.race([
+        runScenario(automation, scenario),
+        timeout(SCENARIO_TIMEOUT_MS, scenario.id),
+      ]);
+    } catch (error) {
+      failure = errorMessage(error);
+      console.error(failure);
+      const pngPath = join(resultsDir, `${scenario.id}.png`);
+      try {
+        await automation.capturePng(pngPath);
+        failureImage = `${scenario.id}.png`;
+      } catch {
+        failureImage = null;
+      }
+    }
+    reports.push({
+      id: scenario.id,
+      title: scenario.title,
+      status: failure == null ? 'passed' : 'failed',
+      durationMs: Date.now() - started,
+      video,
+      error: failure,
+      failureImage,
+    });
   }
 
-  return {
-    id: scenario.id,
-    title: scenario.title,
-    status: failure == null ? 'passed' : 'failed',
-    durationMs: Date.now() - started,
-    video: failure == null || failureImage != null ? video : null,
-    error: failure,
-    failureImage,
-  };
+  await recorder.stop().catch(() => undefined);
+  await closeBrowser?.().catch(() => undefined);
+  if (automation != null) {
+    try {
+      transcodeWebm(mkvPath, webmPath);
+    } catch (error) {
+      const message = `recording failed: ${errorMessage(error)}`;
+      for (const report of reports) {
+        if (report.status === 'skipped') {
+          continue;
+        }
+        report.status = 'failed';
+        report.error ??= message;
+        report.video = null;
+      }
+    } finally {
+      rmSync(mkvPath, { force: true });
+    }
+  }
+
+  return reports;
 }
 
 function launch(browserName: BrowserName, fixtureOrigin: string) {

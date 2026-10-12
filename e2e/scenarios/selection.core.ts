@@ -1,3 +1,4 @@
+import { withRecording } from './record';
 import type { E2eScenario } from './types';
 import {
   E2E_FIXTURE_PATH,
@@ -10,7 +11,7 @@ import {
 } from './fixture';
 import { hueWhileSelecting } from './presets';
 
-export const selectionCoreScenarios = [
+export const selectionCoreScenarios = withRecording('selection', [
   {
     id: 'selection.toolbar-opens-overlay',
     title: '拡張機能アイコンの左クリックで選択モードになる',
@@ -43,9 +44,9 @@ export const selectionCoreScenarios = [
   },
   {
     id: 'selection.click-heading-updates-hash',
-    title: '見出しをクリックすると hash が更新されて選択が終わる',
+    title: '見出しをクリックすると hash が更新され、選択とバッジが終わる',
     description:
-      '選択モードで #heading をクリックするとアドレスバーの hash がその id になり、overlay が閉じる。',
+      '選択モードで #heading をクリックするとアドレスバーの hash がその id になり、overlay と選択中バッジが消える。',
     tags: ['smoke', 'selection'],
     steps: [
       { kind: 'page.goto', path: E2E_FIXTURE_PATH },
@@ -55,6 +56,7 @@ export const selectionCoreScenarios = [
     expect: [
       { kind: 'page.url.hash', value: headingHash },
       { kind: 'overlay.visible', visible: false },
+      { kind: 'extension.badge.text', text: '' },
     ],
   },
   {
@@ -75,9 +77,10 @@ export const selectionCoreScenarios = [
   },
   {
     id: 'selection.overlay-follows-pointer',
-    title: 'マウス移動に合わせて overlay のハイライトが対象要素へ動く',
+    title:
+      'マウス移動に合わせてハイライトが動き、移った直後はアニメーションする',
     description:
-      'ポインタを別の id 要素へ移すと、ハイライト矩形がその要素の表示位置に合う。',
+      'ポインタを別の id 要素へ移すとハイライト矩形がその要素に合い、移った直後は形状アニメーションが進行している。',
     tags: ['selection', 'overlay'],
     steps: [
       { kind: 'page.goto', path: E2E_FIXTURE_PATH },
@@ -96,6 +99,7 @@ export const selectionCoreScenarios = [
         kind: 'page.pointer.move',
         selector: secondarySelector,
         expect: [
+          { kind: 'overlay.highlight.animating' },
           {
             kind: 'overlay.highlight.alignsWithElement',
             selector: secondarySelector,
@@ -127,23 +131,6 @@ export const selectionCoreScenarios = [
     ],
   },
   {
-    id: 'selection.overlay-animates-highlight',
-    title: '対象が変わると overlay のハイライトがアニメーションする',
-    description:
-      'ポインタを別の id 要素へ移した直後、ハイライトの形状アニメーションが進行している。',
-    tags: ['selection', 'overlay'],
-    steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
-      { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'page.pointer.move', selector: headingSelector },
-      {
-        kind: 'page.pointer.move',
-        selector: secondarySelector,
-        expect: [{ kind: 'overlay.highlight.animating' }],
-      },
-    ],
-  },
-  {
     id: 'selection.hue-updates-while-selecting',
     title: '選択中に hue を変えるとハイライトの色が変わる',
     description:
@@ -161,22 +148,10 @@ export const selectionCoreScenarios = [
     ],
   },
   {
-    id: 'selection.badge-clears-after-select',
-    title: '選択を完了するとバッジが消える',
-    description:
-      '要素を選んで選択モードが終わると、ツールバーの選択中バッジが空になる。',
-    tags: ['selection'],
-    steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
-      { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'page.element.click', selector: headingSelector },
-    ],
-    expect: [{ kind: 'extension.badge.text', text: '' }],
-  },
-  {
     id: 'selection.overlay-shows-target-label',
     title: 'ホバー中の要素 id が overlay のラベルに出る',
-    description: '選択モードで #heading 上にポインタを置くと、ラベルは #heading になる。',
+    description:
+      '選択モードで #heading 上にポインタを置くと、ラベルは #heading になる。',
     tags: ['selection', 'overlay'],
     steps: [
       { kind: 'page.goto', path: E2E_FIXTURE_PATH },
@@ -208,4 +183,4 @@ export const selectionCoreScenarios = [
     ],
     expect: [{ kind: 'overlay.visible', visible: true }],
   },
-] as const satisfies readonly E2eScenario[];
+] as const satisfies readonly E2eScenario[]);

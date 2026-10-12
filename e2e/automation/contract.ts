@@ -63,10 +63,13 @@ type MappedMethod =
   | (typeof assertionKindQuery)[keyof typeof assertionKindQuery]
   | (typeof assertionKindExtraQuery)[keyof typeof assertionKindExtraQuery];
 
+/** Runner-only helpers are not scenario steps or assertions. */
+type RunnerUtility = 'capturePng';
+
 /** `true` only when every `E2eAutomation` method is referenced by a step or assertion. */
 export type E2eAutomationMethodsCovered =
-  Exclude<keyof E2eAutomation, MappedMethod> extends never
+  Exclude<keyof E2eAutomation, MappedMethod | RunnerUtility> extends never
     ? true
-    : Exclude<keyof E2eAutomation, MappedMethod>;
+    : Exclude<keyof E2eAutomation, MappedMethod | RunnerUtility>;
 
 export const e2eAutomationMethodsCovered: E2eAutomationMethodsCovered = true;

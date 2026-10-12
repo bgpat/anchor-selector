@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { copyFileSync, existsSync } from 'node:fs';
+import { copyFileSync, existsSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
@@ -929,6 +929,11 @@ export abstract class PageAutomation implements E2eAutomation {
   async isOptionsPageOpen(): Promise<boolean> {
     await this.rememberOptionsTab();
     return this.optionsHandle != null;
+  }
+
+  async capturePng(path: string): Promise<void> {
+    const png = await this.driver.takeScreenshot();
+    writeFileSync(path, Buffer.from(png, 'base64'));
   }
 
   private async modifierCheckbox(key: ModifierKey): Promise<WebElement> {

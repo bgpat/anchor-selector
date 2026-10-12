@@ -16,13 +16,14 @@ import {
   plainSelector,
 } from './fixture';
 import { modifierCopyHashPreset } from './presets';
+import { withRecording } from './record';
 
 const selectionOff = [
   { kind: 'overlay.visible', visible: false },
   { kind: 'extension.badge.text', text: '' },
 ] as const;
 
-export const selectionEdgeScenarios = [
+const selectionTargetScenarios = [
   {
     id: 'selection.click-non-anchor',
     title: 'アンカーでない要素をクリックしても hash は変わらない',
@@ -97,6 +98,9 @@ export const selectionEdgeScenarios = [
       { kind: 'page.url.hash', value: headingHash },
     ],
   },
+] as const satisfies readonly E2eScenario[];
+
+const modifierActionScenarios = [
   {
     id: 'selection.modifier-resolves-action',
     title: '修飾キーに対応する click action が実行される',
@@ -123,32 +127,26 @@ export const selectionEdgeScenarios = [
       { kind: 'tabs.delta', by: 0 },
     ],
   },
-  {
-    id: 'selection.navigation-clears',
-    title: '選択中に別ページへ遷移すると選択が解除される',
-    description:
-      '選択モードのまま別ドキュメントを開くと overlay が消え、バッジも消える。',
-    tags: ['selection', 'edge'],
-    steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
-      { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'page.navigate', path: E2E_FIXTURE_PATH_2 },
-    ],
-    expect: [
-      ...selectionOff,
-      { kind: 'page.url.matches', pattern: fixturePath2Pattern },
-    ],
-  },
+] as const satisfies readonly E2eScenario[];
+
+const selectionSessionScenarios = [
   {
     id: 'selection.history-back-forward-clears',
-    title: '戻る/進むでも選択は解除されたままになる',
+    title: '別ページへの遷移と戻る/進むで選択が解除される',
     description:
-      '選択中に別ページへ移ったあと、履歴の戻ると進むのどちらでも overlay は残らない。',
+      '選択中に別ドキュメントを開くと overlay とバッジが消え、履歴の戻ると進むのどちらでも overlay は残らない。',
     tags: ['selection', 'edge'],
     steps: [
       { kind: 'page.goto', path: E2E_FIXTURE_PATH },
       { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'page.navigate', path: E2E_FIXTURE_PATH_2 },
+      {
+        kind: 'page.navigate',
+        path: E2E_FIXTURE_PATH_2,
+        expect: [
+          ...selectionOff,
+          { kind: 'page.url.matches', pattern: fixturePath2Pattern },
+        ],
+      },
       {
         kind: 'page.history.back',
         expect: [
@@ -166,27 +164,10 @@ export const selectionEdgeScenarios = [
     ],
   },
   {
-    id: 'extension.disable-clears-selection',
-    title: '拡張機能を無効化すると選択が解除される',
-    description:
-      '選択モード中に拡張機能を無効化すると overlay が消え、バッジも消える。',
-    tags: ['selection', 'edge', 'extension'],
-    steps: [
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
-      { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'extension.setEnabled', enabled: false },
-    ],
-    expect: [
-      { kind: 'extension.enabled', enabled: false },
-      { kind: 'overlay.root.count', count: 0 },
-      { kind: 'extension.badge.text', text: '' },
-    ],
-  },
-  {
     id: 'extension.re-enable-no-duplicate',
-    title: '再有効化しても選択 overlay は重複しない',
+    title: '無効化で選択が消え、再有効化しても overlay は重複しない',
     description:
-      '無効化で選択を解除したあと再有効化し、もう一度選択モードにしても overlay のルートは 1 つだけになる。',
+      '選択モード中に無効化すると overlay とバッジが消える。再有効化してもう一度選択モードにすると overlay のルートは 1 つだけになる。',
     tags: ['selection', 'edge', 'extension'],
     steps: [
       { kind: 'page.goto', path: E2E_FIXTURE_PATH },
@@ -194,7 +175,11 @@ export const selectionEdgeScenarios = [
       {
         kind: 'extension.setEnabled',
         enabled: false,
-        expect: [{ kind: 'overlay.root.count', count: 0 }],
+        expect: [
+          { kind: 'extension.enabled', enabled: false },
+          { kind: 'overlay.root.count', count: 0 },
+          { kind: 'extension.badge.text', text: '' },
+        ],
       },
       { kind: 'extension.setEnabled', enabled: true },
       { kind: 'extension.icon.click', button: 'left' },
@@ -233,3 +218,9 @@ export const selectionEdgeScenarios = [
     ],
   },
 ] as const satisfies readonly E2eScenario[];
+
+export const selectionEdgeScenarios = [
+  ...withRecording('selection', selectionTargetScenarios),
+  ...withRecording('actions', modifierActionScenarios),
+  ...withRecording('session', selectionSessionScenarios),
+];

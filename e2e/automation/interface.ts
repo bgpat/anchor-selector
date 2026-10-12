@@ -164,4 +164,7 @@ export interface E2eAutomation {
   readOptionsBindingListText(): Promise<string>;
 
   isOptionsPageOpen(): Promise<boolean>;
+
+  /** Write a PNG of the current window. */
+  capturePng(path: string): Promise<void>;
 }
