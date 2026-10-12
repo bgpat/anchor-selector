@@ -72,6 +72,7 @@ export const selectionCoreScenarios = withRecording('selection', [
       'With the pointer held still, scrolling moves the highlight to the new position of that element.',
     tags: ['selection', 'overlay'],
     steps: [
+      { kind: 'page.pointer.move', selector: headingSelector },
       {
         kind: 'page.scroll.by',
         y: scrollDeltaY,

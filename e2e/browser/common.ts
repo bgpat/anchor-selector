@@ -710,6 +710,16 @@ export abstract class PageAutomation implements E2eAutomation {
           requestAnimationFrame(step);
           return;
         }
+        const pointer = window.__e2ePointer;
+        if (pointer) {
+          window.dispatchEvent(new MouseEvent('mousemove', {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            clientX: pointer.x,
+            clientY: pointer.y,
+          }));
+        }
         done();
       };
       requestAnimationFrame(step);`,
@@ -992,6 +1002,12 @@ export abstract class PageAutomation implements E2eAutomation {
           window.__e2eHighlightBeganAt = performance.now();
         }
       }, true);
+      if (!window.__e2ePointerWatch) {
+        window.__e2ePointerWatch = true;
+        document.addEventListener('mousemove', (event) => {
+          window.__e2ePointer = { x: event.clientX, y: event.clientY };
+        }, true);
+      }
     `);
   }
 
