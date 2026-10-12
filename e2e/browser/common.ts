@@ -183,6 +183,11 @@ export abstract class PageAutomation implements E2eAutomation {
    */
   protected relayPageEvents = false;
 
+  /** Scenario id and title last written into `#e2e-note`. */
+  private scenarioNote = '';
+
+  private scenarioId = '';
+
   constructor(
     protected readonly driver: WebDriver,
     protected fixtureHandle: string,
@@ -846,13 +851,38 @@ export abstract class PageAutomation implements E2eAutomation {
     );
   }
 
+  async noteScenario(input: { id: string; title: string }): Promise<void> {
+    this.scenarioId = input.id;
+    this.scenarioNote = `${input.id}\n${input.title}`;
+    await this.writeScenarioNote(this.scenarioNote);
+  }
+
   async readClipboardText(): Promise<string> {
     const { stdout } = await execFileAsync('xclip', [
       '-o',
       '-selection',
       'clipboard',
     ]).catch(() => ({ stdout: '' }));
+    const text =
+      this.scenarioNote === '' ? stdout : `${this.scenarioNote}\n${stdout}`;
+    await this.writeScenarioNote(text);
     return stdout;
+  }
+
+  /**
+   * `#e2e-note` exists only on fixture pages. The tab title still carries
+   * the scenario id when the document can be scripted.
+   */
+  private async writeScenarioNote(text: string): Promise<void> {
+    await this.driver
+      .executeScript(
+        `const note = document.querySelector('#e2e-note');
+        if (note) note.value = arguments[0];
+        if (arguments[1]) document.title = arguments[1];`,
+        text,
+        this.scenarioId,
+      )
+      .catch(() => undefined);
   }
 
   async countTabs(): Promise<number> {

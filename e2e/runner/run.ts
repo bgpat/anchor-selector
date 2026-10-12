@@ -97,6 +97,9 @@ async function runScenario(
     windows: await automation.countWindows(),
     strokeBefore: null,
   };
+  const showScenario = () =>
+    automation.noteScenario({ id: scenario.id, title: scenario.title });
+  await showScenario();
   for (const [index, step] of scenario.steps.entries()) {
     if (index > 0) {
       await pause(ACTION_PAUSE_MS);
@@ -108,6 +111,7 @@ async function runScenario(
       baseline.strokeBefore = await automation.overlayHighlightStroke();
     }
     await dispatch(automation, step);
+    await showScenario();
     await checkAll(
       step.expect,
       automation,

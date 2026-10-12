@@ -64,7 +64,7 @@ type MappedMethod =
   | (typeof assertionKindExtraQuery)[keyof typeof assertionKindExtraQuery];
 
 /** Runner-only helpers are not scenario steps or assertions. */
-type RunnerUtility = 'capturePng';
+type RunnerUtility = 'capturePng' | 'noteScenario';
 
 /** `true` only when every `E2eAutomation` method is referenced by a step or assertion. */
 export type E2eAutomationMethodsCovered =

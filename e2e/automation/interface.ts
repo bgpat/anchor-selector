@@ -167,4 +167,10 @@ export interface E2eAutomation {
 
   /** Write a PNG of the current window. */
   capturePng(path: string): Promise<void>;
+
+  /**
+   * Show the running scenario in `#e2e-note` on the fixture page.
+   * Pages without that field keep their current document.
+   */
+  noteScenario(input: { id: string; title: string }): Promise<void>;
 }
