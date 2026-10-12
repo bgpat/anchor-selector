@@ -758,7 +758,7 @@ export async function launchChrome(input: {
     '--disable-dev-shm-usage',
     '--disable-search-engine-choice-screen',
     '--no-sandbox',
-    '--window-size=1280,800',
+    '--window-size=960,600',
   );
 
   const driver = await new Builder()

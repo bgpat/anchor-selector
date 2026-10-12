@@ -61,7 +61,7 @@ export async function fitWindow(driver: WebDriver): Promise<void> {
   await driver
     .manage()
     .window()
-    .setRect({ x: 0, y: 0, width: 1280, height: 800 });
+    .setRect({ x: 0, y: 0, width: 960, height: 600 });
 }
 
 export async function keepSingleTab(driver: WebDriver): Promise<string> {

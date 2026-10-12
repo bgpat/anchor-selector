@@ -16,9 +16,9 @@ export function screenSize(): { width: number; height: number } {
       };
     }
   } catch {
-    // xdpyinfo is optional. CI starts Xvfb at 1280x800.
+    // xdpyinfo is optional. CI starts Xvfb at 960x600.
   }
-  return { width: 1280, height: 800 };
+  return { width: 960, height: 600 };
 }
 
 function even(value: number): number {

@@ -69,9 +69,9 @@ jobs:
           sudo apt-get install -y xvfb at-spi2-core python3-gi gir1.2-atspi-2.0 ffmpeg xclip dbus-x11 libgtk-3-0 libdbus-glib-1-2 libxt6 libnss3 libx11-xcb1 libasound2t64
       - run: bun run build:${{ matrix.browser }}
       - name: Run e2e
-        run: dbus-run-session -- xvfb-run -a -s '-screen 0 1280x800x24' bun run e2e:${{ matrix.browser }}
+        run: dbus-run-session -- xvfb-run -a -s '-screen 0 960x600x24' bun run e2e:${{ matrix.browser }}
         env:
-          E2E_SCREEN: 1280x800
+          E2E_SCREEN: 960x600
       - uses: actions/upload-artifact@v7
         if: always()
         with:
