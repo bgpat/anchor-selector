@@ -26,13 +26,13 @@ function even(value: number): number {
   return rounded - (rounded % 2);
 }
 
-/** Lossless 60fps capture of the whole X display, including browser chrome. */
+/** 60fps H.264 capture of the whole X display, including browser chrome. */
 export class ScreenRecorder {
   private process: ChildProcess | null = null;
   private stderr = '';
 
   start(
-    mkvPath: string,
+    mp4Path: string,
     crop?: { x: number; y: number; width: number; height: number },
   ): void {
     const display = process.env.DISPLAY;
@@ -57,12 +57,16 @@ export class ScreenRecorder {
         '-i',
         `${display}+${x},${y}`,
         '-c:v',
-        'libx264rgb',
+        'libx264',
         '-preset',
         'ultrafast',
+        '-pix_fmt',
+        'yuv420p',
         '-crf',
-        '0',
-        mkvPath,
+        '28',
+        '-movflags',
+        '+faststart',
+        mp4Path,
       ],
       { stdio: ['pipe', 'ignore', 'pipe'] },
     );
@@ -100,31 +104,11 @@ export class ScreenRecorder {
   }
 }
 
-export function transcodeWebm(
-  mkvPath: string,
-  webmPath: string,
-  crf = 40,
-): void {
+export function assertRecording(path: string): void {
   execFileSync(
-    'ffmpeg',
-    [
-      '-y',
-      '-i',
-      mkvPath,
-      '-c:v',
-      'libvpx-vp9',
-      '-r',
-      '60',
-      '-b:v',
-      '0',
-      '-crf',
-      String(crf),
-      '-row-mt',
-      '1',
-      '-an',
-      webmPath,
-    ],
-    { stdio: 'inherit' },
+    'ffprobe',
+    ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', path],
+    { stdio: 'pipe' },
   );
 }
 

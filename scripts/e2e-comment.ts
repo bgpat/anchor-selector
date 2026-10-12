@@ -11,7 +11,7 @@ import { join, resolve } from 'node:path';
 import type { BrowserReport } from '../e2e/runner/report';
 
 const MAX_VIDEO_BYTES = 10 * 1024 * 1024;
-const REENCODE_CRF = [50, 58, 63];
+const REENCODE_CRF = [36, 42, 48];
 
 function flag(name: string): string | undefined {
   const index = process.argv.indexOf(name);
@@ -36,7 +36,7 @@ function fitVideo(path: string): string | null {
   const dir = mkdtempSync(join(tmpdir(), 'e2e-video-'));
   let current = path;
   for (const crf of REENCODE_CRF) {
-    const next = join(dir, `crf-${crf}.webm`);
+    const next = join(dir, `crf-${crf}.mp4`);
     const encoded = spawnSync(
       'ffmpeg',
       [
@@ -44,15 +44,15 @@ function fitVideo(path: string): string | null {
         '-i',
         current,
         '-c:v',
-        'libvpx-vp9',
-        '-r',
-        '60',
-        '-b:v',
-        '0',
+        'libx264',
+        '-preset',
+        'ultrafast',
+        '-pix_fmt',
+        'yuv420p',
         '-crf',
         String(crf),
-        '-row-mt',
-        '1',
+        '-movflags',
+        '+faststart',
         '-an',
         next,
       ],
@@ -107,7 +107,7 @@ function markdown(
     const covered = report.scenarios.filter(
       (item) => item.video === scenario.video,
     );
-    const heading = scenario.video.replace(/\.webm$/, '');
+    const heading = scenario.video.replace(/\.(mp4|webm)$/, '');
     lines.push(`### \`${heading}\``, '');
     for (const item of covered) {
       lines.push(`- ${item.status} \`${item.id}\` ${item.title}`);

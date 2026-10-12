@@ -9,7 +9,7 @@ import { e2eScenarios } from '../scenarios/index';
 import type { E2eAssertion, E2eScenario, E2eStep } from '../scenarios/types';
 import type { E2eAutomation } from '../automation/interface';
 import { explainAssertion, type AssertionBaseline } from './assertions';
-import { ScreenRecorder, transcodeWebm } from './record';
+import { assertRecording, ScreenRecorder } from './record';
 import type { BrowserReport, ScenarioReport } from './report';
 import './bun-globals';
 
@@ -130,7 +130,7 @@ function pause(ms: number): Promise<void> {
 }
 
 function videoName(id: string): string {
-  return `${id.replace(/[^a-z0-9._-]+/gi, '_')}.webm`;
+  return `${id.replace(/[^a-z0-9._-]+/gi, '_')}.mp4`;
 }
 
 async function main(): Promise<void> {
@@ -242,8 +242,7 @@ async function runRecording(
 ): Promise<ScenarioReport[]> {
   const recording = scenarios[0]?.recording ?? scenarios[0]?.id ?? 'e2e';
   const video = videoName(recording);
-  const mkvPath = join(resultsDir, `${recording}.mkv`);
-  const webmPath = join(resultsDir, video);
+  const videoPath = join(resultsDir, video);
   const runnable = scenarios.some((scenario) => scenario.skipUntil == null);
   if (!runnable) {
     return scenarios.map((scenario) => skippedReport(scenario));
@@ -261,7 +260,7 @@ async function runRecording(
     ]);
     closeBrowser = session.close;
     automation = session.automation;
-    recorder.start(mkvPath, await session.automation.windowRect());
+    recorder.start(videoPath, await session.automation.windowRect());
     await recorder.assertStarted();
   } catch (error) {
     recordingError = errorMessage(error);
@@ -320,9 +319,10 @@ async function runRecording(
   await closeBrowser?.().catch(() => undefined);
   if (automation != null) {
     try {
-      transcodeWebm(mkvPath, webmPath);
+      assertRecording(videoPath);
     } catch (error) {
       const message = `recording failed: ${errorMessage(error)}`;
+      rmSync(videoPath, { force: true });
       for (const report of reports) {
         if (report.status === 'skipped') {
           continue;
@@ -331,8 +331,6 @@ async function runRecording(
         report.error ??= message;
         report.video = null;
       }
-    } finally {
-      rmSync(mkvPath, { force: true });
     }
   }
 
