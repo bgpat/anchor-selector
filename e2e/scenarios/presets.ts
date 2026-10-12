@@ -5,12 +5,6 @@ import {
   type ModifierKey,
   type StoredConfig,
 } from '@/util/config';
-import variables from '@/util/variables';
-
-export const defaultHue = variables.config.default.hue;
-
-export const defaultClick: readonly ClickAction[] =
-  variables.config.default.click;
 
 /** Hue applied while a selection overlay is already open. */
 export const hueWhileSelecting = 120;

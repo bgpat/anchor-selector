@@ -101,8 +101,6 @@ export interface E2eAutomation {
     action: ClickActionName;
   }): Promise<void>;
 
-  resetOptionsToDefaults(): Promise<void>;
-
   /** Test setup: write `storage.sync` without using the options form. */
   setSyncStorage(input: { values: Partial<StoredConfig> }): Promise<void>;
 

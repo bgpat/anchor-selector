@@ -1,12 +1,7 @@
 import { clickActionName, modifierKey } from '@/util/config';
 import type { E2eScenario } from './types';
 import { E2E_FIXTURE_PATH, headingSelector } from './fixture';
-import {
-  defaultClick,
-  defaultHue,
-  hueForNextSelection,
-  hueFromOptions,
-} from './presets';
+import { hueForNextSelection, hueFromOptions } from './presets';
 
 /** Matches `formatBinding` in `src/entrypoints/options/App.tsx`. */
 const shiftCopyHashBindingLabel = '[shift ⇧]: Copy only hash';
@@ -35,7 +30,8 @@ export const optionsScenarios = [
   {
     id: 'options.hue-persists',
     title: 'オプションの色を変えると保存される',
-    description: 'Color のスライダーを動かすと、画面上の値と storage の hue が一致する。',
+    description:
+      'Color のスライダーを動かすと、画面上の値と storage の hue が一致する。',
     tags: ['options'],
     steps: [
       { kind: 'extension.options.open' },
@@ -73,32 +69,6 @@ export const optionsScenarios = [
         kind: 'extension.storage.sync.clickIncludes',
         action: clickActionName.copyHash,
         keys: [modifierKey.shift],
-      },
-    ],
-  },
-  {
-    id: 'options.reset-restores-defaults',
-    title: '初期設定に戻すと hue とクリック設定が既定値になる',
-    description:
-      'hue を変えたあと初期設定へ戻すと、画面と storage が既定の hue と click に戻る。',
-    tags: ['options'],
-    skipUntil: 'options-reset-ui',
-    steps: [
-      { kind: 'extension.options.open' },
-      { kind: 'options.hue.set', value: hueFromOptions },
-      { kind: 'options.resetDefaults' },
-    ],
-    expect: [
-      { kind: 'options.hue.value', value: defaultHue },
-      {
-        kind: 'extension.storage.sync.equals',
-        key: 'hue',
-        value: defaultHue,
-      },
-      {
-        kind: 'extension.storage.sync.equals',
-        key: 'click',
-        value: defaultClick,
       },
     ],
   },

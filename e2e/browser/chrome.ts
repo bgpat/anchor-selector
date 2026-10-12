@@ -342,17 +342,6 @@ export class ChromeAutomation extends PageAutomation {
     );
   }
 
-  override async resetOptionsToDefaults(): Promise<void> {
-    await this.optionsPageEvaluate(
-      `const buttons = [...document.querySelectorAll('button')];
-      const button = buttons.find((entry) =>
-        /reset|default/i.test(entry.textContent || ''),
-      );
-      if (!button) throw new Error('options reset control is not available');
-      button.click();`,
-    );
-  }
-
   override async readOptionsHue(): Promise<number> {
     const value = await this.optionsPageEvaluate<string>(
       "document.querySelector('input[type=\"range\"]')?.value ?? ''",

@@ -654,20 +654,6 @@ export abstract class PageAutomation implements E2eAutomation {
     );
   }
 
-  async resetOptionsToDefaults(): Promise<void> {
-    await this.focusOptions();
-    const button = await this.driver.executeScript<WebElement | null>(
-      `const buttons = [...document.querySelectorAll('button')];
-      return buttons.find((entry) =>
-        /reset|default/i.test(entry.textContent || ''),
-      ) || null`,
-    );
-    if (button == null) {
-      throw new Error('options reset control is not available');
-    }
-    await button.click();
-  }
-
   async setSyncStorage(input: {
     values: Partial<StoredConfig>;
   }): Promise<void> {

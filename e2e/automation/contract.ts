@@ -20,7 +20,6 @@ export const stepKindMethod = {
   'page.history.forward': 'historyForward',
   'options.hue.set': 'setOptionsHue',
   'options.clickBinding.set': 'setOptionsClickBinding',
-  'options.resetDefaults': 'resetOptionsToDefaults',
 } as const satisfies Record<E2eStep['kind'], keyof E2eAutomation>;
 
 /** Assertion `kind` → primary `E2eAutomation` query. */

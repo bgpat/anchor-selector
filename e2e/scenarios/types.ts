@@ -1,8 +1,4 @@
-import type {
-  ClickAction,
-  ClickActionName,
-  ModifierKey,
-} from '@/util/config';
+import type { ClickAction, ClickActionName, ModifierKey } from '@/util/config';
 import type { E2eAutomation } from '../automation/interface';
 
 type IconClick = Parameters<E2eAutomation['clickExtensionIcon']>[0];
@@ -198,7 +194,6 @@ export type E2eStep = {
   | { kind: 'page.history.forward' }
   | ({ kind: 'options.hue.set' } & SetHue)
   | ({ kind: 'options.clickBinding.set' } & SetBinding)
-  | { kind: 'options.resetDefaults' }
 );
 
 /** Browser-independent end-to-end scenario. */
