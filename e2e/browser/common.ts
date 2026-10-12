@@ -399,6 +399,7 @@ export abstract class PageAutomation implements E2eAutomation {
   }): Promise<void> {
     await this.preparePage();
     const element = await this.driver.findElement(By.css(input.selector));
+    await this.revealElement(element);
     const actions = this.driver.actions();
     for (const modifier of input.modifiers ?? []) {
       actions.keyDown(modifierSelenium[modifier]);
@@ -420,6 +421,22 @@ export abstract class PageAutomation implements E2eAutomation {
     await this.movePointer(input);
   }
 
+  /** Selenium rejects pointer actions whose target center is outside the viewport. */
+  private async revealElement(element: WebElement): Promise<void> {
+    await this.driver.executeScript(
+      `const element = arguments[0];
+      const rect = element.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const inside = x >= 0 && y >= 0
+        && x < window.innerWidth && y < window.innerHeight;
+      if (!inside) {
+        element.scrollIntoView({ block: 'center', inline: 'nearest' });
+      }`,
+      element,
+    );
+  }
+
   async movePointer(
     input: { selector: string } | { x: number; y: number },
   ): Promise<void> {
@@ -427,6 +444,7 @@ export abstract class PageAutomation implements E2eAutomation {
     await this.noteHighlightAnimation();
     if ('selector' in input) {
       const element = await this.driver.findElement(By.css(input.selector));
+      await this.revealElement(element);
       await this.driver
         .actions()
         .move({ origin: element, duration: 0 })
