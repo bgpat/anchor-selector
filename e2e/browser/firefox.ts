@@ -299,21 +299,40 @@ export class FirefoxAutomation extends PageAutomation {
   }
 
   private async addonCard(): Promise<WebElement | null> {
-    return this.firefox.executeScript<WebElement | null>(
-      "return document.querySelector('addon-card[addon-id=\"' + arguments[0] + '\"]')",
-      this.extensionId,
+    const selector = `addon-card[addon-id="${this.extensionId}"]`;
+    const card = await this.deepElement(selector);
+    if (card != null) {
+      return card;
+    }
+    await this.firefox.executeScript(
+      `function clickExtensions(node) {
+        for (const element of node.querySelectorAll?.('button, moz-button, a') ?? []) {
+          const name = element.getAttribute?.('name') || '';
+          const text = (element.textContent || '').trim();
+          if (name === 'extension' || text === 'Extensions') {
+            element.click();
+            return true;
+          }
+        }
+        for (const element of node.querySelectorAll?.('*') ?? []) {
+          if (element.shadowRoot && clickExtensions(element.shadowRoot)) return true;
+        }
+        return false;
+      }
+      clickExtensions(document);`,
     );
+    return this.deepElement(selector);
   }
 
   private async addonControl(selector: string): Promise<WebElement | null> {
+    const card = await this.addonCard();
+    if (card == null) {
+      return null;
+    }
     return this.firefox.executeScript<WebElement | null>(
-      `const card = document.querySelector(
-        'addon-card[addon-id="' + arguments[0] + '"]',
-      );
-      if (!card) return null;
-      const root = card.shadowRoot || card;
+      `const root = arguments[0].shadowRoot || arguments[0];
       return root.querySelector(arguments[1])`,
-      this.extensionId,
+      card,
       selector,
     );
   }
