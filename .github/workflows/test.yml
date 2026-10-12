@@ -51,3 +51,70 @@ jobs:
           name: extension-${{ matrix.browser }}
           path: .output/${{ matrix.browser }}
           if-no-files-found: error
+
+  e2e:
+    name: E2E (${{ matrix.browser }})
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome, firefox]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: $/.github/actions/bun-deps
+      - name: Install browser automation packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb at-spi2-core python3-gi gir1.2-atspi-2.0 ffmpeg xclip dbus-x11 libgtk-3-0 libdbus-glib-1-2 libxt6 libnss3 libx11-xcb1 libasound2t64
+      - run: bun run build:${{ matrix.browser }}
+      - name: Run e2e
+        run: dbus-run-session -- xvfb-run -a -s '-screen 0 1280x800x24' bun run e2e:${{ matrix.browser }}
+        env:
+          E2E_SCREEN: 1280x800
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: e2e-${{ matrix.browser }}
+          path: e2e-results/${{ matrix.browser }}
+          if-no-files-found: ignore
+
+  e2e-comment:
+    name: Comment e2e recordings
+    needs: e2e
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: $/.github/actions/bun-deps
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      - uses: actions/download-artifact@v7.0.0
+        continue-on-error: true
+        with:
+          pattern: e2e-*
+          path: e2e-results
+      - name: Ensure GitHub CLI can attach media
+        run: |
+          if gh pr comment --help | grep -q -- --attach; then
+            exit 0
+          fi
+          tag=$(curl -fsSL https://api.github.com/repos/cli/cli/releases/latest | jq -r .tag_name)
+          curl -fsSL -o /tmp/gh.tgz "https://github.com/cli/cli/releases/download/${tag}/gh_${tag#v}_linux_amd64.tar.gz"
+          tar -C /tmp -xzf /tmp/gh.tgz
+          sudo mv /tmp/gh_*/bin/gh /usr/local/bin/gh
+      - name: Comment with recordings
+        env:
+          GH_TOKEN: ${{ secrets.PR_COMMENT_TOKEN }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "PR_COMMENT_TOKEN is not set; skipping comment"
+            exit 0
+          fi
+          bun scripts/e2e-comment.ts --pr "${{ github.event.pull_request.number }}" --results e2e-results

@@ -18,6 +18,9 @@
     "src/**/*.tsx",
     "src/env.d.ts",
     "e2e/automation/**/*.ts",
-    "e2e/scenarios/**/*.ts"
+    "e2e/scenarios/**/*.ts",
+    "e2e/browser/**/*.ts",
+    "e2e/runner/**/*.ts",
+    "scripts/e2e-comment.ts"
   ]
 }
