@@ -49,9 +49,9 @@ function actionScenario(input: {
 export const clickActionScenarios = [
   actionScenario({
     id: 'action.replace-address-bar',
-    title: 'クリックでアドレスバーの hash を置き換える',
+    title: 'A click replaces the address-bar hash',
     description:
-      'replace-address-bar の binding では、同じタブの hash だけが更新される。',
+      'The replace-address-bar binding updates only the hash in the same tab.',
     preset: replaceAddressBarPreset,
     expect: [
       { kind: 'page.url.hash', value: headingHash },
@@ -61,9 +61,9 @@ export const clickActionScenarios = [
   }),
   actionScenario({
     id: 'action.open-new-tab',
-    title: '修飾キー付きクリックで新しいタブに開く',
+    title: 'A modified click opens a new tab',
     description:
-      'ctrl に open-new-tab を割り当てた状態で ctrl 付きクリックすると、タブが 1 つ増え、新しいタブの URL は選んだ hash を含む。',
+      'With ctrl bound to open-new-tab, a ctrl-click adds one tab whose URL includes the chosen hash.',
     preset: openNewTabCtrlPreset,
     modifiers: [modifierKey.ctrl],
     expect: [
@@ -74,25 +74,24 @@ export const clickActionScenarios = [
   }),
   actionScenario({
     id: 'action.copy-url',
-    title: 'クリックで完全な URL をコピーする',
+    title: 'A click copies the full URL',
     description:
-      'copy-url の binding では、選んだ hash を含むページ URL がクリップボードに入る。',
+      'The copy-url binding puts the page URL, including the chosen hash, on the clipboard.',
     preset: copyUrlPreset,
     expect: [{ kind: 'clipboard.matches', pattern: headingUrlPattern }],
   }),
   actionScenario({
     id: 'action.copy-hash',
-    title: 'クリックで hash だけをコピーする',
-    description:
-      'copy-hash の binding では、クリップボードの内容は hash だけになる。',
+    title: 'A click copies only the hash',
+    description: 'The copy-hash binding puts only the hash on the clipboard.',
     preset: copyHashPreset,
     expect: [{ kind: 'clipboard.equals', text: headingHash }],
   }),
   actionScenario({
     id: 'action.open-new-window',
-    title: 'クリックで新しいウィンドウに開く',
+    title: 'A click opens a new window',
     description:
-      'open-new-window の binding ではウィンドウが 1 つ増え、その URL は選んだ hash を含む。',
+      'The open-new-window binding adds one window whose URL includes the chosen hash.',
     preset: openNewWindowPreset,
     expect: [
       { kind: 'windows.delta', by: 1 },

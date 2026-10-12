@@ -10,9 +10,9 @@ const shiftCopyHashBindingLabel = '[shift ⇧]: Copy only hash';
 export const optionsScenarios = withRecording('options', [
   {
     id: 'options.opens-from-extension',
-    title: '拡張機能の UI からオプションページを開き、設定の見出しが出る',
+    title: 'Opening options from the extension shows the settings headings',
     description:
-      'オプションページが開き、タイトルと Click / Color の節が見える。',
+      'The options page opens and shows the title plus the Click and Color sections.',
     tags: ['options'],
     steps: [{ kind: 'extension.options.open' }],
     expect: [
@@ -24,9 +24,9 @@ export const optionsScenarios = withRecording('options', [
   },
   {
     id: 'options.hue-persists',
-    title: 'オプションの色を変えると保存される',
+    title: 'Changing the options color is saved',
     description:
-      'Color のスライダーを動かすと、画面上の値と storage の hue が一致する。',
+      'Moving the Color slider makes the on-screen value match the stored hue.',
     tags: ['options'],
     steps: [
       { kind: 'extension.options.open' },
@@ -43,9 +43,9 @@ export const optionsScenarios = withRecording('options', [
   },
   {
     id: 'options.click-binding-persists',
-    title: 'オプションのクリック設定を変えると保存される',
+    title: 'Changing a click binding in options is saved',
     description:
-      'shift の action を hash のコピーにすると、一覧の文言と storage の click にその binding が入る。',
+      'Setting the shift action to copy the hash stores that binding in the list and in click storage.',
     tags: ['options'],
     steps: [
       { kind: 'extension.options.open' },
@@ -69,9 +69,9 @@ export const optionsScenarios = withRecording('options', [
   },
   {
     id: 'options.hue-applies-on-next-selection',
-    title: 'オプションで変えた色は次の選択に反映される',
+    title: 'A color saved in options applies to the next selection',
     description:
-      'オプションで hue を保存してから選択モードに入ると、新しいハイライトがその hue になる。',
+      'After saving a hue in options, the next selection paints the highlight with that hue.',
     tags: ['options', 'selection'],
     steps: [
       { kind: 'extension.options.open' },

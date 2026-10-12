@@ -13,9 +13,9 @@ import { hueWhileSelecting } from './presets';
 export const selectionCoreScenarios = withRecording('selection', [
   {
     id: 'selection.toolbar-opens-overlay',
-    title: '拡張機能アイコンの左クリックで選択モードになる',
+    title: 'Left-click the toolbar icon to start selecting',
     description:
-      'フィクスチャ上でツールバーアイコンを左クリックすると overlay が表示され、選択中バッジが付く。',
+      'On the fixture page, a left-click on the toolbar icon shows the overlay and a selecting badge.',
     tags: ['smoke', 'selection'],
     steps: [
       { kind: 'page.goto', path: E2E_FIXTURE_PATH },
@@ -28,10 +28,9 @@ export const selectionCoreScenarios = withRecording('selection', [
   },
   {
     id: 'selection.overlay-follows-pointer',
-    title:
-      'マウス移動に合わせてハイライトが動き、移った直後はアニメーションする',
+    title: 'Highlight follows the pointer and animates on arrival',
     description:
-      'ポインタを別の id 要素へ移すとハイライト矩形がその要素に合い、移った直後は形状アニメーションが進行している。',
+      'Moving the pointer to another id element aligns the highlight with that element, and the shape animation is in progress just after the move.',
     tags: ['selection', 'overlay'],
     steps: [
       {
@@ -59,18 +58,18 @@ export const selectionCoreScenarios = withRecording('selection', [
   },
   {
     id: 'selection.overlay-shows-target-label',
-    title: 'ホバー中の要素 id が overlay のラベルに出る',
+    title: 'Hovered element id appears in the overlay label',
     description:
-      '選択モードで #heading 上にポインタを置くと、ラベルは #heading になる。',
+      'In selection mode, placing the pointer on #heading sets the label to #heading.',
     tags: ['selection', 'overlay'],
     steps: [{ kind: 'page.element.hover', selector: headingSelector }],
     expect: [{ kind: 'overlay.label.text', text: headingLabel }],
   },
   {
     id: 'selection.overlay-follows-scroll',
-    title: 'スクロールに合わせて overlay のハイライトが動く',
+    title: 'Highlight follows scrolling',
     description:
-      'ポインタを固定したままスクロールしても、ハイライトは同じ要素の新しい表示位置に合う。',
+      'With the pointer held still, scrolling moves the highlight to the new position of that element.',
     tags: ['selection', 'overlay'],
     steps: [
       {
@@ -87,9 +86,9 @@ export const selectionCoreScenarios = withRecording('selection', [
   },
   {
     id: 'selection.hue-updates-while-selecting',
-    title: '選択中に hue を変えるとハイライトの色が変わる',
+    title: 'Changing hue while selecting recolors the highlight',
     description:
-      '選択 overlay を開いたあと storage の hue を更新すると、表示中のハイライトの stroke が変わる。',
+      'Updating the stored hue while the overlay is open changes the visible highlight stroke.',
     tags: ['selection', 'overlay'],
     steps: [
       {
@@ -101,9 +100,9 @@ export const selectionCoreScenarios = withRecording('selection', [
   },
   {
     id: 'selection.pointer-leave-clears-highlight',
-    title: 'ポインタがページ外に出るとハイライトが消える',
+    title: 'Moving the pointer off the page clears the highlight',
     description:
-      '選択モードのままポインタが viewport 外へ出るとハイライトは消え、選択モード自体は続く。',
+      'Leaving the viewport while still selecting hides the highlight, and selection mode stays on.',
     tags: ['selection', 'overlay'],
     steps: [
       {
@@ -122,9 +121,9 @@ export const selectionCoreScenarios = withRecording('selection', [
   },
   {
     id: 'selection.escape-cancels',
-    title: 'Escape で選択を中断する',
+    title: 'Escape cancels selection',
     description:
-      '選択モード中に Escape を押すと overlay が閉じ、hash は変わらない。',
+      'Pressing Escape during selection closes the overlay and leaves the hash unchanged.',
     tags: ['selection'],
     steps: [{ kind: 'page.keyboard.press', key: 'Escape' }],
     expect: [
@@ -134,8 +133,9 @@ export const selectionCoreScenarios = withRecording('selection', [
   },
   {
     id: 'selection.toolbar-toggles-off',
-    title: '選択中にもう一度アイコンを左クリックすると選択モードが終わる',
-    description: '選択モード中の左クリックは overlay を閉じ、バッジを消す。',
+    title: 'Left-clicking the icon again ends selection',
+    description:
+      'A left-click during selection closes the overlay and clears the badge.',
     tags: ['smoke', 'selection'],
     steps: [
       { kind: 'extension.icon.click', button: 'left' },

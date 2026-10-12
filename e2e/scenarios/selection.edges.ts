@@ -25,9 +25,9 @@ const selectionOff = [
 const selectionTargetScenarios = [
   {
     id: 'selection.click-non-anchor',
-    title: 'アンカーでない要素をクリックしても hash は変わらない',
+    title: 'Clicking a non-anchor leaves the hash unchanged',
     description:
-      'id も name もない要素をクリックすると hash は空のまま選択モードが終わる。',
+      'Clicking an element with no id or name ends selection and leaves the hash empty.',
     tags: ['selection', 'edge'],
     steps: [
       { kind: 'extension.icon.click', button: 'left' },
@@ -40,9 +40,9 @@ const selectionTargetScenarios = [
   },
   {
     id: 'selection.click-heading-updates-hash',
-    title: '見出しをクリックすると hash が更新され、選択とバッジが終わる',
+    title: 'Clicking the heading updates the hash and ends selection',
     description:
-      '選択モードで #heading をクリックするとアドレスバーの hash がその id になり、overlay と選択中バッジが消える。',
+      'Clicking #heading while selecting sets the address-bar hash to that id and clears the overlay and the selecting badge.',
     tags: ['smoke', 'selection'],
     steps: [
       { kind: 'extension.icon.click', button: 'left' },
@@ -56,9 +56,9 @@ const selectionTargetScenarios = [
   },
   {
     id: 'selection.reopen-after-complete',
-    title: '選択完了後にもう一度アイコンを左クリックすると選択を再開できる',
+    title: 'Left-clicking the icon after a completed selection starts again',
     description:
-      '一度要素を選んでモードが終わったあと、アイコンの左クリックで overlay が再び開く。',
+      'After choosing an element ends selection, a left-click on the icon opens the overlay again.',
     tags: ['selection', 'edge'],
     steps: [{ kind: 'extension.icon.click', button: 'left' }],
     expect: [
@@ -69,8 +69,8 @@ const selectionTargetScenarios = [
   },
   {
     id: 'selection.named-anchor',
-    title: 'name 属性のアンカーをクリックするとその名前が hash になる',
-    description: 'a[name="legacy"] を選ぶと hash は #legacy になる。',
+    title: 'Clicking a named anchor sets the hash to that name',
+    description: 'Choosing a[name="legacy"] sets the hash to #legacy.',
     tags: ['selection', 'edge'],
     steps: [{ kind: 'page.element.click', selector: legacyAnchorSelector }],
     expect: [
@@ -80,8 +80,8 @@ const selectionTargetScenarios = [
   },
   {
     id: 'selection.nested-ids-picks-top',
-    title: '重なった id 要素では手前の id が選ばれる',
-    description: '入れ子の内側 #inner をクリックすると hash は #inner になる。',
+    title: 'Overlapping id elements select the topmost id',
+    description: 'Clicking the nested inner #inner sets the hash to #inner.',
     tags: ['selection', 'edge'],
     steps: [
       { kind: 'extension.icon.click', button: 'left' },
@@ -91,9 +91,9 @@ const selectionTargetScenarios = [
   },
   {
     id: 'selection.invisible-id-near-pointer',
-    title: '近くにある 0 サイズの id 要素を選べる',
+    title: 'A nearby zero-size id element can be selected',
     description:
-      '表示サイズが 0 の #invisible-anchor の近くをクリックすると、その id が hash になる。',
+      'Clicking near the zero-size #invisible-anchor sets the hash to that id.',
     tags: ['selection', 'edge'],
     steps: [
       { kind: 'extension.icon.click', button: 'left' },
@@ -106,9 +106,9 @@ const selectionTargetScenarios = [
 const modifierActionScenarios = [
   {
     id: 'selection.modifier-resolves-action',
-    title: '修飾キーに対応する click action が実行される',
+    title: 'The modifier key runs its click action',
     description:
-      'shift の binding が hash のコピーのとき、shift 付きクリックは hash をコピーし、アドレスバーは変えない。',
+      'When shift is bound to copying the hash, a shift-click copies the hash and leaves the address bar unchanged.',
     tags: ['selection', 'edge', 'action'],
     steps: [
       {
@@ -135,9 +135,9 @@ const modifierActionScenarios = [
 const selectionSessionScenarios = [
   {
     id: 'selection.history-back-forward-clears',
-    title: '別ページへの遷移と戻る/進むで選択が解除される',
+    title: 'Navigating and history back or forward clear selection',
     description:
-      '選択中に別ドキュメントを開くと overlay とバッジが消え、履歴の戻ると進むのどちらでも overlay は残らない。',
+      'Opening another document while selecting clears the overlay and badge, and neither back nor forward leaves the overlay up.',
     tags: ['selection', 'edge'],
     steps: [
       { kind: 'extension.icon.click', button: 'left' },
@@ -170,8 +170,8 @@ const selectionSessionScenarios = [
   },
   {
     id: 'selection.reload-clears',
-    title: '選択中に再読み込みすると選択が解除される',
-    description: '選択モードのままページを再読み込みすると overlay が消える。',
+    title: 'Reloading while selecting clears selection',
+    description: 'Reloading the page during selection removes the overlay.',
     tags: ['selection', 'edge'],
     steps: [
       { kind: 'extension.icon.click', button: 'left' },
@@ -181,9 +181,9 @@ const selectionSessionScenarios = [
   },
   {
     id: 'extension.re-enable-no-duplicate',
-    title: '無効化で選択が消え、再有効化しても overlay は重複しない',
+    title: 'Disabling clears selection and re-enabling does not duplicate the overlay',
     description:
-      '選択モード中に無効化すると overlay とバッジが消える。再有効化してもう一度選択モードにすると overlay のルートは 1 つだけになる。',
+      'Disabling the extension during selection removes the overlay and badge. Enabling it and selecting again leaves a single overlay root.',
     tags: ['selection', 'edge', 'extension'],
     steps: [
       { kind: 'extension.icon.click', button: 'left' },
@@ -207,9 +207,9 @@ const selectionSessionScenarios = [
   },
   {
     id: 'selection.uninjectable-page',
-    title: 'スクリプトを注入できないページでは選択が始まらない',
+    title: 'Selection does not start on a page that cannot be injected',
     description:
-      'コンテンツスクリプトを注入できないページでアイコンを左クリックしても overlay もバッジも出ない。',
+      'A left-click on the icon on a page where the content script cannot run shows neither the overlay nor the badge.',
     tags: ['selection', 'edge'],
     steps: [
       { kind: 'page.gotoUninjectable' },
