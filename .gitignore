@@ -6,5 +6,6 @@ dist/
 web-ext-artifacts/
 test-results/
 e2e-results/
+__pycache__/
 tmp/
 .cursor/

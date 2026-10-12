@@ -25,6 +25,33 @@ type WindowListener = {
   capture: boolean;
 };
 
+/**
+ * Firefox destroys a content-script realm on disable without running
+ * port disconnect handlers, which leaves the overlay node behind.
+ * A page script outlives that realm and drops a node whose heartbeat stopped.
+ */
+function installOverlayReaper(): void {
+  const root = document.documentElement;
+  if (root.dataset.anchorSelectorReaper === '1') {
+    return;
+  }
+  root.dataset.anchorSelectorReaper = '1';
+  const script = document.createElement('script');
+  const className = variables.overlay.class;
+  script.textContent = `
+    document.documentElement.dataset.anchorSelectorPageReaper = '1';
+    setInterval(() => {
+      const now = Date.now();
+      for (const node of document.querySelectorAll(${JSON.stringify(`.${className}`)})) {
+        const beat = Number(node.getAttribute('data-beat') || 0);
+        if (beat > 0 && now - beat > 800) node.remove();
+      }
+    }, 200);
+  `;
+  root.append(script);
+  script.remove();
+}
+
 export default class Container extends Element {
   static class = variables.overlay.class;
 
@@ -39,6 +66,7 @@ export default class Container extends Element {
     });
     super({ children: svg });
     this.listeners = [];
+    installOverlayReaper();
     this.listen(
       'mousemove',
       (event) => {
@@ -94,6 +122,7 @@ export default class Container extends Element {
     }
     this.overlay = overlay;
     this.svg = svg;
+    this.element.setAttribute('data-beat', String(Date.now()));
     window.requestAnimationFrame(() => this.render());
   }
 
@@ -131,6 +160,7 @@ export default class Container extends Element {
   }
 
   render() {
+    this.element.setAttribute('data-beat', String(Date.now()));
     if (!this.overlay.selecting || this.releaseIfContextDead()) {
       return;
     }

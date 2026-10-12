@@ -290,7 +290,7 @@ export abstract class PageAutomation implements E2eAutomation {
     );
   }
 
-  private async enterOptionsFrame(): Promise<boolean> {
+  protected async enterOptionsFrame(): Promise<boolean> {
     await this.driver.switchTo().defaultContent();
     if (await this.optionsHeadingPresent()) {
       return true;
@@ -424,6 +424,7 @@ export abstract class PageAutomation implements E2eAutomation {
     input: { selector: string } | { x: number; y: number },
   ): Promise<void> {
     await this.preparePage();
+    await this.noteHighlightAnimation();
     if ('selector' in input) {
       const element = await this.driver.findElement(By.css(input.selector));
       await this.driver
@@ -681,7 +682,9 @@ export abstract class PageAutomation implements E2eAutomation {
       seen.add(handle);
       await this.driver.switchTo().window(handle);
       if (handle === this.optionsHandle) {
-        await this.enterOptionsFrame();
+        if (!(await this.enterOptionsFrame())) {
+          continue;
+        }
       }
       const visible = await this.driver.executeScript<boolean>(
         `const headings = [...document.querySelectorAll('h' + arguments[1])];
@@ -801,6 +804,8 @@ export abstract class PageAutomation implements E2eAutomation {
   async overlayHighlightAnimating(): Promise<boolean> {
     await this.preparePage();
     return this.driver.executeScript(`
+      const beganAt = window.__e2eHighlightBeganAt || 0;
+      if (beganAt > 0 && performance.now() - beganAt < 3000) return true;
       const path = document.querySelector(${JSON.stringify(HIGHLIGHT)});
       const animation = path?.querySelector('animate');
       if (animation == null) return false;
@@ -811,6 +816,21 @@ export abstract class PageAutomation implements E2eAutomation {
       } catch {
         return false;
       }
+    `);
+  }
+
+  /** The highlight SMIL animation lasts 150ms, shorter than a CI round trip. */
+  private async noteHighlightAnimation(): Promise<void> {
+    await this.driver.executeScript(`
+      window.__e2eHighlightBeganAt = 0;
+      if (window.__e2eHighlightWatch) return;
+      window.__e2eHighlightWatch = true;
+      document.addEventListener('beginEvent', (event) => {
+        const target = event.target;
+        if (target && target.localName === 'animate') {
+          window.__e2eHighlightBeganAt = performance.now();
+        }
+      }, true);
     `);
   }
 

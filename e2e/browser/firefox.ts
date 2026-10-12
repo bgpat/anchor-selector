@@ -144,11 +144,16 @@ export class FirefoxAutomation extends PageAutomation {
   async openExtensionOptions(): Promise<void> {
     await this.withAddonsPage(async () => {
       await this.clickAddonAction('preferences');
-      await this.waitFor(async () => {
-        await this.rememberOptionsTab();
-        return this.optionsHandle != null;
-      }, 'options page did not open from about:addons');
     });
+    // about:addons hosts options in a remote XUL browser Marionette cannot
+    // enter. The preferences action reveals that page; drive the same URL.
+    const optionsUrl = await this.readAddonOptionsUrl();
+    await this.firefox.switchTo().newWindow('tab');
+    await this.firefox.get(optionsUrl);
+    await this.waitFor(async () => {
+      await this.rememberOptionsTab();
+      return this.optionsHandle != null;
+    }, 'options page did not open from about:addons');
   }
 
   async readExtensionBadgeText(): Promise<string> {
@@ -189,6 +194,34 @@ export class FirefoxAutomation extends PageAutomation {
         throw new Error(enabled.error);
       }
       return enabled;
+    } finally {
+      await this.firefox.setContext(Context.CONTENT);
+    }
+  }
+
+  private async readAddonOptionsUrl(): Promise<string> {
+    await this.firefox.setContext(Context.CHROME);
+    try {
+      const url = await this.firefox.executeAsyncScript<
+        string | { error: string }
+      >(
+        `const done = arguments[arguments.length - 1];
+        const id = arguments[0];
+        const { AddonManager } = ChromeUtils.importESModule(
+          'resource://gre/modules/AddonManager.sys.mjs',
+        );
+        AddonManager.getAddonByID(id)
+          .then((addon) => done(addon && addon.optionsURL ? addon.optionsURL : ''))
+          .catch((error) => done({ error: String(error) }));`,
+        this.extensionId,
+      );
+      if (typeof url === 'object') {
+        throw new Error(url.error);
+      }
+      if (url === '') {
+        throw new Error('extension has no options URL');
+      }
+      return url;
     } finally {
       await this.firefox.setContext(Context.CONTENT);
     }
@@ -255,10 +288,16 @@ export class FirefoxAutomation extends PageAutomation {
     const addonsHandle = await this.firefox.getWindowHandle();
     try {
       await this.firefox.get('about:addons');
-      await this.waitFor(
-        async () => (await this.addonCard()) != null,
-        'about:addons did not list the extension',
-      );
+      try {
+        await this.waitFor(
+          async () => (await this.addonCard()) != null,
+          'about:addons did not list the extension',
+        );
+      } catch (error) {
+        const dump = await this.addonsTreeDump();
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`${message}\n${dump}`);
+      }
       return await action();
     } finally {
       const handles = await this.firefox.getAllWindowHandles();
@@ -279,7 +318,7 @@ export class FirefoxAutomation extends PageAutomation {
     action: 'preferences' | 'toggle-disabled',
   ): Promise<void> {
     const direct = await this.addonControl(`[action="${action}"]`);
-    if (direct != null) {
+    if (direct != null && (await direct.isDisplayed())) {
       await direct.click();
       return;
     }
@@ -305,21 +344,14 @@ export class FirefoxAutomation extends PageAutomation {
       return card;
     }
     await this.firefox.executeScript(
-      `function clickExtensions(node) {
-        for (const element of node.querySelectorAll?.('button, moz-button, a') ?? []) {
-          const name = element.getAttribute?.('name') || '';
-          const text = (element.textContent || '').trim();
-          if (name === 'extension' || text === 'Extensions') {
-            element.click();
-            return true;
-          }
-        }
-        for (const element of node.querySelectorAll?.('*') ?? []) {
-          if (element.shadowRoot && clickExtensions(element.shadowRoot)) return true;
-        }
-        return false;
-      }
-      clickExtensions(document);`,
+      `if (document.querySelector('addon-list[type="extension"]')) return;
+      if (document.documentElement.dataset.e2eExtensions === '1') return;
+      const button = document.getElementById('category-extension')
+        || document.querySelector('button[name="extension"]');
+      if (!button) return;
+      document.documentElement.dataset.e2eExtensions = '1';
+      if (typeof button.activate === 'function') button.activate();
+      else button.click();`,
     );
     return this.deepElement(selector);
   }
@@ -334,6 +366,32 @@ export class FirefoxAutomation extends PageAutomation {
       return root.querySelector(arguments[1])`,
       card,
       selector,
+    );
+  }
+
+  private async addonsTreeDump(): Promise<string> {
+    return this.firefox.executeScript<string>(
+      `const lines = [];
+      function visit(node, depth) {
+        if (depth > 4 || lines.length > 60) return;
+        for (const element of node.children ?? []) {
+          const view = element.view || element.getAttribute?.('view') || '';
+          const l10n = element.getAttribute?.('data-l10n-id') || '';
+          const name = element.getAttribute?.('name') || '';
+          lines.push(
+            '  '.repeat(depth)
+              + element.localName
+              + (element.id ? '#' + element.id : '')
+              + (view ? ' view=' + view : '')
+              + (name ? ' name=' + name : '')
+              + (l10n ? ' l10n=' + l10n : ''),
+          );
+          if (element.shadowRoot) visit(element.shadowRoot, depth + 1);
+          visit(element, depth + 1);
+        }
+      }
+      visit(document.body || document.documentElement, 0);
+      return lines.join('\\n');`,
     );
   }
 
