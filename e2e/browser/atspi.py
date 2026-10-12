@@ -2,6 +2,7 @@
 """Find and click browser UI through the AT-SPI accessibility tree."""
 
 import argparse
+import ctypes
 import json
 import sys
 import time
@@ -176,8 +177,50 @@ def do_click_action(obj):
             return False
 
 
+def warp_x_pointer(x, y):
+    """x11grab records the X pointer. AT-SPI absolute moves leave it in place on Xvfb."""
+    x11 = ctypes.CDLL("libX11.so.6")
+    x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+    x11.XDefaultRootWindow.restype = ctypes.c_ulong
+    x11.XWarpPointer.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_ulong,
+        ctypes.c_ulong,
+        ctypes.c_int,
+        ctypes.c_int,
+        ctypes.c_uint,
+        ctypes.c_uint,
+        ctypes.c_int,
+        ctypes.c_int,
+    ]
+    x11.XWarpPointer.restype = ctypes.c_int
+    x11.XFlush.argtypes = [ctypes.c_void_p]
+    x11.XFlush.restype = ctypes.c_int
+    x11.XSync.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    x11.XSync.restype = ctypes.c_int
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    x11.XCloseDisplay.restype = ctypes.c_int
+    display = x11.XOpenDisplay(None)
+    if not display:
+        raise RuntimeError("XOpenDisplay failed")
+    try:
+        root = x11.XDefaultRootWindow(display)
+        x11.XWarpPointer(display, 0, root, 0, 0, 0, 0, int(x), int(y))
+        x11.XFlush(display)
+        x11.XSync(display, False)
+    finally:
+        x11.XCloseDisplay(display)
+
+
 def move_pointer(x, y):
-    Atspi.generate_mouse_event(int(x), int(y), "abs")
+    x = int(x)
+    y = int(y)
+    try:
+        Atspi.generate_mouse_event(x, y, "abs")
+    finally:
+        warp_x_pointer(x, y)
 
 
 def click_box(box, button):
