@@ -437,7 +437,7 @@ export abstract class PageAutomation implements E2eAutomation {
       for (const modifier of input.modifiers ?? []) {
         actions.keyDown(modifierSelenium[modifier]);
       }
-      actions.move({ origin: element, duration: 1000 }).click();
+      actions.move({ origin: element, duration: 500 }).click();
       for (const modifier of input.modifiers ?? []) {
         actions.keyUp(modifierSelenium[modifier]);
       }
@@ -553,7 +553,7 @@ export abstract class PageAutomation implements E2eAutomation {
       await this.runPointerAction(element, async () => {
         await this.driver
           .actions()
-          .move({ origin: element, duration: 1000 })
+          .move({ origin: element, duration: 500 })
           .perform();
       });
       if (this.relayPageEvents) {
@@ -592,7 +592,7 @@ export abstract class PageAutomation implements E2eAutomation {
           x: input.x,
           y: input.y,
           origin: Origin.VIEWPORT,
-          duration: 1000,
+          duration: 500,
         })
         .perform(),
     );

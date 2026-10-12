@@ -265,7 +265,7 @@ def warp_x_pointer(x, y, duration_ms):
         x11.XCloseDisplay(display)
 
 
-def move_pointer(x, y, duration_ms=1000):
+def move_pointer(x, y, duration_ms=500):
     x = int(x)
     y = int(y)
     warp_x_pointer(x, y, duration_ms)
@@ -370,7 +370,7 @@ def main():
     move_command = sub.add_parser("move")
     move_command.add_argument("--x", type=int, required=True)
     move_command.add_argument("--y", type=int, required=True)
-    move_command.add_argument("--duration", type=int, default=1000)
+    move_command.add_argument("--duration", type=int, default=500)
 
     xy_command = sub.add_parser("click-xy")
     xy_command.add_argument("--x", type=int, required=True)
