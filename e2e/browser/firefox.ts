@@ -112,6 +112,7 @@ export class FirefoxAutomation extends PageAutomation {
     await this.firefox.setContext(Context.CHROME);
     try {
       const button = await this.toolbarButton();
+      await this.pointAt(button);
       const actions = this.firefox.actions();
       if (input.button === 'right') {
         await actions.contextClick(button).perform();
@@ -319,6 +320,7 @@ export class FirefoxAutomation extends PageAutomation {
   ): Promise<void> {
     const direct = await this.addonControl(`[action="${action}"]`);
     if (direct != null && (await direct.isDisplayed())) {
+      await this.pointAt(direct);
       await direct.click();
       return;
     }
@@ -326,12 +328,14 @@ export class FirefoxAutomation extends PageAutomation {
     if (more == null) {
       throw new Error(`about:addons control not found: ${action}`);
     }
+    await this.pointAt(more);
     await more.click();
     await this.waitFor(async () => {
       const item = await this.deepElement(`panel-item[action="${action}"]`);
       if (item == null) {
         return false;
       }
+      await this.pointAt(item);
       await item.click();
       return true;
     }, `about:addons menu item not found: ${action}`);

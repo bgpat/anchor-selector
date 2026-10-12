@@ -206,6 +206,7 @@ export class ChromeAutomation extends PageAutomation {
     }
     await this.withExtensionsPage(async () => {
       const toggle = await this.extensionToggle();
+      await this.pointAt(toggle);
       await this.driver.actions().click(toggle).perform();
     });
     if (input.enabled) {
@@ -233,6 +234,7 @@ export class ChromeAutomation extends PageAutomation {
   async openExtensionOptions(): Promise<void> {
     await this.withExtensionsPage(async () => {
       const details = await this.extensionControl('#detailsButton');
+      await this.pointAt(details);
       await this.driver.actions().click(details).perform();
       await this.waitFor(async () => {
         await this.rememberOptionsTab().catch(() => undefined);
@@ -247,6 +249,7 @@ export class ChromeAutomation extends PageAutomation {
           'arguments[0].scrollIntoView({block: "center"})',
           options,
         );
+        await this.pointAt(options);
         await this.driver.actions().click(options).perform();
         await delay(400);
         return false;

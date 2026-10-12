@@ -176,6 +176,10 @@ def do_click_action(obj):
             return False
 
 
+def move_pointer(x, y):
+    Atspi.generate_mouse_event(int(x), int(y), "abs")
+
+
 def click_box(box, button):
     x = int(box["x"] + box["width"] / 2)
     y = int(box["y"] + box["height"] / 2)
@@ -184,7 +188,7 @@ def click_box(box, button):
         "middle": ("b2p", "b2r"),
         "right": ("b3p", "b3r"),
     }[button]
-    Atspi.generate_mouse_event(x, y, "abs")
+    move_pointer(x, y)
     time.sleep(0.15)
     if button == "left":
         Atspi.generate_mouse_event(x, y, "b1c")
@@ -271,6 +275,10 @@ def main():
         "--button", choices=("left", "middle", "right"), default="left"
     )
 
+    move_command = sub.add_parser("move")
+    move_command.add_argument("--x", type=int, required=True)
+    move_command.add_argument("--y", type=int, required=True)
+
     xy_command = sub.add_parser("click-xy")
     xy_command.add_argument("--x", type=int, required=True)
     xy_command.add_argument("--y", type=int, required=True)
@@ -283,6 +291,10 @@ def main():
 
     if args.command == "dump":
         dump(args)
+        return
+
+    if args.command == "move":
+        move_pointer(args.x, args.y)
         return
 
     if args.command == "click-xy":
@@ -301,6 +313,8 @@ def main():
     if args.command == "find":
         print(json.dumps({"match": chosen, "count": len(found)}))
         return
+    move_pointer(chosen["x"] + chosen["width"] / 2, chosen["y"] + chosen["height"] / 2)
+    time.sleep(0.05)
     if args.button == "left" and do_click_action(obj):
         print(json.dumps({"action": "click", **chosen}))
         return

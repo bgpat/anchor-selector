@@ -44,6 +44,33 @@ export function installProbePage(extensionDir: string): void {
   );
 }
 
+/** x11grab records the system pointer. WebDriver actions do not move it. */
+async function showOsPointer(x: number, y: number): Promise<void> {
+  const python = existsSync('/usr/bin/python3')
+    ? '/usr/bin/python3'
+    : 'python3';
+  await execFileAsync(python, [
+    resolve(browserDir, 'atspi.py'),
+    'move',
+    '--x',
+    String(Math.round(x)),
+    '--y',
+    String(Math.round(y)),
+  ]);
+}
+
+const screenPointScript = `const rect = arguments[0].getBoundingClientRect();
+const x = rect.left + rect.width / 2;
+const y = rect.top + rect.height / 2;
+const borderX = Math.max(0, (window.outerWidth - window.innerWidth) / 2);
+const originX = typeof window.mozInnerScreenX === 'number'
+  ? window.mozInnerScreenX
+  : window.screenX + borderX;
+const originY = typeof window.mozInnerScreenY === 'number'
+  ? window.mozInnerScreenY
+  : window.screenY + Math.max(0, window.outerHeight - window.innerHeight - borderX);
+return { x: originX + x, y: originY + y };`;
+
 export function delay(ms: number): Promise<void> {
   return new Promise((resolveDelay) => {
     setTimeout(resolveDelay, ms);
@@ -432,6 +459,7 @@ export abstract class PageAutomation implements E2eAutomation {
     perform: () => Promise<void>,
   ): Promise<void> {
     await this.revealElement(element);
+    await this.pointAt(element);
     try {
       await perform();
     } catch (caught) {
@@ -439,8 +467,33 @@ export abstract class PageAutomation implements E2eAutomation {
         throw caught;
       }
       await this.scrollElementIntoView(element);
+      await this.pointAt(element);
       await perform();
     }
+  }
+
+  protected async pointAt(element: WebElement): Promise<void> {
+    const point = await this.driver.executeScript<{ x: number; y: number }>(
+      screenPointScript,
+      element,
+    );
+    await showOsPointer(point.x, point.y);
+  }
+
+  protected async pointAtViewport(x: number, y: number): Promise<void> {
+    const point = await this.driver.executeScript<{ x: number; y: number }>(
+      `const borderX = Math.max(0, (window.outerWidth - window.innerWidth) / 2);
+      const originX = typeof window.mozInnerScreenX === 'number'
+        ? window.mozInnerScreenX
+        : window.screenX + borderX;
+      const originY = typeof window.mozInnerScreenY === 'number'
+        ? window.mozInnerScreenY
+        : window.screenY + Math.max(0, window.outerHeight - window.innerHeight - borderX);
+      return { x: originX + arguments[0], y: originY + arguments[1] };`,
+      x,
+      y,
+    );
+    await showOsPointer(point.x, point.y);
   }
 
   private async revealElement(element: WebElement): Promise<void> {
@@ -492,6 +545,7 @@ export abstract class PageAutomation implements E2eAutomation {
       input.y,
     );
     if (!inside) {
+      await this.pointAtViewport(input.x, input.y);
       if (this.relayPageEvents) {
         await this.relayToContentScript({ type: 'mouseleave' });
       } else {
@@ -504,6 +558,7 @@ export abstract class PageAutomation implements E2eAutomation {
       }
       return;
     }
+    await this.pointAtViewport(input.x, input.y);
     await this.driver
       .actions()
       .move({ x: input.x, y: input.y, origin: Origin.VIEWPORT, duration: 0 })
