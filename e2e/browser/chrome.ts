@@ -476,27 +476,35 @@ export class ChromeAutomation extends PageAutomation {
     timeout: number,
   ): Promise<AtspiMatch | null> {
     const rect = await this.windowRect();
-    const names = [EXTENSION_NAME, 'jump to the anchored element'];
-    for (const name of names) {
-      const match = await atspiFind({
-        name,
-        role: 'push button',
-        prefer: 'top',
-        timeout,
-      });
-      if (match == null || match.y < rect.y || match.y >= rect.y + 160) {
-        continue;
+    // The action title replaces the extension name after install. Searching
+    // the names one after another spends the whole timeout on the absent one.
+    const names = ['jump to the anchored element', EXTENSION_NAME];
+    const deadline = Date.now() + timeout * 1000;
+    for (;;) {
+      for (const name of names) {
+        const match = await atspiFind({
+          name,
+          role: 'push button',
+          prefer: 'top',
+          timeout: 0,
+        });
+        if (match == null || match.y < rect.y || match.y >= rect.y + 160) {
+          continue;
+        }
+        if (
+          match.name.includes('See more options') ||
+          match.name.includes('Ask on every visit') ||
+          match.name.includes('is pinned')
+        ) {
+          continue;
+        }
+        return match;
       }
-      if (
-        match.name.includes('See more options') ||
-        match.name.includes('Ask on every visit') ||
-        match.name.includes('is pinned')
-      ) {
-        continue;
+      if (Date.now() >= deadline) {
+        return null;
       }
-      return match;
+      await delay(200);
     }
-    return null;
   }
 
   private async withExtensionsPage<T>(action: () => Promise<T>): Promise<T> {
