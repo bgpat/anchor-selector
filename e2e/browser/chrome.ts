@@ -307,7 +307,8 @@ export class ChromeAutomation extends PageAutomation {
 
   override async setOptionsHue(input: { value: number }): Promise<void> {
     await this.optionsPageEvaluate(
-      `const slider = document.querySelector('input[type="range"]');
+      `{
+      const slider = document.querySelector('input[type="range"]');
       if (!slider) throw new Error('hue slider not found');
       const setter = Object.getOwnPropertyDescriptor(
         HTMLInputElement.prototype,
@@ -315,7 +316,8 @@ export class ChromeAutomation extends PageAutomation {
       ).set;
       setter.call(slider, ${JSON.stringify(String(input.value))});
       slider.dispatchEvent(new Event('input', { bubbles: true }));
-      slider.dispatchEvent(new Event('change', { bubbles: true }));`,
+      slider.dispatchEvent(new Event('change', { bubbles: true }));
+      }`,
     );
   }
 
@@ -324,7 +326,8 @@ export class ChromeAutomation extends PageAutomation {
     action: string;
   }): Promise<void> {
     await this.optionsPageEvaluate(
-      `const keys = ${JSON.stringify(input.keys)};
+      `{
+      const keys = ${JSON.stringify(input.keys)};
       for (const key of keys) {
         const labels = [...document.querySelectorAll('fieldset label')];
         const label = labels.find((entry) =>
@@ -341,7 +344,8 @@ export class ChromeAutomation extends PageAutomation {
         'value',
       ).set;
       setter.call(select, ${JSON.stringify(input.action)});
-      select.dispatchEvent(new Event('change', { bubbles: true }));`,
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      }`,
     );
   }
 
@@ -406,6 +410,16 @@ export class ChromeAutomation extends PageAutomation {
       });
       await this.driver.actions().sendKeys(Key.ESCAPE).perform();
       await delay(200);
+      // The extensions menu can stay open and report the pinned icon at 0x0.
+      if ((await this.toolbarExtensionButton(1)) == null) {
+        await atspiClick({
+          name: 'Extensions menu',
+          role: 'push button',
+          exact: true,
+          timeout: 2,
+        }).catch(() => undefined);
+        await delay(300);
+      }
     } catch (error) {
       const dump = await atspiDump();
       writeFileSync('e2e-results/chrome/atspi-dump.txt', dump);
