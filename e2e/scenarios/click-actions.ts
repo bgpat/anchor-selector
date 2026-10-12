@@ -73,17 +73,6 @@ export const clickActionScenarios = [
     ],
   }),
   actionScenario({
-    id: 'action.open-new-window',
-    title: 'クリックで新しいウィンドウに開く',
-    description:
-      'open-new-window の binding ではウィンドウが 1 つ増え、その URL は選んだ hash を含む。',
-    preset: openNewWindowPreset,
-    expect: [
-      { kind: 'windows.delta', by: 1 },
-      { kind: 'windows.newest.url.matches', pattern: headingUrlPattern },
-    ],
-  }),
-  actionScenario({
     id: 'action.copy-url',
     title: 'クリックで完全な URL をコピーする',
     description:
@@ -98,5 +87,16 @@ export const clickActionScenarios = [
       'copy-hash の binding では、クリップボードの内容は hash だけになる。',
     preset: copyHashPreset,
     expect: [{ kind: 'clipboard.equals', text: headingHash }],
+  }),
+  actionScenario({
+    id: 'action.open-new-window',
+    title: 'クリックで新しいウィンドウに開く',
+    description:
+      'open-new-window の binding ではウィンドウが 1 つ増え、その URL は選んだ hash を含む。',
+    preset: openNewWindowPreset,
+    expect: [
+      { kind: 'windows.delta', by: 1 },
+      { kind: 'windows.newest.url.matches', pattern: headingUrlPattern },
+    ],
   }),
 ] as const satisfies readonly E2eScenario[];
