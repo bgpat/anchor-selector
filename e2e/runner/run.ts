@@ -119,10 +119,12 @@ async function runScenario(
       `step ${index + 1} (${step.kind})`,
     );
   }
+  // Hold the screen the last step left behind. Later checks may switch back
+  // to the fixture tab, which would hide a newly opened tab or window.
+  await pause(ACTION_PAUSE_MS);
   // Scenario-level expectations describe the state after the last step.
   // Earlier steps, such as opening the fixture, do not satisfy them yet.
   await checkAll(scenario.expect, automation, baseline, 'scenario');
-  await pause(ACTION_PAUSE_MS);
 }
 
 function pause(ms: number): Promise<void> {
