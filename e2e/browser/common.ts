@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { default as Color } from 'color';
 import {
   By,
+  error as seleniumError,
   Key,
   Origin,
   type WebDriver,
@@ -399,16 +400,17 @@ export abstract class PageAutomation implements E2eAutomation {
   }): Promise<void> {
     await this.preparePage();
     const element = await this.driver.findElement(By.css(input.selector));
-    await this.revealElement(element);
-    const actions = this.driver.actions();
-    for (const modifier of input.modifiers ?? []) {
-      actions.keyDown(modifierSelenium[modifier]);
-    }
-    actions.move({ origin: element, duration: 0 }).click();
-    for (const modifier of input.modifiers ?? []) {
-      actions.keyUp(modifierSelenium[modifier]);
-    }
-    await actions.perform();
+    await this.runPointerAction(element, async () => {
+      const actions = this.driver.actions();
+      for (const modifier of input.modifiers ?? []) {
+        actions.keyDown(modifierSelenium[modifier]);
+      }
+      actions.move({ origin: element, duration: 0 }).click();
+      for (const modifier of input.modifiers ?? []) {
+        actions.keyUp(modifierSelenium[modifier]);
+      }
+      await actions.perform();
+    });
     if (this.relayPageEvents) {
       await this.relayToContentScript(
         { type: 'click', selector: input.selector },
@@ -421,18 +423,42 @@ export abstract class PageAutomation implements E2eAutomation {
     await this.movePointer(input);
   }
 
-  /** Selenium rejects pointer actions whose target center is outside the viewport. */
+  /**
+   * Geckodriver throws MoveTargetOutOfBoundsError instead of scrolling.
+   * Its action viewport can also be shorter than window.innerHeight.
+   */
+  private async runPointerAction(
+    element: WebElement,
+    perform: () => Promise<void>,
+  ): Promise<void> {
+    await this.revealElement(element);
+    try {
+      await perform();
+    } catch (caught) {
+      if (!(caught instanceof seleniumError.MoveTargetOutOfBoundsError)) {
+        throw caught;
+      }
+      await this.scrollElementIntoView(element);
+      await perform();
+    }
+  }
+
   private async revealElement(element: WebElement): Promise<void> {
-    await this.driver.executeScript(
-      `const element = arguments[0];
-      const rect = element.getBoundingClientRect();
+    const outside = await this.driver.executeScript<boolean>(
+      `const rect = arguments[0].getBoundingClientRect();
       const x = rect.left + rect.width / 2;
       const y = rect.top + rect.height / 2;
-      const inside = x >= 0 && y >= 0
-        && x < window.innerWidth && y < window.innerHeight;
-      if (!inside) {
-        element.scrollIntoView({ block: 'center', inline: 'nearest' });
-      }`,
+      return x < 0 || y < 0 || x >= window.innerWidth || y >= window.innerHeight`,
+      element,
+    );
+    if (outside) {
+      await this.scrollElementIntoView(element);
+    }
+  }
+
+  private async scrollElementIntoView(element: WebElement): Promise<void> {
+    await this.driver.executeScript(
+      'arguments[0].scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" })',
       element,
     );
   }
@@ -444,11 +470,12 @@ export abstract class PageAutomation implements E2eAutomation {
     await this.noteHighlightAnimation();
     if ('selector' in input) {
       const element = await this.driver.findElement(By.css(input.selector));
-      await this.revealElement(element);
-      await this.driver
-        .actions()
-        .move({ origin: element, duration: 0 })
-        .perform();
+      await this.runPointerAction(element, async () => {
+        await this.driver
+          .actions()
+          .move({ origin: element, duration: 0 })
+          .perform();
+      });
       if (this.relayPageEvents) {
         await this.relayToContentScript({
           type: 'mousemove',
