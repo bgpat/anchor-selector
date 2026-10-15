@@ -80,6 +80,7 @@ jobs:
             libx11-xcb1
             libxt6
             xclip
+            xdotool
             xvfb
       - run: bun run build:${{ matrix.browser }}
       - name: Run e2e

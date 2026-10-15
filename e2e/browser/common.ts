@@ -71,14 +71,22 @@ export async function typeAtKeyboard(
   text: string,
   options?: { submit?: boolean; selectAll?: boolean },
 ): Promise<void> {
-  await runAtspi([
-    JSON.stringify({
-      command: 'type-text',
-      text,
-      submit: options?.submit ?? false,
-      selectAll: options?.selectAll ?? false,
-    }),
+  if (options?.selectAll ?? false) {
+    await execFileAsync('xdotool', ['key', '--clearmodifiers', 'ctrl+a']);
+    await delay(50);
+  }
+  await execFileAsync('xdotool', [
+    'type',
+    '--delay',
+    '12',
+    '--clearmodifiers',
+    '--',
+    text,
   ]);
+  if (options?.submit ?? false) {
+    await delay(50);
+    await execFileAsync('xdotool', ['key', '--clearmodifiers', 'Return']);
+  }
 }
 
 export async function clickAtScreen(
@@ -564,10 +572,15 @@ export abstract class PageAutomation implements E2eAutomation {
     await this.waitForReady();
   }
 
+  protected async focusAddressBarForTyping(): Promise<void> {
+    // Browsers focus the address field on click; nothing else to do by default.
+  }
+
   protected async openUrlInAddressBar(url: string): Promise<void> {
     await this.preparePage();
     await this.clickAddressBar();
     await delay(actionPauseMs);
+    await this.focusAddressBarForTyping();
     await typeAtKeyboard(url, { submit: true, selectAll: true });
     await delay(actionPauseMs);
     await this.waitFor(

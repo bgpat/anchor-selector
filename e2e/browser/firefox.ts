@@ -80,6 +80,17 @@ export class FirefoxAutomation extends PageAutomation {
     ];
   }
 
+  protected override async focusAddressBarForTyping(): Promise<void> {
+    await this.inChrome(
+      `const input = document.getElementById('urlbar-input')
+        || document.querySelector('#urlbar input');
+      if (input) {
+        input.focus();
+        input.select();
+      }`,
+    );
+  }
+
   protected override async clickAddressBar(): Promise<void> {
     const point = await this.inChrome<{ x: number; y: number } | null>(
       `const input = document.getElementById('urlbar-input')
