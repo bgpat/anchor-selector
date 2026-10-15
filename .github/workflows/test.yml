@@ -102,10 +102,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: $/.github/actions/bun-deps
-      - name: Install ffmpeg
-        uses: $/.github/actions/apt-install
-        with:
-          packages: ffmpeg
       - uses: actions/download-artifact@v7.0.0
         continue-on-error: true
         with:

@@ -3,15 +3,11 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
-  statSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { BrowserReport } from '../e2e/runner/report';
-
-const MAX_VIDEO_BYTES = 10 * 1024 * 1024;
-const REENCODE_CRF = [36, 42, 48];
 
 function flag(name: string): string | undefined {
   const index = process.argv.indexOf(name);
@@ -27,48 +23,6 @@ function gh(args: string[]): string {
     throw new Error(result.stderr || result.stdout || `gh ${args[0]} failed`);
   }
   return result.stdout;
-}
-
-function fitVideo(path: string): string | null {
-  if (statSync(path).size <= MAX_VIDEO_BYTES) {
-    return path;
-  }
-  const dir = mkdtempSync(join(tmpdir(), 'e2e-video-'));
-  let current = path;
-  for (const crf of REENCODE_CRF) {
-    const next = join(dir, `crf-${crf}.mp4`);
-    const encoded = spawnSync(
-      'ffmpeg',
-      [
-        '-y',
-        '-i',
-        current,
-        '-fps_mode',
-        'vfr',
-        '-c:v',
-        'libx264',
-        '-preset',
-        'ultrafast',
-        '-pix_fmt',
-        'yuv420p',
-        '-crf',
-        String(crf),
-        '-movflags',
-        '+faststart',
-        '-an',
-        next,
-      ],
-      { encoding: 'utf8' },
-    );
-    if (encoded.status !== 0 || !statSync(next, { throwIfNoEntry: false })) {
-      continue;
-    }
-    current = next;
-    if (statSync(next).size <= MAX_VIDEO_BYTES) {
-      return next;
-    }
-  }
-  return null;
 }
 
 function markdown(
@@ -118,15 +72,7 @@ function markdown(
       }
     }
     lines.push('');
-    const attachment = attachments.get(scenario.video);
-    if (attachment) {
-      lines.push(`![${heading}](${attachment})`, '');
-    } else {
-      lines.push(
-        `Video exceeded the 10MB attachment limit. See the \`e2e-${report.browser}\` Actions artifact.`,
-        '',
-      );
-    }
+    lines.push(`![${heading}](${attachments.get(scenario.video)})`, '');
   }
   for (const scenario of report.scenarios) {
     if (scenario.video != null || scenario.error == null) {
@@ -212,11 +158,7 @@ function main() {
       if (scenario.video == null) {
         continue;
       }
-      const source = join(dir, scenario.video);
-      const fitted = fitVideo(source);
-      if (fitted) {
-        attachments.set(scenario.video, fitted);
-      }
+      attachments.set(scenario.video, join(dir, scenario.video));
     }
     const bodyPath = join(
       mkdtempSync(join(tmpdir(), 'e2e-comment-')),
