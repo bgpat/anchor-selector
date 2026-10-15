@@ -84,8 +84,6 @@ jobs:
       - run: bun run build:${{ matrix.browser }}
       - name: Run e2e
         run: dbus-run-session -- xvfb-run -a -s '-screen 0 960x600x24' bun run e2e:${{ matrix.browser }}
-        env:
-          E2E_SCREEN: 960x600
       - uses: actions/upload-artifact@v7
         if: always()
         with:

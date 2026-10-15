@@ -1,5 +1,5 @@
 import { execFile, spawn } from 'node:child_process';
-import { existsSync, mkdtempSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -8,16 +8,6 @@ import { fileURLToPath } from 'node:url';
 const execFileAsync = promisify(execFile);
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const tsc = resolve(repoRoot, 'node_modules/.bin/tsc');
-
-function gjsBin(): string {
-  if (process.env.E2E_GJS) {
-    return process.env.E2E_GJS;
-  }
-  if (existsSync('/usr/bin/gjs')) {
-    return '/usr/bin/gjs';
-  }
-  return 'gjs';
-}
 
 let compiled: Promise<string> | null = null;
 
@@ -45,7 +35,7 @@ function atspiProgram(): Promise<string> {
 
 export async function runAtspi(args: string[]): Promise<string> {
   const program = await atspiProgram();
-  const proc = spawn(gjsBin(), ['-m', program, ...args], {
+  const proc = spawn('/usr/bin/gjs', ['-m', program, ...args], {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   const stdout: Buffer[] = [];

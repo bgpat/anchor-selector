@@ -317,110 +317,33 @@ function waitFor(query: Query): Found[] {
   }
 }
 
-function takeValue(argv: string[], index: number, flag: string): string {
-  const value = argv[index];
-  if (value == null) {
-    fail(`missing value for ${flag}`);
-  }
-  return value;
-}
-
-function parseArgs(argv: string[]): Query {
-  const command = argv[0];
-  if (command == null) {
+function readCommand(): Query {
+  const raw = System.programArgs[0];
+  if (raw == null) {
     fail('missing command');
   }
-  const query: Query = {
-    command,
-    name: '',
-    role: '',
-    exact: false,
-    prefer: 'top',
-    timeout: 3,
-    exclude: '',
-    app: 'chrom',
-    button: 'left',
-    x: 0,
-    y: 0,
-    duration: 500,
+  const command = JSON.parse(raw) as Partial<Query>;
+  if (command.command == null) {
+    fail('missing command');
+  }
+  return {
+    command: command.command,
+    name: command.name ?? '',
+    role: command.role ?? '',
+    exact: command.exact ?? false,
+    prefer: command.prefer ?? 'top',
+    timeout: command.timeout ?? 3,
+    exclude: command.exclude ?? '',
+    app: command.app ?? 'chrom',
+    button: command.button ?? 'left',
+    x: command.x ?? 0,
+    y: command.y ?? 0,
+    duration: command.duration ?? 500,
   };
-  const seen = new Set<string>();
-  for (let index = 1; index < argv.length; index += 1) {
-    const flag = argv[index];
-    if (flag == null) {
-      continue;
-    }
-    if (flag === '--exact') {
-      query.exact = true;
-      continue;
-    }
-    index += 1;
-    const value = takeValue(argv, index, flag);
-    seen.add(flag);
-    switch (flag) {
-      case '--name':
-        query.name = value;
-        break;
-      case '--role':
-        query.role = value;
-        break;
-      case '--prefer':
-        if (value !== 'top' && value !== 'bottom') {
-          fail(`unknown prefer ${value}`);
-        }
-        query.prefer = value;
-        break;
-      case '--timeout':
-        query.timeout = Number(value);
-        if (Number.isNaN(query.timeout)) {
-          fail(`invalid timeout ${value}`);
-        }
-        break;
-      case '--exclude':
-        query.exclude = value;
-        break;
-      case '--app':
-        query.app = value;
-        break;
-      case '--button':
-        if (value !== 'left' && value !== 'middle' && value !== 'right') {
-          fail(`unknown button ${value}`);
-        }
-        query.button = value;
-        break;
-      case '--x':
-        query.x = Number(value);
-        if (Number.isNaN(query.x)) {
-          fail(`invalid x ${value}`);
-        }
-        break;
-      case '--y':
-        query.y = Number(value);
-        if (Number.isNaN(query.y)) {
-          fail(`invalid y ${value}`);
-        }
-        break;
-      case '--duration':
-        query.duration = Number(value);
-        if (Number.isNaN(query.duration)) {
-          fail(`invalid duration ${value}`);
-        }
-        break;
-      default:
-        fail(`unknown argument ${flag}`);
-    }
-  }
-  if (
-    (command === 'move' || command === 'click-xy') &&
-    (!seen.has('--x') || !seen.has('--y'))
-  ) {
-    fail('missing coordinates');
-  }
-  return query;
 }
 
 function main(): void {
-  const query = parseArgs(System.programArgs);
+  const query = readCommand();
   Atspi.init();
   if (query.command === 'dump') {
     dump(query);

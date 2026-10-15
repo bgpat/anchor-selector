@@ -48,11 +48,11 @@ export function installProbePage(extensionDir: string): void {
 /** x11grab records the system pointer. WebDriver actions do not move it. */
 async function showOsPointer(x: number, y: number): Promise<void> {
   await runAtspi([
-    'move',
-    '--x',
-    String(Math.round(x)),
-    '--y',
-    String(Math.round(y)),
+    JSON.stringify({
+      command: 'move',
+      x: Math.round(x),
+      y: Math.round(y),
+    }),
   ]);
 }
 

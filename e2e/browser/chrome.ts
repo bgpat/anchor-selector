@@ -10,7 +10,6 @@ import {
   Options as ChromeOptions,
   ServiceBuilder,
 } from 'selenium-webdriver/chrome';
-import { resolveBrowser } from './selenium-manager';
 import type { ModifierKey } from '@/util/config';
 import type { ExtensionIconButton } from '../automation/interface';
 import { runAtspi } from './atspi-host';
@@ -35,8 +34,20 @@ type AtspiMatch = {
   height: number;
 };
 
-async function atspi(args: string[]): Promise<string> {
-  return runAtspi(args);
+function atspi(command: {
+  command: 'find' | 'click' | 'dump' | 'click-xy';
+  name?: string;
+  role?: string;
+  exact?: boolean;
+  exclude?: string;
+  timeout?: number;
+  prefer?: 'top' | 'bottom';
+  app?: string;
+  button?: 'left' | 'middle' | 'right';
+  x?: number;
+  y?: number;
+}): Promise<string> {
+  return runAtspi([JSON.stringify(command)]);
 }
 
 async function atspiFind(input: {
@@ -49,22 +60,16 @@ async function atspiFind(input: {
   app?: string;
 }): Promise<AtspiMatch | null> {
   try {
-    const output = await atspi([
-      'find',
-      '--app',
-      input.app ?? 'testing',
-      '--name',
-      input.name,
-      '--role',
-      input.role ?? '',
-      '--exclude',
-      input.exclude ?? '',
-      '--prefer',
-      input.prefer ?? 'top',
-      '--timeout',
-      String(input.timeout ?? 3),
-      ...(input.exact ? ['--exact'] : []),
-    ]);
+    const output = await atspi({
+      command: 'find',
+      app: input.app ?? 'testing',
+      name: input.name,
+      role: input.role,
+      exclude: input.exclude,
+      prefer: input.prefer,
+      timeout: input.timeout,
+      exact: input.exact,
+    });
     const parsed = JSON.parse(output) as { match: AtspiMatch };
     return parsed.match;
   } catch {
@@ -82,28 +87,21 @@ async function atspiClick(input: {
   prefer?: 'top' | 'bottom';
   app?: string;
 }): Promise<void> {
-  await atspi([
-    'click',
-    '--app',
-    input.app ?? 'testing',
-    '--name',
-    input.name,
-    '--role',
-    input.role ?? '',
-    '--exclude',
-    input.exclude ?? '',
-    '--button',
-    input.button ?? 'left',
-    '--prefer',
-    input.prefer ?? 'top',
-    '--timeout',
-    String(input.timeout ?? 3),
-    ...(input.exact ? ['--exact'] : []),
-  ]);
+  await atspi({
+    command: 'click',
+    app: input.app ?? 'testing',
+    name: input.name,
+    role: input.role,
+    exclude: input.exclude,
+    button: input.button,
+    prefer: input.prefer,
+    timeout: input.timeout,
+    exact: input.exact,
+  });
 }
 
 async function atspiDump(): Promise<string> {
-  return atspi(['dump', '--app', 'testing']).catch((error: unknown) =>
+  return atspi({ command: 'dump', app: 'testing' }).catch((error: unknown) =>
     error instanceof Error ? error.message : String(error),
   );
 }
@@ -156,15 +154,7 @@ export class ChromeAutomation extends PageAutomation {
     }
     const x = Math.round(match.x + match.width / 2);
     const y = Math.round(match.y + match.height / 2);
-    await atspi([
-      'click-xy',
-      '--x',
-      String(x),
-      '--y',
-      String(y),
-      '--button',
-      button,
-    ]);
+    await atspi({ command: 'click-xy', x, y, button });
   }
 
   async setExtensionEnabled(input: { enabled: boolean }): Promise<void> {
@@ -725,9 +715,8 @@ export async function launchChrome(input: {
   process.env.LANG = 'en_US.UTF-8';
   process.env.LANGUAGE = 'en_US.UTF-8';
 
-  const resolved = resolveBrowser('chrome');
   const options = new ChromeOptions();
-  options.setChromeBinaryPath(resolved.browserPath);
+  options.setChromeBinaryPath('/usr/bin/google-chrome');
   options.addArguments(
     `--load-extension=${input.extensionDir}`,
     '--force-renderer-accessibility',
@@ -745,7 +734,9 @@ export async function launchChrome(input: {
   const driver = await new Builder()
     .forBrowser(Browser.CHROME)
     .setChromeOptions(options)
-    .setChromeService(new ServiceBuilder(resolved.driverPath))
+    .setChromeService(
+      new ServiceBuilder('/usr/local/share/chromedriver-linux64/chromedriver'),
+    )
     .build();
   try {
     await configureDriver(driver);

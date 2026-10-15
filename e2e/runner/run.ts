@@ -15,9 +15,7 @@ import './bun-globals';
 
 const EVENTUAL_TIMEOUT_MS = 2500;
 const ACTION_PAUSE_MS = 1000;
-const SCENARIO_TIMEOUT_MS = Number(
-  process.env.E2E_SCENARIO_TIMEOUT_MS ?? 180000,
-);
+const SCENARIO_TIMEOUT_MS = 180000;
 
 function flag(name: string): string | undefined {
   const index = process.argv.indexOf(name);

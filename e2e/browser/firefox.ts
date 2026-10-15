@@ -7,7 +7,6 @@ import {
   Options as FirefoxOptions,
   ServiceBuilder,
 } from 'selenium-webdriver/firefox';
-import { resolveBrowser } from './selenium-manager';
 import type { ModifierKey } from '@/util/config';
 import type { ExtensionIconButton } from '../automation/interface';
 import {
@@ -424,10 +423,9 @@ export async function launchFirefox(input: {
 }): Promise<{ automation: FirefoxAutomation; close: () => Promise<void> }> {
   installProbePage(input.extensionDir);
   const extensionId = extensionIdFrom(input.extensionDir);
-  const resolved = resolveBrowser('firefox');
   process.env.MOZ_DISABLE_CONTENT_SANDBOX = '1';
   const options = new FirefoxOptions();
-  options.setBinary(resolved.browserPath);
+  options.setBinary('/usr/bin/firefox');
   options.setPreference('security.sandbox.content.level', 0);
   options.setPreference('intl.locale.requested', 'en-US');
   options.setPreference('browser.startup.page', 0);
@@ -446,9 +444,9 @@ export async function launchFirefox(input: {
     .forBrowser(Browser.FIREFOX)
     .setFirefoxOptions(options)
     .setFirefoxService(
-      new ServiceBuilder(resolved.driverPath)
+      new ServiceBuilder('/usr/local/share/gecko_driver/geckodriver')
         .addArguments('--allow-system-access')
-        .setStdio(process.env.E2E_DEBUG ? 'inherit' : 'pipe'),
+        .setStdio('pipe'),
     )
     .build()) as FirefoxDriver;
   try {
