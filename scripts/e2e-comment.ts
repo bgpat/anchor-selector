@@ -170,17 +170,12 @@ function reportsIn(
   return found;
 }
 
-function deleteOwnComments(
-  repo: string,
-  pr: number,
-  marker: string,
-  login: string,
-) {
+function deleteOwnComments(pr: number, marker: string, login: string) {
   const raw = gh([
     'api',
     '--paginate',
     '--slurp',
-    `repos/${repo}/issues/${pr}/comments`,
+    `repos/${process.env.GITHUB_REPOSITORY}/issues/${pr}/comments`,
   ]);
   const pages = JSON.parse(raw) as {
     id: number;
@@ -196,36 +191,20 @@ function deleteOwnComments(
         'api',
         '-X',
         'DELETE',
-        `repos/${repo}/issues/comments/${comment.id}`,
+        `repos/${process.env.GITHUB_REPOSITORY}/issues/comments/${comment.id}`,
       ]);
     }
   }
 }
 
 function main() {
-  if (!process.env.GH_TOKEN && !process.env.GITHUB_TOKEN) {
-    console.warn('PR_COMMENT_TOKEN is not set; skipping the e2e comment');
-    return;
-  }
   const pr = Number(flag('--pr'));
   const resultsDir = resolve(flag('--results') ?? 'e2e-results');
   if (!Number.isInteger(pr) || pr <= 0) {
     throw new Error('Pass --pr <number>');
   }
-  const repo = gh([
-    'repo',
-    'view',
-    '--json',
-    'nameWithOwner',
-    '--jq',
-    '.nameWithOwner',
-  ]).trim();
   const login = gh(['api', 'user', '--jq', '.login']).trim();
   const reports = reportsIn(resultsDir);
-  if (reports.length === 0) {
-    console.warn(`No e2e reports under ${resultsDir}`);
-    return;
-  }
   for (const { report, dir } of reports) {
     const marker = `<!-- e2e-recordings:${report.browser} -->`;
     const attachments = new Map<string, string>();
@@ -244,7 +223,7 @@ function main() {
       'body.md',
     );
     writeFileSync(bodyPath, markdown(report, attachments));
-    deleteOwnComments(repo, pr, marker, login);
+    deleteOwnComments(pr, marker, login);
     const args = ['pr', 'comment', String(pr), '--body-file', bodyPath];
     for (const path of attachments.values()) {
       args.push('--attach', path);

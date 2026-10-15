@@ -114,10 +114,4 @@ jobs:
       - name: Comment with recordings
         env:
           GH_TOKEN: ${{ secrets.PR_COMMENT_TOKEN }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
-        run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "PR_COMMENT_TOKEN is not set; skipping comment"
-            exit 0
-          fi
-          bun scripts/e2e-comment.ts --pr "${{ github.event.pull_request.number }}" --results e2e-results
+        run: bun scripts/e2e-comment.ts --pr "${{ github.event.pull_request.number }}" --results e2e-results
