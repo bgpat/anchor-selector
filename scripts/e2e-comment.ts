@@ -9,6 +9,25 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { BrowserReport } from '../e2e/runner/report';
 
+const marker = '<!-- e2e-recordings -->';
+
+const commentsQuery = `query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
+  repository(owner: $owner, name: $name) {
+    issue(number: $number) {
+      comments(first: 100, after: $cursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes { id body isMinimized author { login } }
+      }
+    }
+  }
+}`;
+
+const minimizeQuery = `mutation($id: ID!) {
+  minimizeComment(input: {subjectId: $id, classifier: OUTDATED}) {
+    minimizedComment { isMinimized }
+  }
+}`;
+
 function flag(name: string): string | undefined {
   const index = process.argv.indexOf(name);
   if (index === -1) {
@@ -25,7 +44,7 @@ function gh(args: string[]): string {
   return result.stdout;
 }
 
-function markdown(report: BrowserReport, videoPath: string | null): string {
+function section(report: BrowserReport, videoPath: string | null): string {
   const counts = {
     passed: 0,
     failed: 0,
@@ -53,8 +72,6 @@ function markdown(report: BrowserReport, videoPath: string | null): string {
     }
   }
   const lines = [
-    `<!-- e2e-recordings:${report.browser} -->`,
-    '',
     `## E2E ${report.browser}`,
     '',
     `${counts.passed} passed, ${counts.failed} failed, ${counts.skipped} skipped`,
@@ -95,30 +112,70 @@ function reportsIn(
   return found;
 }
 
-function deleteOwnComments(pr: number, marker: string, login: string) {
-  const raw = gh([
-    'api',
-    '--paginate',
-    '--slurp',
-    `repos/${process.env.GITHUB_REPOSITORY}/issues/${pr}/comments`,
-  ]);
-  const pages = JSON.parse(raw) as {
-    id: number;
-    body: string;
-    user: { login: string } | null;
-  }[][];
-  for (const page of pages) {
-    for (const comment of page) {
-      if (comment.user?.login !== login || !comment.body.includes(marker)) {
-        continue;
-      }
-      gh([
-        'api',
-        '-X',
-        'DELETE',
-        `repos/${process.env.GITHUB_REPOSITORY}/issues/comments/${comment.id}`,
-      ]);
+type CommentNode = {
+  id: string;
+  body: string;
+  isMinimized: boolean;
+  author: { login: string } | null;
+};
+
+function hideOwnComments(pr: number, login: string) {
+  const repository = process.env.GITHUB_REPOSITORY ?? '';
+  const [owner, name] = repository.split('/');
+  let cursor: string | null = null;
+  const comments: CommentNode[] = [];
+  for (;;) {
+    const args = [
+      'api',
+      'graphql',
+      '-f',
+      `query=${commentsQuery}`,
+      '-f',
+      `owner=${owner}`,
+      '-f',
+      `name=${name}`,
+      '-F',
+      `number=${pr}`,
+    ];
+    if (cursor != null) {
+      args.push('-f', `cursor=${cursor}`);
     }
+    const raw = gh(args);
+    const page = JSON.parse(raw) as {
+      data: {
+        repository: {
+          issue: {
+            comments: {
+              pageInfo: { hasNextPage: boolean; endCursor: string | null };
+              nodes: CommentNode[];
+            };
+          };
+        };
+      };
+    };
+    const connection = page.data.repository.issue.comments;
+    comments.push(...connection.nodes);
+    if (!connection.pageInfo.hasNextPage) {
+      break;
+    }
+    cursor = connection.pageInfo.endCursor;
+  }
+  for (const comment of comments) {
+    if (
+      comment.isMinimized ||
+      comment.author?.login !== login ||
+      !comment.body.includes('<!-- e2e-recordings')
+    ) {
+      continue;
+    }
+    gh([
+      'api',
+      'graphql',
+      '-f',
+      `query=${minimizeQuery}`,
+      '-f',
+      `id=${comment.id}`,
+    ]);
   }
 }
 
@@ -128,27 +185,36 @@ function main() {
   if (!Number.isInteger(pr) || pr <= 0) {
     throw new Error('Pass --pr <number>');
   }
+  const reports = reportsIn(resultsDir).sort((left, right) =>
+    left.report.browser.localeCompare(right.report.browser),
+  );
+  if (reports.length === 0) {
+    return;
+  }
   const login = gh(['api', 'user', '--jq', '.login']).trim();
-  const reports = reportsIn(resultsDir);
+  const sections: string[] = [];
+  const videos: string[] = [];
   for (const { report, dir } of reports) {
-    const marker = `<!-- e2e-recordings:${report.browser} -->`;
     const videoName = report.scenarios.find(
       (scenario) => scenario.video != null,
     )?.video;
     const videoPath = videoName == null ? null : join(dir, videoName);
-    const bodyPath = join(
-      mkdtempSync(join(tmpdir(), 'e2e-comment-')),
-      'body.md',
-    );
-    writeFileSync(bodyPath, markdown(report, videoPath));
-    deleteOwnComments(pr, marker, login);
-    const args = ['pr', 'comment', String(pr), '--body-file', bodyPath];
     if (videoPath != null) {
-      args.push('--attach', videoPath);
+      videos.push(videoPath);
     }
-    gh(args);
-    console.log(`commented ${report.browser}`);
+    sections.push(section(report, videoPath));
   }
+  const bodyPath = join(mkdtempSync(join(tmpdir(), 'e2e-comment-')), 'body.md');
+  writeFileSync(bodyPath, `${marker}\n\n${sections.join('\n')}`);
+  hideOwnComments(pr, login);
+  const args = ['pr', 'comment', String(pr), '--body-file', bodyPath];
+  for (const video of videos) {
+    args.push('--attach', video);
+  }
+  gh(args);
+  console.log(
+    `commented ${reports.map((item) => item.report.browser).join(', ')}`,
+  );
 }
 
 main();
