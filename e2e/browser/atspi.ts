@@ -267,7 +267,7 @@ function warpPointer(x: number, y: number, durationMs: number): void {
   display.sync();
 }
 
-function movePointer(x: number, y: number, durationMs = 500): void {
+function movePointer(x: number, y: number, durationMs = 250): void {
   const targetX = Math.trunc(x);
   const targetY = Math.trunc(y);
   warpPointer(targetX, targetY, durationMs);
@@ -403,7 +403,7 @@ function readCommand(): Query {
     button: command.button ?? 'left',
     x: command.x ?? 0,
     y: command.y ?? 0,
-    duration: command.duration ?? 500,
+    duration: command.duration ?? 250,
   };
 }
 
