@@ -183,19 +183,27 @@ export class FirefoxAutomation extends PageAutomation {
 
   async readExtensionBadgeText(): Promise<string> {
     await this.preparePage();
-    await this.firefox.setContext(Context.CHROME);
-    try {
-      return await this.firefox.executeScript<string>(
-        `        const widget = document.getElementById(arguments[0]);
-        const button = widget?.querySelector('.unified-extensions-item-action-button')
-          || widget;
-        if (!button) return '';
-        return button.getAttribute('badge') || ''`,
-        this.actionWidgetId,
-      );
-    } finally {
-      await this.firefox.setContext(Context.CONTENT);
-    }
+    const url = await this.driver.getCurrentUrl();
+    return this.probe<string>(
+      `const done = arguments[arguments.length - 1];
+      const url = arguments[0];
+      const ext = globalThis.browser && globalThis.browser.tabs
+        ? globalThis.browser
+        : globalThis.chrome;
+      ext.tabs.query({}).then((tabs) => {
+        const match = tabs.find((tab) => tab.url === url);
+        if (!match || match.id == null) {
+          done('');
+          return;
+        }
+        const action = ext.action || ext.browserAction;
+        return action.getBadgeText({ tabId: match.id }).then(
+          (text) => done(text || ''),
+          (error) => done({ error: String(error) }),
+        );
+      }).catch((error) => done({ error: String(error) }));`,
+      url,
+    );
   }
 
   async readExtensionEnabled(): Promise<boolean> {
