@@ -168,6 +168,9 @@ export function registerBackground() {
   });
 
   browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (changeInfo.status === 'loading') {
+      void runExclusive(tabId, () => setBadge(tabId, false));
+    }
     if (changeInfo.status !== 'complete') {
       return;
     }

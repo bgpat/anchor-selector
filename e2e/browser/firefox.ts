@@ -14,6 +14,7 @@ import {
   PageAutomation,
   actionPauseMs,
   clickAtScreen,
+  pointAtScreen,
   closeDriver,
   configureDriver,
   delay,
@@ -25,6 +26,16 @@ import {
 
 /** Stable internal UUID so the probe page URL does not change between runs. */
 const FIREFOX_UUID = 'e2e00000-0000-4000-8000-000000000001';
+
+const browserWindowsSource = `function browserWindows() {
+  if (window.gBrowser) return [window];
+  const services = window.Services;
+  if (!services || !services.wm) return [];
+  const found = [];
+  const wins = services.wm.getEnumerator('navigator:browser');
+  while (wins.hasMoreElements()) found.push(wins.getNext());
+  return found;
+}`;
 
 type AddonManifest = {
   browser_specific_settings?: { gecko?: { id?: string } };
@@ -281,9 +292,7 @@ export class FirefoxAutomation extends PageAutomation {
     return this.inChrome<{ x: number; y: number } | null>(
       `const handle = arguments[0];
       const part = arguments[1];
-      const { Services: services } = ChromeUtils.importESModule(
-        'resource://gre/modules/Services.sys.mjs',
-      );
+      ${browserWindowsSource}
       function pointOf(element, win) {
         const rect = element.getBoundingClientRect();
         if (rect.width <= 0 || rect.height <= 0) return null;
@@ -299,9 +308,7 @@ export class FirefoxAutomation extends PageAutomation {
           String(browser.outerWindowID),
         ].includes(handle);
       }
-      const wins = services.wm.getEnumerator('navigator:browser');
-      while (wins.hasMoreElements()) {
-        const win = wins.getNext();
+      for (const win of browserWindows()) {
         for (const tab of win.gBrowser.tabs) {
           if (!matches(tab.linkedBrowser)) continue;
           if (part === 'close') {
@@ -321,12 +328,8 @@ export class FirefoxAutomation extends PageAutomation {
   private async tabUrl(handle: string): Promise<string | null> {
     return this.inChrome<string | null>(
       `const handle = arguments[0];
-      const { Services: services } = ChromeUtils.importESModule(
-        'resource://gre/modules/Services.sys.mjs',
-      );
-      const wins = services.wm.getEnumerator('navigator:browser');
-      while (wins.hasMoreElements()) {
-        const win = wins.getNext();
+      ${browserWindowsSource}
+      for (const win of browserWindows()) {
         for (const tab of win.gBrowser.tabs) {
           const browser = tab.linkedBrowser;
           const context = browser.browsingContext;
@@ -344,12 +347,8 @@ export class FirefoxAutomation extends PageAutomation {
 
   protected override async findOptionsHandle(): Promise<string | null> {
     return this.inChrome<string | null>(
-      `const { Services: services } = ChromeUtils.importESModule(
-        'resource://gre/modules/Services.sys.mjs',
-      );
-      const wins = services.wm.getEnumerator('navigator:browser');
-      while (wins.hasMoreElements()) {
-        const win = wins.getNext();
+      `${browserWindowsSource}
+      for (const win of browserWindows()) {
         for (const tab of win.gBrowser.tabs) {
           const spec = tab.linkedBrowser.currentURI.spec;
           if (spec.includes('options.html') || /[?&]options=/.test(spec)) {
@@ -386,7 +385,18 @@ export class FirefoxAutomation extends PageAutomation {
     if (point == null) {
       throw new Error('Firefox new-tab button was not found');
     }
-    await clickAtScreen(point.x, point.y);
+    await pointAtScreen(point.x, point.y);
+    await this.inChrome(
+      `function visible(id) {
+        const button = document.getElementById(id);
+        if (!button || button.hidden) return null;
+        const rect = button.getBoundingClientRect();
+        if (rect.width < 4 || rect.height < 4) return null;
+        return button;
+      }
+      const button = visible('tabs-newtab-button') || visible('new-tab-button');
+      if (button) button.doCommand();`,
+    );
   }
 
   protected override async closeTabByMouse(handle: string): Promise<void> {

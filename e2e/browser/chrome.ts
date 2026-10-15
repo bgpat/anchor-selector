@@ -499,7 +499,15 @@ export class ChromeAutomation extends PageAutomation {
       if (button == null) {
         continue;
       }
-      await clickAtScreen(button.x + button.width / 2, button.y + button.height / 2);
+      await atspi({
+        command: 'click',
+        app: 'chrom',
+        role: 'push button',
+        name,
+        exact: true,
+        x: Math.round(button.x + button.width / 2),
+        y: Math.round(button.y + button.height / 2),
+      });
       return;
     }
     throw new Error('Chrome new-tab button was not found');

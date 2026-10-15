@@ -57,7 +57,7 @@ type AtspiBox = {
 };
 
 /** x11grab records the system pointer. WebDriver actions do not move it. */
-async function showOsPointer(x: number, y: number): Promise<void> {
+export async function pointAtScreen(x: number, y: number): Promise<void> {
   await runAtspi([
     JSON.stringify({
       command: 'move',
@@ -593,7 +593,7 @@ export abstract class PageAutomation implements E2eAutomation {
       screenPointScript,
       element,
     );
-    await showOsPointer(point.x, point.y);
+    await pointAtScreen(point.x, point.y);
   }
 
   protected async pointAtViewport(x: number, y: number): Promise<void> {
@@ -609,7 +609,7 @@ export abstract class PageAutomation implements E2eAutomation {
       x,
       y,
     );
-    await showOsPointer(point.x, point.y);
+    await pointAtScreen(point.x, point.y);
   }
 
   private async revealElement(element: WebElement): Promise<void> {

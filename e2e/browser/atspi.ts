@@ -447,7 +447,19 @@ function main(): void {
     return;
   }
   const found = waitFor(query);
-  const chosen = found[0];
+  const chosen =
+    found.find((item) => {
+      if (query.x === 0 && query.y === 0) {
+        return false;
+      }
+      const box = item.box;
+      return (
+        query.x >= box.x &&
+        query.x <= box.x + box.width &&
+        query.y >= box.y &&
+        query.y <= box.y + box.height
+      );
+    }) ?? found[0];
   if (chosen == null) {
     fail('accessible object not found');
   }
