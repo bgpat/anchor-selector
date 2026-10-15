@@ -12,8 +12,9 @@ import type { ExtensionIconButton } from '../automation/interface';
 import {
   EXTENSION_NAME,
   PageAutomation,
-  closeDriver,
   actionPauseMs,
+  clickAtScreen,
+  closeDriver,
   configureDriver,
   delay,
   fitWindow,
@@ -149,8 +150,7 @@ export class FirefoxAutomation extends PageAutomation {
     // about:addons hosts options in a remote XUL browser Marionette cannot
     // enter. The preferences action reveals that page; drive the same URL.
     const optionsUrl = await this.readAddonOptionsUrl();
-    await this.firefox.switchTo().newWindow('tab');
-    await delay(actionPauseMs);
+    await this.openBrowserTab();
     await this.firefox.get(optionsUrl);
     await delay(actionPauseMs);
     await this.waitFor(async () => {
@@ -264,6 +264,135 @@ export class FirefoxAutomation extends PageAutomation {
     }
   }
 
+  private async inChrome<T>(script: string, ...args: unknown[]): Promise<T> {
+    await this.firefox.setContext(Context.CHROME);
+    try {
+      return await this.firefox.executeScript<T>(script, ...args);
+    } finally {
+      await this.firefox.setContext(Context.CONTENT);
+    }
+  }
+
+  private async tabPoint(
+    handle: string,
+    part: 'tab' | 'close',
+  ): Promise<{ x: number; y: number } | null> {
+    return this.inChrome<{ x: number; y: number } | null>(
+      `const handle = arguments[0];
+      const part = arguments[1];
+      const { Services: services } = ChromeUtils.importESModule(
+        'resource://gre/modules/Services.sys.mjs',
+      );
+      function pointOf(element, win) {
+        const rect = element.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return null;
+        return {
+          x: win.mozInnerScreenX + rect.left + rect.width / 2,
+          y: win.mozInnerScreenY + rect.top + rect.height / 2,
+        };
+      }
+      function matches(browser) {
+        const context = browser.browsingContext;
+        return [
+          context && String(context.id),
+          String(browser.outerWindowID),
+        ].includes(handle);
+      }
+      const wins = services.wm.getEnumerator('navigator:browser');
+      while (wins.hasMoreElements()) {
+        const win = wins.getNext();
+        for (const tab of win.gBrowser.tabs) {
+          if (!matches(tab.linkedBrowser)) continue;
+          if (part === 'close') {
+            const close = tab.querySelector('.tab-close-button');
+            const point = close && pointOf(close, win);
+            if (point) return point;
+          }
+          return pointOf(tab, win);
+        }
+      }
+      return null;`,
+      handle,
+      part,
+    );
+  }
+
+  private async tabUrl(handle: string): Promise<string | null> {
+    return this.inChrome<string | null>(
+      `const handle = arguments[0];
+      const { Services: services } = ChromeUtils.importESModule(
+        'resource://gre/modules/Services.sys.mjs',
+      );
+      const wins = services.wm.getEnumerator('navigator:browser');
+      while (wins.hasMoreElements()) {
+        const win = wins.getNext();
+        for (const tab of win.gBrowser.tabs) {
+          const browser = tab.linkedBrowser;
+          const context = browser.browsingContext;
+          const ids = [
+            context && String(context.id),
+            String(browser.outerWindowID),
+          ];
+          if (ids.includes(handle)) return browser.currentURI.spec;
+        }
+      }
+      return null;`,
+      handle,
+    );
+  }
+
+  protected override async findOptionsHandle(): Promise<string | null> {
+    return this.inChrome<string | null>(
+      `const { Services: services } = ChromeUtils.importESModule(
+        'resource://gre/modules/Services.sys.mjs',
+      );
+      const wins = services.wm.getEnumerator('navigator:browser');
+      while (wins.hasMoreElements()) {
+        const win = wins.getNext();
+        for (const tab of win.gBrowser.tabs) {
+          const spec = tab.linkedBrowser.currentURI.spec;
+          if (spec.includes('options.html') || /[?&]options=/.test(spec)) {
+            return String(tab.linkedBrowser.browsingContext.id);
+          }
+        }
+      }
+      return null;`,
+    );
+  }
+
+  protected override async clickTab(handle: string): Promise<void> {
+    const point = await this.tabPoint(handle, 'tab');
+    if (point == null) {
+      throw new Error(`Firefox tab was not found: ${handle}`);
+    }
+    await clickAtScreen(point.x, point.y);
+  }
+
+  protected override async openTabByMouse(): Promise<void> {
+    const point = await this.inChrome<{ x: number; y: number } | null>(
+      `const button = document.getElementById('new-tab-button')
+        || document.getElementById('tabs-newtab-button');
+      if (!button) return null;
+      const rect = button.getBoundingClientRect();
+      return {
+        x: window.mozInnerScreenX + rect.left + rect.width / 2,
+        y: window.mozInnerScreenY + rect.top + rect.height / 2,
+      };`,
+    );
+    if (point == null) {
+      throw new Error('Firefox new-tab button was not found');
+    }
+    await clickAtScreen(point.x, point.y);
+  }
+
+  protected override async closeTabByMouse(handle: string): Promise<void> {
+    const point = await this.tabPoint(handle, 'close');
+    if (point == null) {
+      throw new Error(`Firefox tab close button was not found: ${handle}`);
+    }
+    await clickAtScreen(point.x, point.y);
+  }
+
   private async toolbarButton(): Promise<WebElement> {
     const deadline = Date.now() + 8000;
     while (Date.now() < deadline) {
@@ -287,9 +416,7 @@ export class FirefoxAutomation extends PageAutomation {
 
   private async withAddonsPage<T>(action: () => Promise<T>): Promise<T> {
     await this.preparePage();
-    await this.firefox.switchTo().newWindow('tab');
-    await delay(actionPauseMs);
-    const addonsHandle = await this.firefox.getWindowHandle();
+    const addonsHandle = await this.openBrowserTab();
     try {
       await this.firefox.get('about:addons');
       try {
@@ -307,10 +434,9 @@ export class FirefoxAutomation extends PageAutomation {
     } finally {
       const handles = await this.firefox.getAllWindowHandles();
       if (handles.includes(addonsHandle)) {
-        await this.switchToWindow(addonsHandle);
-        const url = await this.firefox.getCurrentUrl();
-        if (!this.isOptionsUrl(url)) {
-          await this.firefox.close();
+        const url = await this.tabUrl(addonsHandle);
+        if (url != null && !this.isOptionsUrl(url)) {
+          await this.closeBrowserTab(addonsHandle);
         }
       }
       await this.activateOpenWindow();

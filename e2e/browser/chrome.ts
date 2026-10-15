@@ -16,13 +16,15 @@ import { runAtspi } from './atspi-host';
 import {
   EXTENSION_NAME,
   PageAutomation,
-  closeDriver,
   actionPauseMs,
+  clickAtScreen,
+  closeDriver,
   configureDriver,
   delay,
   fitWindow,
   installProbePage,
   keepSingleTab,
+  listAtspi,
   prepareTabs,
 } from './common';
 
@@ -411,16 +413,120 @@ export class ChromeAutomation extends PageAutomation {
   }
 
   private async pageTargets(): Promise<
-    { type: string; url: string; webSocketDebuggerUrl?: string }[]
+    {
+      id: string;
+      type: string;
+      title: string;
+      url: string;
+      webSocketDebuggerUrl?: string;
+    }[]
   > {
     const response = await fetch(
       `http://${await this.debuggerAddress()}/json/list`,
     );
     return (await response.json()) as {
+      id: string;
       type: string;
+      title: string;
       url: string;
       webSocketDebuggerUrl?: string;
     }[];
+  }
+
+  protected override async findOptionsHandle(): Promise<string | null> {
+    const target = (await this.pageTargets()).find(
+      (item) => item.type === 'page' && this.isOptionsUrl(item.url),
+    );
+    return target?.id ?? null;
+  }
+
+  private async chromeTabBox(
+    handle: string,
+  ): Promise<{ x: number; y: number; width: number; height: number }> {
+    const target = (await this.pageTargets()).find((item) => item.id === handle);
+    if (target?.webSocketDebuggerUrl == null) {
+      throw new Error(`Chrome tab was not found: ${handle}`);
+    }
+    const tabs = [
+      ...(await listAtspi({ app: 'chrom', role: 'page tab' })),
+      ...(await listAtspi({ app: 'chrom', role: 'tab' })),
+    ];
+    const titled = tabs.filter(
+      (tab) => tab.name === target.title || tab.name.startsWith(`${target.title} -`),
+    );
+    if (titled.length === 1 && target.title !== '') {
+      return titled[0];
+    }
+    const label = `e2e-tab-${handle.slice(-8)}`;
+    await evaluateOnTarget(
+      target.webSocketDebuggerUrl,
+      `document.title = ${JSON.stringify(label)}`,
+    );
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      const labeled = [
+        ...(await listAtspi({ app: 'chrom', role: 'page tab', name: label })),
+        ...(await listAtspi({ app: 'chrom', role: 'tab', name: label })),
+      ];
+      const match = labeled.find((tab) => tab.name.includes(label));
+      if (match != null) {
+        return match;
+      }
+      await delay(100);
+    }
+    throw new Error(`Chrome tab ${label} was not on the tab strip`);
+  }
+
+  protected override async clickTab(handle: string): Promise<void> {
+    const box = await this.chromeTabBox(handle);
+    await clickAtScreen(box.x + box.width / 2, box.y + box.height / 2);
+  }
+
+  protected override async openTabByMouse(): Promise<void> {
+    const rect = await this.windowRect();
+    const names = ['New Tab', 'New tab'];
+    for (const name of names) {
+      const buttons = await listAtspi({
+        app: 'chrom',
+        role: 'push button',
+        name,
+        exact: true,
+      });
+      const button = buttons.find(
+        (item) => item.y >= rect.y && item.y < rect.y + 160,
+      );
+      if (button == null) {
+        continue;
+      }
+      await clickAtScreen(button.x + button.width / 2, button.y + button.height / 2);
+      return;
+    }
+    throw new Error('Chrome new-tab button was not found');
+  }
+
+  protected override async closeTabByMouse(handle: string): Promise<void> {
+    const box = await this.chromeTabBox(handle);
+    const closes = await listAtspi({
+      app: 'chrom',
+      role: 'push button',
+      name: 'Close',
+      exact: true,
+    });
+    const close = closes.find((item) => {
+      const x = item.x + item.width / 2;
+      const y = item.y + item.height / 2;
+      return (
+        x >= box.x &&
+        x <= box.x + box.width &&
+        y >= box.y &&
+        y <= box.y + box.height
+      );
+    });
+    if (close != null) {
+      await clickAtScreen(close.x + close.width / 2, close.y + close.height / 2);
+      return;
+    }
+    await clickAtScreen(box.x + box.width / 2, box.y + box.height / 2, 'middle');
   }
 
   private async pageSocket(url: string): Promise<string> {
@@ -481,9 +587,7 @@ export class ChromeAutomation extends PageAutomation {
 
   private async withExtensionsPage<T>(action: () => Promise<T>): Promise<T> {
     await this.preparePage();
-    await this.driver.switchTo().newWindow('tab');
-    await delay(actionPauseMs);
-    const extensionsHandle = await this.driver.getWindowHandle();
+    const extensionsHandle = await this.openBrowserTab();
     try {
       await this.driver.get('chrome://extensions');
       await this.waitFor(
@@ -495,10 +599,11 @@ export class ChromeAutomation extends PageAutomation {
     } finally {
       const handles = await this.driver.getAllWindowHandles();
       if (handles.includes(extensionsHandle)) {
-        await this.switchToWindow(extensionsHandle);
-        const url = await this.driver.getCurrentUrl();
-        if (!this.isOptionsUrl(url)) {
-          await this.driver.close();
+        const target = (await this.pageTargets()).find(
+          (item) => item.id === extensionsHandle,
+        );
+        if (target != null && !this.isOptionsUrl(target.url)) {
+          await this.closeBrowserTab(extensionsHandle);
         }
       }
       await this.activateOpenWindow();

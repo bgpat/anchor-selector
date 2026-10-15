@@ -349,6 +349,10 @@ function main(): void {
     dump(query);
     return;
   }
+  if (query.command === 'list') {
+    print(JSON.stringify(matching(query, 4000).map((item) => item.box)));
+    return;
+  }
   if (query.command === 'move') {
     movePointer(query.x, query.y, query.duration);
     return;

@@ -45,6 +45,17 @@ export function installProbePage(extensionDir: string): void {
   );
 }
 
+type PointerButton = 'left' | 'middle' | 'right';
+
+type AtspiBox = {
+  name: string;
+  role: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 /** x11grab records the system pointer. WebDriver actions do not move it. */
 async function showOsPointer(x: number, y: number): Promise<void> {
   await runAtspi([
@@ -54,6 +65,39 @@ async function showOsPointer(x: number, y: number): Promise<void> {
       y: Math.round(y),
     }),
   ]);
+}
+
+export async function clickAtScreen(
+  x: number,
+  y: number,
+  button: PointerButton = 'left',
+): Promise<void> {
+  await runAtspi([
+    JSON.stringify({
+      command: 'click-xy',
+      x: Math.round(x),
+      y: Math.round(y),
+      button,
+    }),
+  ]);
+}
+
+export async function listAtspi(input: {
+  app: string;
+  role: string;
+  name?: string;
+  exact?: boolean;
+}): Promise<AtspiBox[]> {
+  const output = await runAtspi([
+    JSON.stringify({
+      command: 'list',
+      app: input.app,
+      role: input.role,
+      name: input.name ?? '',
+      exact: input.exact ?? false,
+    }),
+  ]);
+  return JSON.parse(output) as AtspiBox[];
 }
 
 const screenPointScript = `const rect = arguments[0].getBoundingClientRect();
@@ -228,7 +272,10 @@ export abstract class PageAutomation implements E2eAutomation {
     await this.switchToWindow(this.fixtureHandle);
   }
 
-  /** Leave the new tab on screen long enough to see which one was selected. */
+  /**
+   * Click the tab, then tell WebDriver to follow it. The click is what the
+   * recording shows; WebDriver does not track a click on the tab strip.
+   */
   protected async switchToWindow(handle: string): Promise<void> {
     let current: string | undefined;
     try {
@@ -239,7 +286,44 @@ export abstract class PageAutomation implements E2eAutomation {
     if (current === handle) {
       return;
     }
+    await this.clickTab(handle);
     await this.driver.switchTo().window(handle);
+    await delay(actionPauseMs);
+  }
+
+  protected abstract clickTab(handle: string): Promise<void>;
+
+  protected abstract openTabByMouse(): Promise<void>;
+
+  protected abstract closeTabByMouse(handle: string): Promise<void>;
+
+  protected abstract findOptionsHandle(): Promise<string | null>;
+
+  /** Open a tab from the tab strip and return its WebDriver handle. */
+  protected async openBrowserTab(): Promise<string> {
+    const before = new Set(await this.driver.getAllWindowHandles());
+    await this.openTabByMouse();
+    const deadline = Date.now() + 8000;
+    let created: string | undefined;
+    while (Date.now() < deadline) {
+      const handles = await this.driver.getAllWindowHandles();
+      created = handles.find((handle) => !before.has(handle));
+      if (created != null) {
+        break;
+      }
+      await delay(50);
+    }
+    if (created == null) {
+      throw new Error('Clicking the new-tab button did not open a tab');
+    }
+    await this.driver.switchTo().window(created);
+    await delay(actionPauseMs);
+    return created;
+  }
+
+  /** Close a tab from its close button. */
+  protected async closeBrowserTab(handle: string): Promise<void> {
+    await this.closeTabByMouse(handle);
     await delay(actionPauseMs);
   }
 
@@ -291,9 +375,7 @@ export abstract class PageAutomation implements E2eAutomation {
   protected async reopenProbe(): Promise<void> {
     const handles = await this.driver.getAllWindowHandles();
     if (!handles.includes(this.probeHandle)) {
-      await this.driver.switchTo().newWindow('tab');
-      await delay(actionPauseMs);
-      this.probeHandle = await this.driver.getWindowHandle();
+      this.probeHandle = await this.openBrowserTab();
     } else {
       await this.switchToWindow(this.probeHandle);
     }
@@ -307,19 +389,7 @@ export abstract class PageAutomation implements E2eAutomation {
   }
 
   protected async rememberOptionsTab(): Promise<void> {
-    const current = await this.driver.getWindowHandle();
-    const handles = await this.driver.getAllWindowHandles();
-    for (const handle of handles) {
-      await this.switchToWindow(handle);
-      const url = await this.driver.getCurrentUrl();
-      if (this.isOptionsUrl(url)) {
-        this.optionsHandle = handle;
-        await this.switchToWindow(current);
-        return;
-      }
-    }
-    this.optionsHandle = null;
-    await this.switchToWindow(current);
+    this.optionsHandle = await this.findOptionsHandle();
   }
 
   private async optionsHeadingPresent(): Promise<boolean> {
