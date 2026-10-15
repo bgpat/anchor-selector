@@ -162,8 +162,13 @@ export function registerBackground() {
   const selectionPorts = new Set<ReturnType<typeof browser.runtime.connect>>();
   browser.runtime.onConnect.addListener((port) => {
     selectionPorts.add(port);
+    const tabId = port.sender?.tab?.id;
     port.onDisconnect.addListener(() => {
       selectionPorts.delete(port);
+      if (tabId == null) {
+        return;
+      }
+      void runExclusive(tabId, () => setBadge(tabId, false));
     });
   });
 
