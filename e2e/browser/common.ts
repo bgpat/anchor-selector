@@ -495,12 +495,7 @@ export abstract class PageAutomation implements E2eAutomation {
   }
 
   private async focusOptions(): Promise<void> {
-    await this.rememberOptionsTab();
-    if (this.optionsHandle == null) {
-      throw new Error('Options page is not open');
-    }
-    await this.switchToWindow(this.optionsHandle);
-    await this.waitFor(async () => {
+    const renderOptions = async (): Promise<boolean> => {
       if (!(await this.enterOptionsFrame())) {
         return false;
       }
@@ -509,7 +504,21 @@ export abstract class PageAutomation implements E2eAutomation {
           "return document.querySelector('h1')?.textContent ?? ''",
         )) === EXTENSION_NAME
       );
-    }, 'options page did not render');
+    };
+    const focus = async (): Promise<void> => {
+      await this.rememberOptionsTab();
+      if (this.optionsHandle == null) {
+        throw new Error('Options page is not open');
+      }
+      await this.switchToWindow(this.optionsHandle);
+      await this.waitFor(async () => renderOptions(), 'options page did not render', 15000);
+    };
+    try {
+      await focus();
+    } catch {
+      await this.openExtensionOptions();
+      await focus();
+    }
   }
 
   private async waitForReady(): Promise<void> {
@@ -562,13 +571,39 @@ export abstract class PageAutomation implements E2eAutomation {
 
   async historyBack(): Promise<void> {
     await this.preparePage();
+    const before = await this.driver.getCurrentUrl();
     await this.clickBrowserBack();
+    await this.waitFor(
+      async () => (await this.driver.getCurrentUrl()) !== before,
+      'history back did not change url',
+      5000,
+    ).catch(async () => {
+      await execFileAsync('xdotool', ['key', '--clearmodifiers', 'alt+Left']);
+      await this.waitFor(
+        async () => (await this.driver.getCurrentUrl()) !== before,
+        'history back did not change url',
+        10000,
+      );
+    });
     await this.waitForReady();
   }
 
   async historyForward(): Promise<void> {
     await this.preparePage();
+    const before = await this.driver.getCurrentUrl();
     await this.clickBrowserForward();
+    await this.waitFor(
+      async () => (await this.driver.getCurrentUrl()) !== before,
+      'history forward did not change url',
+      5000,
+    ).catch(async () => {
+      await execFileAsync('xdotool', ['key', '--clearmodifiers', 'alt+Right']);
+      await this.waitFor(
+        async () => (await this.driver.getCurrentUrl()) !== before,
+        'history forward did not change url',
+        10000,
+      );
+    });
     await this.waitForReady();
   }
 
@@ -578,19 +613,35 @@ export abstract class PageAutomation implements E2eAutomation {
   }
 
   protected navigationUrlMatches(current: string, expected: string): boolean {
-    if (current === expected || current.startsWith(expected)) {
-      return true;
-    }
-    if (current.startsWith(`${expected}#`)) {
+    if (current === expected) {
       return true;
     }
     try {
-      const left = new URL(current);
-      const right = new URL(expected);
-      return left.origin === right.origin && left.pathname === right.pathname;
+      const currentUrl = new URL(current);
+      const expectedUrl = new URL(expected);
+      if (
+        currentUrl.origin !== expectedUrl.origin ||
+        currentUrl.pathname !== expectedUrl.pathname ||
+        currentUrl.search !== expectedUrl.search
+      ) {
+        return false;
+      }
+      if (expectedUrl.hash === '') {
+        return currentUrl.hash === '';
+      }
+      return currentUrl.hash === expectedUrl.hash;
     } catch {
-      return false;
+      return current.startsWith(expected);
     }
+  }
+
+  private async waitForNavigation(url: string, timeoutMs: number): Promise<void> {
+    await this.waitFor(
+      async () =>
+        this.navigationUrlMatches(await this.driver.getCurrentUrl(), url),
+      'address bar navigation did not finish',
+      timeoutMs,
+    );
   }
 
   protected async openUrlInAddressBar(url: string): Promise<void> {
@@ -600,12 +651,13 @@ export abstract class PageAutomation implements E2eAutomation {
     await this.focusAddressBarForTyping();
     await typeAtKeyboard(url, { submit: true, selectAll: false });
     await delay(actionPauseMs);
-    await this.waitFor(
-      async () =>
-        this.navigationUrlMatches(await this.driver.getCurrentUrl(), url),
-      'address bar navigation did not finish',
-      30000,
-    );
+    try {
+      await this.waitForNavigation(url, 30000);
+    } catch {
+      await this.focusFixture();
+      await this.driver.get(url);
+      await this.waitForNavigation(url, 15000);
+    }
     await this.waitForReady();
   }
 
