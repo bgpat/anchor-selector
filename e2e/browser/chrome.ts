@@ -62,7 +62,7 @@ async function atspiFind(input: {
   try {
     const output = await atspi({
       command: 'find',
-      app: input.app ?? 'testing',
+      app: input.app ?? 'chrom',
       name: input.name,
       role: input.role,
       exclude: input.exclude,
@@ -89,7 +89,7 @@ async function atspiClick(input: {
 }): Promise<void> {
   await atspi({
     command: 'click',
-    app: input.app ?? 'testing',
+    app: input.app ?? 'chrom',
     name: input.name,
     role: input.role,
     exclude: input.exclude,
@@ -101,7 +101,7 @@ async function atspiClick(input: {
 }
 
 async function atspiDump(): Promise<string> {
-  return atspi({ command: 'dump', app: 'testing' }).catch((error: unknown) =>
+  return atspi({ command: 'dump', app: 'chrom' }).catch((error: unknown) =>
     error instanceof Error ? error.message : String(error),
   );
 }
