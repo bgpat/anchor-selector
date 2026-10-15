@@ -25,17 +25,32 @@ function gh(args: string[]): string {
   return result.stdout;
 }
 
-function markdown(
-  report: BrowserReport,
-  attachments: Map<string, string>,
-): string {
+function markdown(report: BrowserReport, videoPath: string | null): string {
   const counts = {
     passed: 0,
     failed: 0,
     skipped: 0,
   };
+  const rows: string[] = [];
+  const errors: string[] = [];
   for (const scenario of report.scenarios) {
     counts[scenario.status] += 1;
+    const seconds = (scenario.durationMs / 1000).toFixed(1);
+    rows.push(
+      `| ${scenario.status} | \`${scenario.id}\` ${scenario.title} | ${seconds}s |`,
+    );
+    if (scenario.error != null) {
+      errors.push(
+        `### \`${scenario.id}\``,
+        '',
+        scenario.title,
+        '',
+        '```',
+        scenario.error,
+        '```',
+        '',
+      );
+    }
   }
   const lines = [
     `<!-- e2e-recordings:${report.browser} -->`,
@@ -46,49 +61,13 @@ function markdown(
     '',
     '| Result | Scenario | Time |',
     '| --- | --- | --- |',
+    ...rows,
+    '',
   ];
-  for (const scenario of report.scenarios) {
-    const seconds = (scenario.durationMs / 1000).toFixed(1);
-    lines.push(
-      `| ${scenario.status} | \`${scenario.id}\` ${scenario.title} | ${seconds}s |`,
-    );
+  if (videoPath != null) {
+    lines.push(`![${report.browser}](${videoPath})`, '');
   }
-  lines.push('');
-  const shown = new Set<string>();
-  for (const scenario of report.scenarios) {
-    if (scenario.video == null || shown.has(scenario.video)) {
-      continue;
-    }
-    shown.add(scenario.video);
-    const covered = report.scenarios.filter(
-      (item) => item.video === scenario.video,
-    );
-    const heading = scenario.video.replace(/\.(mp4|webm)$/, '');
-    lines.push(`### \`${heading}\``, '');
-    for (const item of covered) {
-      lines.push(`- ${item.status} \`${item.id}\` ${item.title}`);
-      if (item.error) {
-        lines.push('', '```', item.error, '```', '');
-      }
-    }
-    lines.push('');
-    lines.push(`![${heading}](${attachments.get(scenario.video)})`, '');
-  }
-  for (const scenario of report.scenarios) {
-    if (scenario.video != null || scenario.error == null) {
-      continue;
-    }
-    lines.push(
-      `### \`${scenario.id}\``,
-      '',
-      scenario.title,
-      '',
-      '```',
-      scenario.error,
-      '```',
-      '',
-    );
-  }
+  lines.push(...errors);
   return `${lines.join('\n')}\n`;
 }
 
@@ -153,25 +132,22 @@ function main() {
   const reports = reportsIn(resultsDir);
   for (const { report, dir } of reports) {
     const marker = `<!-- e2e-recordings:${report.browser} -->`;
-    const attachments = new Map<string, string>();
-    for (const scenario of report.scenarios) {
-      if (scenario.video == null) {
-        continue;
-      }
-      attachments.set(scenario.video, join(dir, scenario.video));
-    }
+    const videoName = report.scenarios.find(
+      (scenario) => scenario.video != null,
+    )?.video;
+    const videoPath = videoName == null ? null : join(dir, videoName);
     const bodyPath = join(
       mkdtempSync(join(tmpdir(), 'e2e-comment-')),
       'body.md',
     );
-    writeFileSync(bodyPath, markdown(report, attachments));
+    writeFileSync(bodyPath, markdown(report, videoPath));
     deleteOwnComments(pr, marker, login);
     const args = ['pr', 'comment', String(pr), '--body-file', bodyPath];
-    for (const path of attachments.values()) {
-      args.push('--attach', path);
+    if (videoPath != null) {
+      args.push('--attach', videoPath);
     }
     gh(args);
-    console.log(`commented ${report.browser} (${attachments.size} videos)`);
+    console.log(`commented ${report.browser}`);
   }
 }
 
