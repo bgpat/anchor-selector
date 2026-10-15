@@ -13,6 +13,7 @@
       "@/*": ["./src/*"]
     }
   },
+  "exclude": ["e2e/browser/atspi.ts"],
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",

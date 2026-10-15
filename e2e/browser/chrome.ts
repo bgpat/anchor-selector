@@ -1,7 +1,4 @@
-import { spawn } from 'node:child_process';
-import { existsSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { writeFileSync } from 'node:fs';
 import {
   Browser,
   Builder,
@@ -16,6 +13,7 @@ import {
 import { resolveBrowser } from './selenium-manager';
 import type { ModifierKey } from '@/util/config';
 import type { ExtensionIconButton } from '../automation/interface';
+import { runAtspi } from './atspi-host';
 import {
   EXTENSION_NAME,
   PageAutomation,
@@ -28,11 +26,6 @@ import {
   prepareTabs,
 } from './common';
 
-const atspiScript = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  'atspi.py',
-);
-
 type AtspiMatch = {
   name: string;
   role: string;
@@ -42,34 +35,8 @@ type AtspiMatch = {
   height: number;
 };
 
-function pythonBin(): string {
-  if (process.env.E2E_PYTHON) {
-    return process.env.E2E_PYTHON;
-  }
-  if (existsSync('/usr/bin/python3')) {
-    return '/usr/bin/python3';
-  }
-  return 'python3';
-}
-
 async function atspi(args: string[]): Promise<string> {
-  const proc = spawn(pythonBin(), [atspiScript, ...args], {
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  const stdout: Buffer[] = [];
-  const stderr: Buffer[] = [];
-  proc.stdout.on('data', (chunk: Buffer) => stdout.push(chunk));
-  proc.stderr.on('data', (chunk: Buffer) => stderr.push(chunk));
-  const code = await new Promise<number>((resolveCode, reject) => {
-    proc.once('error', reject);
-    proc.once('close', (status) => resolveCode(status ?? 1));
-  });
-  const out = Buffer.concat(stdout).toString('utf8').trim();
-  const err = Buffer.concat(stderr).toString('utf8').trim();
-  if (code !== 0) {
-    throw new Error(err || out || `atspi.py exited ${code}`);
-  }
-  return out;
+  return runAtspi(args);
 }
 
 async function atspiFind(input: {

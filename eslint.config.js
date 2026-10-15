@@ -56,6 +56,15 @@ export default [
     },
   },
   {
+    files: ['e2e/browser/atspi.ts'],
+    languageOptions: {
+      globals: {
+        print: 'readonly',
+        printerr: 'readonly',
+      },
+    },
+  },
+  {
     files: ['scripts/**/*.ts', 'e2e/**/*.ts'],
     languageOptions: {
       globals: {

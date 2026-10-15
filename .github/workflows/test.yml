@@ -71,13 +71,14 @@ jobs:
             dbus-x11
             ffmpeg
             gir1.2-atspi-2.0
+            gir1.2-gdk-3.0
+            gjs
             libasound2t64
             libdbus-glib-1-2
             libgtk-3-0
             libnss3
             libx11-xcb1
             libxt6
-            python3-gi
             xclip
             xvfb
       - run: bun run build:${{ matrix.browser }}

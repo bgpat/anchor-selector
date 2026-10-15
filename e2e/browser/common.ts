@@ -15,6 +15,7 @@ import {
 import type { ConfigKey, ModifierKey, StoredConfig } from '@/util/config';
 import variables from '@/util/variables';
 import type { DomBox, E2eAutomation } from '../automation/interface';
+import { runAtspi } from './atspi-host';
 
 const execFileAsync = promisify(execFile);
 
@@ -46,11 +47,7 @@ export function installProbePage(extensionDir: string): void {
 
 /** x11grab records the system pointer. WebDriver actions do not move it. */
 async function showOsPointer(x: number, y: number): Promise<void> {
-  const python = existsSync('/usr/bin/python3')
-    ? '/usr/bin/python3'
-    : 'python3';
-  await execFileAsync(python, [
-    resolve(browserDir, 'atspi.py'),
+  await runAtspi([
     'move',
     '--x',
     String(Math.round(x)),
