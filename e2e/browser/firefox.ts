@@ -80,6 +80,25 @@ export class FirefoxAutomation extends PageAutomation {
     ];
   }
 
+  protected override async clickAddressBar(): Promise<void> {
+    const point = await this.inChrome<{ x: number; y: number } | null>(
+      `const input = document.getElementById('urlbar-input')
+        || document.querySelector('#urlbar input');
+      if (!input) return null;
+      const rect = input.getBoundingClientRect();
+      if (rect.width < 4 || rect.height < 4) return null;
+      return {
+        x: window.mozInnerScreenX + rect.left + rect.width / 2,
+        y: window.mozInnerScreenY + rect.top + rect.height / 2,
+      };`,
+    );
+    if (point == null) {
+      await super.clickAddressBar();
+      return;
+    }
+    await clickAtScreen(point.x, point.y);
+  }
+
   constructor(
     driver: FirefoxDriver,
     fixtureHandle: string,

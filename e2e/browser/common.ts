@@ -570,58 +570,99 @@ export abstract class PageAutomation implements E2eAutomation {
     await delay(actionPauseMs);
     await typeAtKeyboard(url, { submit: true, selectAll: true });
     await delay(actionPauseMs);
+    await this.waitFor(
+      async () => (await this.driver.getCurrentUrl()).startsWith(url),
+      'address bar navigation did not finish',
+      30000,
+    );
     await this.waitForReady();
   }
 
   protected async clickBrowserBack(): Promise<void> {
-    await this.clickToolbarControl({
+    await this.clickAtspiToolbar({
       names: ['Back'],
-      role: 'push button',
+      roles: ['push button'],
     });
   }
 
   protected async clickBrowserForward(): Promise<void> {
-    await this.clickToolbarControl({
+    await this.clickAtspiToolbar({
       names: ['Forward'],
-      role: 'push button',
+      roles: ['push button'],
     });
   }
 
   protected async clickBrowserReload(): Promise<void> {
-    await this.clickToolbarControl({
+    await this.clickAtspiToolbar({
       names: ['Reload', 'Reload current page', 'Reload this page'],
-      role: 'push button',
+      roles: ['push button'],
     });
   }
 
   protected async clickAddressBar(): Promise<void> {
+    await this.clickAtspiToolbar({
+      names: this.addressBarEntryNames(),
+      roles: ['combo box', 'entry', 'text'],
+    });
+  }
+
+  protected async clickAtspiToolbar(input: {
+    names: readonly string[];
+    roles: readonly string[];
+    exact?: boolean;
+  }): Promise<void> {
     const rect = await this.windowRect();
     const top = rect.y;
-    const bottom = rect.y + 160;
-    for (const name of this.addressBarEntryNames()) {
-      const matches = await listAtspi({
-        app: this.browserAtspiApp(),
-        role: 'entry',
-        name,
-        exact: false,
-      });
-      const match = matches.find((item) => item.y >= top && item.y < bottom);
-      if (match != null) {
-        await clickAtScreen(
-          match.x + match.width / 2,
-          match.y + match.height / 2,
+    const bottom = rect.y + 200;
+    for (const name of input.names) {
+      for (const role of input.roles) {
+        const matches = await listAtspi({
+          app: this.browserAtspiApp(),
+          role,
+          name,
+          exact: input.exact ?? false,
+        });
+        const match = matches.find(
+          (item) =>
+            item.y >= top &&
+            item.y < bottom &&
+            item.width > 0 &&
+            item.height > 0,
         );
+        if (match == null) {
+          continue;
+        }
+        const x = Math.round(match.x + match.width / 2);
+        const y = Math.round(match.y + match.height / 2);
+        await runAtspi([
+          JSON.stringify({
+            command: 'click',
+            app: this.browserAtspiApp(),
+            role,
+            name,
+            exact: input.exact ?? false,
+            pauseMs: actionPauseMs,
+            x,
+            y,
+          }),
+        ]);
         return;
       }
     }
-    const entries = await listAtspi({
-      app: this.browserAtspiApp(),
-      role: 'entry',
-    });
-    const widest = entries
+    const widest = (
+      await Promise.all(
+        input.roles.map((role) =>
+          listAtspi({ app: this.browserAtspiApp(), role }),
+        ),
+      )
+    )
+      .flat()
       .filter(
         (item) =>
-          item.y >= top && item.y < bottom && item.width >= 200 && item.height > 0,
+          item.y >= top &&
+          item.y < bottom &&
+          item.width >= 200 &&
+          item.height > 0,
       )
       .sort((left, right) => right.width - left.width)[0];
     if (widest != null) {
@@ -631,41 +672,8 @@ export abstract class PageAutomation implements E2eAutomation {
       );
       return;
     }
-    throw new Error('address bar entry was not found');
-  }
-
-  protected async clickToolbarControl(input: {
-    names: readonly string[];
-    role: string;
-    exact?: boolean;
-  }): Promise<void> {
-    const rect = await this.windowRect();
-    const top = rect.y;
-    const bottom = rect.y + 160;
-    for (const name of input.names) {
-      const matches = await listAtspi({
-        app: this.browserAtspiApp(),
-        role: input.role,
-        name,
-        exact: input.exact ?? false,
-      });
-      const match = matches.find(
-        (item) =>
-          item.y >= top &&
-          item.y < bottom &&
-          item.width > 0 &&
-          item.height > 0,
-      );
-      if (match != null) {
-        await clickAtScreen(
-          match.x + match.width / 2,
-          match.y + match.height / 2,
-        );
-        return;
-      }
-    }
     throw new Error(
-      `${input.role} "${input.names.join('" or "')}" was not found on the toolbar`,
+      `Toolbar control not found: ${input.names.join(', ')} (${input.roles.join(', ')})`,
     );
   }
 

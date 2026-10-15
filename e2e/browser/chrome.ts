@@ -120,6 +120,19 @@ export class ChromeAutomation extends PageAutomation {
     return ['Address and search bar'];
   }
 
+  protected override async clickAddressBar(): Promise<void> {
+    try {
+      await atspiClick({
+        name: 'Address and search bar',
+        role: 'combo box',
+        exact: false,
+        timeout: 3,
+      });
+    } catch {
+      await super.clickAddressBar();
+    }
+  }
+
   constructor(
     driver: WebDriver,
     fixtureHandle: string,
