@@ -13,7 +13,7 @@ const marker = '<!-- e2e-recordings -->';
 
 const commentsQuery = `query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
   repository(owner: $owner, name: $name) {
-    issue(number: $number) {
+    pullRequest(number: $number) {
       comments(first: 100, after: $cursor) {
         pageInfo { hasNextPage endCursor }
         nodes { id body isMinimized author { login } }
@@ -144,7 +144,7 @@ function hideOwnComments(pr: number, login: string) {
     const page = JSON.parse(raw) as {
       data: {
         repository: {
-          issue: {
+          pullRequest: {
             comments: {
               pageInfo: { hasNextPage: boolean; endCursor: string | null };
               nodes: CommentNode[];
@@ -153,7 +153,7 @@ function hideOwnComments(pr: number, login: string) {
         };
       };
     };
-    const connection = page.data.repository.issue.comments;
+    const connection = page.data.repository.pullRequest.comments;
     comments.push(...connection.nodes);
     if (!connection.pageInfo.hasNextPage) {
       break;

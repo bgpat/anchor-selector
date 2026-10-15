@@ -677,33 +677,16 @@ function evaluateOnTarget<T>(
   });
 }
 
-async function readExtensionId(driver: WebDriver): Promise<string> {
-  await driver.get('chrome://extensions');
-  const deadline = Date.now() + 8000;
-  while (Date.now() < deadline) {
-    const id = await driver.executeScript<string | null>(
-      `const name = arguments[0];
-      function visit(node) {
-        for (const item of node.querySelectorAll?.('extensions-item') ?? []) {
-          const label = item.shadowRoot?.querySelector('#name')?.textContent?.trim();
-          if (label === name) return item.id || null;
-        }
-        for (const element of node.querySelectorAll?.('*') ?? []) {
-          if (!element.shadowRoot) continue;
-          const found = visit(element.shadowRoot);
-          if (found) return found;
-        }
-        return null;
-      }
-      return visit(document)`,
-      EXTENSION_NAME,
-    );
-    if (id) {
-      return id;
+async function installWebExtension(
+  driver: WebDriver,
+  extensionDir: string,
+): Promise<string> {
+  const installed = await (
+    driver as WebDriver & {
+      installWebExtension(extension: string): Promise<{ id: string }>;
     }
-    await delay(100);
-  }
-  throw new Error(`${EXTENSION_NAME} was not listed on chrome://extensions`);
+  ).installWebExtension(extensionDir);
+  return installed.id;
 }
 
 export async function launchChrome(input: {
@@ -716,11 +699,11 @@ export async function launchChrome(input: {
   process.env.LANGUAGE = 'en_US.UTF-8';
 
   const options = new ChromeOptions();
+  options.enableBidi();
   options.setChromeBinaryPath('/usr/bin/google-chrome');
   options.addArguments(
-    `--load-extension=${input.extensionDir}`,
+    '--enable-unsafe-extension-debugging',
     '--force-renderer-accessibility',
-    '--disable-features=DisableLoadExtensionCommandLineSwitch',
     '--lang=en-US',
     '--no-first-run',
     '--no-default-browser-check',
@@ -742,7 +725,7 @@ export async function launchChrome(input: {
     await configureDriver(driver);
     await fitWindow(driver);
     await keepSingleTab(driver);
-    const extensionId = await readExtensionId(driver);
+    const extensionId = await installWebExtension(driver, input.extensionDir);
     await driver.get('about:blank');
     const probeUrl = `chrome-extension://${extensionId}/e2e-probe.html`;
     const tabs = await prepareTabs(driver, probeUrl);
