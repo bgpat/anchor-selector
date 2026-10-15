@@ -68,6 +68,18 @@ function widgetId(extensionId: string): string {
 }
 
 export class FirefoxAutomation extends PageAutomation {
+  protected override browserAtspiApp(): string {
+    return 'firefox';
+  }
+
+  protected override addressBarEntryNames(): readonly string[] {
+    return [
+      'Search with Google or enter address',
+      'Search or enter address',
+      'Location',
+    ];
+  }
+
   constructor(
     driver: FirefoxDriver,
     fixtureHandle: string,
@@ -136,18 +148,19 @@ export class FirefoxAutomation extends PageAutomation {
     try {
       const button = await this.toolbarButton();
       await this.pointAt(button);
-      const actions = this.firefox.actions();
+      await delay(actionPauseMs);
+      const actions = this.firefox.actions().move({
+        origin: button,
+        duration: 0,
+      });
       if (input.button === 'right') {
         await actions.contextClick(button).perform();
       } else if (input.button === 'middle') {
-        await actions
-          .move({ origin: button, duration: 0 })
-          .press(Button.MIDDLE)
-          .release(Button.MIDDLE)
-          .perform();
+        await actions.press(Button.MIDDLE).release(Button.MIDDLE).perform();
       } else {
         await actions.click(button).perform();
       }
+      await delay(actionPauseMs);
     } finally {
       await this.firefox.setContext(Context.CONTENT);
     }
@@ -399,6 +412,7 @@ export class FirefoxAutomation extends PageAutomation {
       throw new Error('Firefox new-tab button was not found');
     }
     await pointAtScreen(point.x, point.y);
+    await delay(actionPauseMs);
     await this.inChrome(
       `function visible(id) {
         const button = document.getElementById(id);
@@ -410,6 +424,7 @@ export class FirefoxAutomation extends PageAutomation {
       const button = visible('tabs-newtab-button') || visible('new-tab-button');
       if (button) button.doCommand();`,
     );
+    await delay(actionPauseMs);
   }
 
   protected override async closeTabByMouse(handle: string): Promise<void> {

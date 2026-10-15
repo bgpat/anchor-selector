@@ -10,7 +10,6 @@ import {
   Options as ChromeOptions,
   ServiceBuilder,
 } from 'selenium-webdriver/chrome';
-import type { ModifierKey } from '@/util/config';
 import type { ExtensionIconButton } from '../automation/interface';
 import { runAtspi } from './atspi-host';
 import {
@@ -50,6 +49,7 @@ function atspi(command: {
   button?: 'left' | 'middle' | 'right';
   x?: number;
   y?: number;
+  pauseMs?: number;
 }): Promise<string> {
   return runAtspi([JSON.stringify(command)]);
 }
@@ -101,6 +101,7 @@ async function atspiClick(input: {
     prefer: input.prefer,
     timeout: input.timeout,
     exact: input.exact,
+    pauseMs: actionPauseMs,
   });
 }
 
@@ -111,6 +112,14 @@ async function atspiDump(): Promise<string> {
 }
 
 export class ChromeAutomation extends PageAutomation {
+  protected override browserAtspiApp(): string {
+    return 'chrom';
+  }
+
+  protected override addressBarEntryNames(): readonly string[] {
+    return ['Address and search bar'];
+  }
+
   constructor(
     driver: WebDriver,
     fixtureHandle: string,
@@ -158,7 +167,7 @@ export class ChromeAutomation extends PageAutomation {
     }
     const x = Math.round(match.x + match.width / 2);
     const y = Math.round(match.y + match.height / 2);
-    await atspi({ command: 'click-xy', x, y, button });
+    await clickAtScreen(x, y, button);
   }
 
   async setExtensionEnabled(input: { enabled: boolean }): Promise<void> {
@@ -167,8 +176,7 @@ export class ChromeAutomation extends PageAutomation {
     }
     await this.withExtensionsPage(async () => {
       const toggle = await this.extensionToggle();
-      await this.pointAt(toggle);
-      await this.driver.actions().click(toggle).perform();
+      await this.clickWebElement(toggle);
     });
     if (input.enabled) {
       await this.reopenProbe();
@@ -195,8 +203,7 @@ export class ChromeAutomation extends PageAutomation {
   async openExtensionOptions(): Promise<void> {
     await this.withExtensionsPage(async () => {
       const details = await this.extensionControl('#detailsButton');
-      await this.pointAt(details);
-      await this.driver.actions().click(details).perform();
+      await this.clickWebElement(details);
       await this.waitFor(async () => {
         await this.rememberOptionsTab().catch(() => undefined);
         if (this.optionsHandle != null) {
@@ -210,8 +217,7 @@ export class ChromeAutomation extends PageAutomation {
           'arguments[0].scrollIntoView({block: "center"})',
           options,
         );
-        await this.pointAt(options);
-        await this.driver.actions().click(options).perform();
+        await this.clickWebElement(options);
         await delay(400);
         return false;
       }, 'options page did not open from chrome://extensions', 60000);
@@ -264,50 +270,6 @@ export class ChromeAutomation extends PageAutomation {
       }
     }
     return super.headingVisible(input);
-  }
-
-  override async setOptionsHue(input: { value: number }): Promise<void> {
-    await this.optionsPageEvaluate(
-      `{
-      const slider = document.querySelector('input[type="range"]');
-      if (!slider) throw new Error('hue slider not found');
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        'value',
-      ).set;
-      setter.call(slider, ${JSON.stringify(String(input.value))});
-      slider.dispatchEvent(new Event('input', { bubbles: true }));
-      slider.dispatchEvent(new Event('change', { bubbles: true }));
-      }`,
-    );
-  }
-
-  override async setOptionsClickBinding(input: {
-    keys: readonly ModifierKey[];
-    action: string;
-  }): Promise<void> {
-    await this.optionsPageEvaluate(
-      `{
-      const keys = ${JSON.stringify(input.keys)};
-      for (const key of keys) {
-        const labels = [...document.querySelectorAll('fieldset label')];
-        const label = labels.find((entry) =>
-          (entry.textContent || '').includes(key),
-        );
-        const checkbox = label?.querySelector('input[type="checkbox"]');
-        if (!checkbox) throw new Error('modifier checkbox not found: ' + key);
-        if (!checkbox.checked) checkbox.click();
-      }
-      const select = document.getElementById('click-action');
-      if (!select) throw new Error('click action select not found');
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLSelectElement.prototype,
-        'value',
-      ).set;
-      setter.call(select, ${JSON.stringify(input.action)});
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-      }`,
-    );
   }
 
   override async readOptionsHue(): Promise<number> {

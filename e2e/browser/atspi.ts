@@ -29,6 +29,10 @@ type Query = {
   x: number;
   y: number;
   duration: number;
+  pauseMs: number;
+  text: string;
+  submit: boolean;
+  selectAll: boolean;
 };
 
 type Limit = {
@@ -339,25 +343,41 @@ function activateControlAt(x: number, y: number): boolean {
   return false;
 }
 
-function clickBox(box: Box, button: Button): Box {
-  const x = Math.trunc(box.x + box.width / 2);
-  const y = Math.trunc(box.y + box.height / 2);
+const KEY_SYM = 2;
+const KEY_STRING = 3;
+
+function typeText(text: string, selectAll: boolean, submit: boolean): void {
+  if (selectAll) {
+    Atspi.generate_keyboard_event(0, '<Ctrl>a', KEY_SYM);
+    GLib.usleep(50_000);
+  }
+  for (const char of text) {
+    Atspi.generate_keyboard_event(0, char, KEY_STRING);
+    GLib.usleep(10_000);
+  }
+  if (submit) {
+    GLib.usleep(50_000);
+    Atspi.generate_keyboard_event(0, 'Return', KEY_SYM);
+  }
+}
+
+function pressAt(x: number, y: number, button: Button): void {
+  const targetX = Math.trunc(x);
+  const targetY = Math.trunc(y);
+  Atspi.generate_mouse_event(targetX, targetY, 'abs');
   const events = {
     left: ['b1p', 'b1r'],
     middle: ['b2p', 'b2r'],
     right: ['b3p', 'b3r'],
   } as const;
   const [press, release] = events[button];
-  movePointer(x, y);
-  GLib.usleep(150_000);
   if (button === 'left') {
-    Atspi.generate_mouse_event(x, y, 'b1c');
+    Atspi.generate_mouse_event(targetX, targetY, 'b1c');
   } else {
-    Atspi.generate_mouse_event(x, y, press);
+    Atspi.generate_mouse_event(targetX, targetY, press);
     GLib.usleep(50_000);
-    Atspi.generate_mouse_event(x, y, release);
+    Atspi.generate_mouse_event(targetX, targetY, release);
   }
-  return box;
 }
 
 function dump(query: Query): void {
@@ -404,6 +424,10 @@ function readCommand(): Query {
     x: command.x ?? 0,
     y: command.y ?? 0,
     duration: command.duration ?? 250,
+    pauseMs: command.pauseMs ?? 500,
+    text: command.text ?? '',
+    submit: command.submit ?? false,
+    selectAll: command.selectAll ?? false,
   };
 }
 
@@ -422,28 +446,36 @@ function main(): void {
     movePointer(query.x, query.y, query.duration);
     return;
   }
-  if (query.command === 'click-xy') {
-    movePointer(query.x, query.y);
-    GLib.usleep(150_000);
-    if (query.button === 'left' && activateControlAt(query.x, query.y)) {
-      print(JSON.stringify({ action: 'click', x: query.x, y: query.y }));
+  if (query.command === 'type-text') {
+    typeText(query.text, query.selectAll, query.submit);
+    return;
+  }
+  if (query.command === 'press-at') {
+    const x = Math.trunc(query.x);
+    const y = Math.trunc(query.y);
+    if (query.button === 'left' && activateControlAt(x, y)) {
+      GLib.usleep(query.pauseMs * 1000);
+      print(JSON.stringify({ action: 'click', x, y }));
       return;
     }
-    print(
-      JSON.stringify(
-        clickBox(
-          {
-            name: '',
-            role: '',
-            x: query.x,
-            y: query.y,
-            width: 1,
-            height: 1,
-          },
-          query.button,
-        ),
-      ),
-    );
+    pressAt(x, y, query.button);
+    GLib.usleep(query.pauseMs * 1000);
+    print(JSON.stringify({ action: 'click', x, y }));
+    return;
+  }
+  if (query.command === 'click-xy') {
+    movePointer(query.x, query.y, query.duration);
+    GLib.usleep(query.pauseMs * 1000);
+    const x = Math.trunc(query.x);
+    const y = Math.trunc(query.y);
+    if (query.button === 'left' && activateControlAt(x, y)) {
+      GLib.usleep(query.pauseMs * 1000);
+      print(JSON.stringify({ action: 'click', x, y }));
+      return;
+    }
+    pressAt(x, y, query.button);
+    GLib.usleep(query.pauseMs * 1000);
+    print(JSON.stringify({ action: 'click', x, y }));
     return;
   }
   const found = waitFor(query);
@@ -470,16 +502,18 @@ function main(): void {
   if (query.command !== 'click') {
     fail(`unknown command ${query.command}`);
   }
-  movePointer(
-    chosen.box.x + chosen.box.width / 2,
-    chosen.box.y + chosen.box.height / 2,
-  );
-  GLib.usleep(50_000);
+  const centerX = chosen.box.x + chosen.box.width / 2;
+  const centerY = chosen.box.y + chosen.box.height / 2;
+  movePointer(centerX, centerY, query.duration);
+  GLib.usleep(query.pauseMs * 1000);
   if (query.button === 'left' && doClickAction(chosen.obj)) {
+    GLib.usleep(query.pauseMs * 1000);
     print(JSON.stringify({ action: 'click', ...chosen.box }));
     return;
   }
-  print(JSON.stringify(clickBox(chosen.box, query.button)));
+  pressAt(centerX, centerY, query.button);
+  GLib.usleep(query.pauseMs * 1000);
+  print(JSON.stringify({ action: 'click', ...chosen.box }));
 }
 
 main();

@@ -67,17 +67,34 @@ export async function pointAtScreen(x: number, y: number): Promise<void> {
   ]);
 }
 
+export async function typeAtKeyboard(
+  text: string,
+  options?: { submit?: boolean; selectAll?: boolean },
+): Promise<void> {
+  await runAtspi([
+    JSON.stringify({
+      command: 'type-text',
+      text,
+      submit: options?.submit ?? false,
+      selectAll: options?.selectAll ?? false,
+    }),
+  ]);
+}
+
 export async function clickAtScreen(
   x: number,
   y: number,
   button: PointerButton = 'left',
 ): Promise<void> {
+  await pointAtScreen(x, y);
+  await delay(actionPauseMs);
   await runAtspi([
     JSON.stringify({
-      command: 'click-xy',
+      command: 'press-at',
       x: Math.round(x),
       y: Math.round(y),
       button,
+      pauseMs: actionPauseMs,
     }),
   ]);
 }
@@ -100,16 +117,48 @@ export async function listAtspi(input: {
   return JSON.parse(output) as AtspiBox[];
 }
 
-const screenPointScript = `const rect = arguments[0].getBoundingClientRect();
-const x = rect.left + rect.width / 2;
-const y = rect.top + rect.height / 2;
-const borderX = Math.max(0, (window.outerWidth - window.innerWidth) / 2);
-const originX = typeof window.mozInnerScreenX === 'number'
-  ? window.mozInnerScreenX
-  : window.screenX + borderX;
-const originY = typeof window.mozInnerScreenY === 'number'
-  ? window.mozInnerScreenY
-  : window.screenY + Math.max(0, window.outerHeight - window.innerHeight - borderX);
+const screenPointScript = `const element = arguments[0];
+const offsetX = arguments[1] ?? 0;
+const offsetY = arguments[2] ?? 0;
+const rect = element.getBoundingClientRect();
+let x = rect.left + rect.width / 2 + offsetX;
+let y = rect.top + rect.height / 2 + offsetY;
+let view = element.ownerDocument.defaultView;
+while (view !== view.parent && view.parent) {
+  const frame = view.frameElement;
+  if (!frame) break;
+  const frameRect = frame.getBoundingClientRect();
+  x += frameRect.left;
+  y += frameRect.top;
+  view = view.parent;
+}
+const borderX = Math.max(0, (view.outerWidth - view.innerWidth) / 2);
+const originX = typeof view.mozInnerScreenX === 'number'
+  ? view.mozInnerScreenX
+  : view.screenX + borderX;
+const originY = typeof view.mozInnerScreenY === 'number'
+  ? view.mozInnerScreenY
+  : view.screenY + Math.max(0, view.outerHeight - view.innerHeight - borderX);
+return { x: originX + x, y: originY + y };`;
+
+const screenPointViewportScript = `let x = arguments[0];
+let y = arguments[1];
+let view = window;
+while (view !== view.parent && view.parent) {
+  const frame = view.frameElement;
+  if (!frame) break;
+  const frameRect = frame.getBoundingClientRect();
+  x += frameRect.left;
+  y += frameRect.top;
+  view = view.parent;
+}
+const borderX = Math.max(0, (view.outerWidth - view.innerWidth) / 2);
+const originX = typeof view.mozInnerScreenX === 'number'
+  ? view.mozInnerScreenX
+  : view.screenX + borderX;
+const originY = typeof view.mozInnerScreenY === 'number'
+  ? view.mozInnerScreenY
+  : view.screenY + Math.max(0, view.outerHeight - view.innerHeight - borderX);
 return { x: originX + x, y: originY + y };`;
 
 /** Hold each operation and tab switch in the recording. */
@@ -254,6 +303,10 @@ export abstract class PageAutomation implements E2eAutomation {
   abstract readExtensionBadgeText(): Promise<string>;
 
   abstract readExtensionEnabled(): Promise<boolean>;
+
+  protected abstract browserAtspiApp(): string;
+
+  protected abstract addressBarEntryNames(): readonly string[];
 
   async windowRect(): Promise<{
     x: number;
@@ -482,9 +535,7 @@ export abstract class PageAutomation implements E2eAutomation {
   }
 
   async goto(input: { path: string }): Promise<void> {
-    await this.preparePage();
-    await this.driver.get(`${this.fixtureOrigin}${input.path}`);
-    await this.waitForReady();
+    await this.openUrlInAddressBar(`${this.fixtureOrigin}${input.path}`);
   }
 
   async navigate(input: { path: string }): Promise<void> {
@@ -492,27 +543,130 @@ export abstract class PageAutomation implements E2eAutomation {
   }
 
   async gotoUninjectable(): Promise<void> {
-    await this.preparePage();
-    await this.driver.get(this.uninjectableUrl);
-    await this.waitForReady();
+    await this.openUrlInAddressBar(this.uninjectableUrl);
   }
 
   async reload(): Promise<void> {
     await this.preparePage();
-    await this.driver.navigate().refresh();
+    await this.clickBrowserReload();
     await this.waitForReady();
   }
 
   async historyBack(): Promise<void> {
     await this.preparePage();
-    await this.driver.navigate().back();
+    await this.clickBrowserBack();
     await this.waitForReady();
   }
 
   async historyForward(): Promise<void> {
     await this.preparePage();
-    await this.driver.navigate().forward();
+    await this.clickBrowserForward();
     await this.waitForReady();
+  }
+
+  protected async openUrlInAddressBar(url: string): Promise<void> {
+    await this.preparePage();
+    await this.clickAddressBar();
+    await delay(actionPauseMs);
+    await typeAtKeyboard(url, { submit: true, selectAll: true });
+    await delay(actionPauseMs);
+    await this.waitForReady();
+  }
+
+  protected async clickBrowserBack(): Promise<void> {
+    await this.clickToolbarControl({
+      names: ['Back'],
+      role: 'push button',
+    });
+  }
+
+  protected async clickBrowserForward(): Promise<void> {
+    await this.clickToolbarControl({
+      names: ['Forward'],
+      role: 'push button',
+    });
+  }
+
+  protected async clickBrowserReload(): Promise<void> {
+    await this.clickToolbarControl({
+      names: ['Reload', 'Reload current page', 'Reload this page'],
+      role: 'push button',
+    });
+  }
+
+  protected async clickAddressBar(): Promise<void> {
+    const rect = await this.windowRect();
+    const top = rect.y;
+    const bottom = rect.y + 160;
+    for (const name of this.addressBarEntryNames()) {
+      const matches = await listAtspi({
+        app: this.browserAtspiApp(),
+        role: 'entry',
+        name,
+        exact: false,
+      });
+      const match = matches.find((item) => item.y >= top && item.y < bottom);
+      if (match != null) {
+        await clickAtScreen(
+          match.x + match.width / 2,
+          match.y + match.height / 2,
+        );
+        return;
+      }
+    }
+    const entries = await listAtspi({
+      app: this.browserAtspiApp(),
+      role: 'entry',
+    });
+    const widest = entries
+      .filter(
+        (item) =>
+          item.y >= top && item.y < bottom && item.width >= 200 && item.height > 0,
+      )
+      .sort((left, right) => right.width - left.width)[0];
+    if (widest != null) {
+      await clickAtScreen(
+        widest.x + widest.width / 2,
+        widest.y + widest.height / 2,
+      );
+      return;
+    }
+    throw new Error('address bar entry was not found');
+  }
+
+  protected async clickToolbarControl(input: {
+    names: readonly string[];
+    role: string;
+    exact?: boolean;
+  }): Promise<void> {
+    const rect = await this.windowRect();
+    const top = rect.y;
+    const bottom = rect.y + 160;
+    for (const name of input.names) {
+      const matches = await listAtspi({
+        app: this.browserAtspiApp(),
+        role: input.role,
+        name,
+        exact: input.exact ?? false,
+      });
+      const match = matches.find(
+        (item) =>
+          item.y >= top &&
+          item.y < bottom &&
+          item.width > 0 &&
+          item.height > 0,
+      );
+      if (match != null) {
+        await clickAtScreen(
+          match.x + match.width / 2,
+          match.y + match.height / 2,
+        );
+        return;
+      }
+    }
+    throw new Error(
+      `${input.role} "${input.names.join('" or "')}" was not found on the toolbar`,
+    );
   }
 
   async clickElement(input: {
@@ -521,17 +675,18 @@ export abstract class PageAutomation implements E2eAutomation {
   }): Promise<void> {
     await this.preparePage();
     const element = await this.driver.findElement(By.css(input.selector));
-    await this.runPointerAction(element, async () => {
-      const actions = this.driver.actions();
-      for (const modifier of input.modifiers ?? []) {
-        actions.keyDown(modifierSelenium[modifier]);
-      }
-      actions.move({ origin: element, duration: 250 }).click();
-      for (const modifier of input.modifiers ?? []) {
-        actions.keyUp(modifierSelenium[modifier]);
-      }
-      await actions.perform();
-    });
+    await this.movePointerToElement(element);
+    await delay(actionPauseMs);
+    const actions = this.driver.actions();
+    for (const modifier of input.modifiers ?? []) {
+      actions.keyDown(modifierSelenium[modifier]);
+    }
+    actions.click(element);
+    for (const modifier of input.modifiers ?? []) {
+      actions.keyUp(modifierSelenium[modifier]);
+    }
+    await actions.perform();
+    await delay(actionPauseMs);
     if (this.relayPageEvents) {
       await this.relayToContentScript(
         { type: 'click', selector: input.selector },
@@ -572,40 +727,109 @@ export abstract class PageAutomation implements E2eAutomation {
     }
   }
 
-  private async runPointerAction(
+  protected async clickWebElement(element: WebElement): Promise<void> {
+    await this.clickWebElementAtOffset(element, 0, 0);
+  }
+
+  protected async clickWebElementAtOffset(
     element: WebElement,
-    perform: () => Promise<void>,
+    offsetX: number,
+    offsetY: number,
+  ): Promise<void> {
+    await this.movePointerToElement(element, offsetX, offsetY);
+    await delay(actionPauseMs);
+    await this.driver
+      .actions()
+      .move({ origin: element, x: offsetX, y: offsetY, duration: 0 })
+      .click()
+      .perform();
+    await delay(actionPauseMs);
+  }
+
+  private async clickViewport(x: number, y: number): Promise<void> {
+    await this.movePointerToViewport(x, y);
+    await delay(actionPauseMs);
+    await this.driver
+      .actions()
+      .move({
+        x,
+        y,
+        origin: Origin.VIEWPORT,
+        duration: 0,
+      })
+      .click()
+      .perform();
+    await delay(actionPauseMs);
+  }
+
+  private async movePointerToElement(
+    element: WebElement,
+    offsetX = 0,
+    offsetY = 0,
   ): Promise<void> {
     await this.revealElement(element);
+    const move = () =>
+      this.withPointerTravel(this.pointAt(element, offsetX, offsetY), () =>
+        this.driver
+          .actions()
+          .move({
+            origin: element,
+            x: offsetX,
+            y: offsetY,
+            duration: 250,
+          })
+          .perform(),
+      );
     try {
-      await this.withPointerTravel(this.pointAt(element), perform);
+      await move();
     } catch (caught) {
       if (!(caught instanceof seleniumError.MoveTargetOutOfBoundsError)) {
         throw caught;
       }
       await this.scrollElementIntoView(element);
-      await this.withPointerTravel(this.pointAt(element), perform);
+      await move();
     }
   }
 
-  protected async pointAt(element: WebElement): Promise<void> {
+  private async movePointerToViewport(x: number, y: number): Promise<void> {
+    await this.withPointerTravel(this.pointAtViewport(x, y), () =>
+      this.driver
+        .actions()
+        .move({
+          x,
+          y,
+          origin: Origin.VIEWPORT,
+          duration: 250,
+        })
+        .perform(),
+    );
+  }
+
+  private async runPointerAction(
+    element: WebElement,
+    perform: () => Promise<void>,
+  ): Promise<void> {
+    await this.movePointerToElement(element);
+    await perform();
+  }
+
+  protected async pointAt(
+    element: WebElement,
+    offsetX = 0,
+    offsetY = 0,
+  ): Promise<void> {
     const point = await this.driver.executeScript<{ x: number; y: number }>(
       screenPointScript,
       element,
+      offsetX,
+      offsetY,
     );
     await pointAtScreen(point.x, point.y);
   }
 
   protected async pointAtViewport(x: number, y: number): Promise<void> {
     const point = await this.driver.executeScript<{ x: number; y: number }>(
-      `const borderX = Math.max(0, (window.outerWidth - window.innerWidth) / 2);
-      const originX = typeof window.mozInnerScreenX === 'number'
-        ? window.mozInnerScreenX
-        : window.screenX + borderX;
-      const originY = typeof window.mozInnerScreenY === 'number'
-        ? window.mozInnerScreenY
-        : window.screenY + Math.max(0, window.outerHeight - window.innerHeight - borderX);
-      return { x: originX + arguments[0], y: originY + arguments[1] };`,
+      screenPointViewportScript,
       x,
       y,
     );
@@ -651,6 +875,7 @@ export abstract class PageAutomation implements E2eAutomation {
           selector: input.selector,
         });
       }
+      await delay(actionPauseMs);
       return;
     }
     const inside = await this.driver.executeScript<boolean>(
@@ -672,6 +897,7 @@ export abstract class PageAutomation implements E2eAutomation {
           }))`,
         );
       }
+      await delay(actionPauseMs);
       return;
     }
     await this.withPointerTravel(this.pointAtViewport(input.x, input.y), () =>
@@ -692,6 +918,7 @@ export abstract class PageAutomation implements E2eAutomation {
         y: input.y,
       });
     }
+    await delay(actionPauseMs);
   }
 
   async pressKey(input: { key: string }): Promise<void> {
@@ -820,18 +1047,21 @@ export abstract class PageAutomation implements E2eAutomation {
 
   async setOptionsHue(input: { value: number }): Promise<void> {
     await this.focusOptions();
-    await this.driver.executeScript(
-      `const slider = document.querySelector('input[type="range"]');
-      if (!slider) throw new Error('hue slider not found');
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        'value',
-      ).set;
-      setter.call(slider, String(arguments[0]));
-      slider.dispatchEvent(new Event('input', { bubbles: true }));
-      slider.dispatchEvent(new Event('change', { bubbles: true }));`,
+    const slider = await this.driver.findElement(By.css('input[type="range"]'));
+    const offset = await this.driver.executeScript<{ x: number; y: number }>(
+      `const slider = arguments[0];
+      const rect = slider.getBoundingClientRect();
+      const min = Number(slider.min || 0);
+      const max = Number(slider.max || 359);
+      const ratio = (arguments[1] - min) / (max - min);
+      return {
+        x: rect.width * ratio - rect.width / 2,
+        y: 0,
+      };`,
+      slider,
       input.value,
     );
+    await this.clickWebElementAtOffset(slider, offset.x, offset.y);
   }
 
   async setOptionsClickBinding(input: {
@@ -842,20 +1072,32 @@ export abstract class PageAutomation implements E2eAutomation {
     for (const key of input.keys) {
       const checkbox = await this.modifierCheckbox(key);
       if (!(await checkbox.isSelected())) {
-        await checkbox.click();
+        await this.clickWebElement(checkbox);
       }
     }
-    await this.driver.executeScript(
-      `const select = document.getElementById('click-action');
-      if (!select) throw new Error('click action select not found');
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLSelectElement.prototype,
-        'value',
-      ).set;
-      setter.call(select, arguments[0]);
-      select.dispatchEvent(new Event('change', { bubbles: true }));`,
+    const select = await this.driver.findElement(By.id('click-action'));
+    const steps = await this.driver.executeScript<number>(
+      `const select = arguments[0];
+      const value = arguments[1];
+      const target = [...select.options].findIndex((option) => option.value === value);
+      if (target < 0) {
+        throw new Error('click action option not found: ' + value);
+      }
+      return target - select.selectedIndex;`,
+      select,
       input.action,
     );
+    await this.clickWebElement(select);
+    if (steps !== 0) {
+      const arrow = steps > 0 ? Key.ARROW_DOWN : Key.ARROW_UP;
+      for (let index = 0; index < Math.abs(steps); index += 1) {
+        await delay(actionPauseMs);
+        await this.driver.actions().sendKeys(arrow).perform();
+      }
+      await delay(actionPauseMs);
+      await this.driver.actions().sendKeys(Key.ENTER).perform();
+      await delay(actionPauseMs);
+    }
   }
 
   async setSyncStorage(input: {
