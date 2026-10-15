@@ -2,7 +2,11 @@
 set -euo pipefail
 
 cache="${HOME}/apt-cache"
-read -r -a package_list <<< "${PACKAGES:?}"
+mapfile -t package_list < <(printf '%s' "${PACKAGES:?}" | tr -s '[:space:]' '\n' | sed '/^$/d' | sort -u)
+if [ "${#package_list[@]}" -eq 0 ]; then
+  echo "packages input is empty" >&2
+  exit 1
+fi
 
 restore_cache() {
   sudo mkdir -p /var/cache/apt/archives/partial /var/lib/apt/lists/partial
