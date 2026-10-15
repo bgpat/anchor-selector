@@ -27,10 +27,7 @@ export const optionsScenarios = [
     description:
       'Moving the Color slider makes the on-screen value match the stored hue.',
     tags: ['options'],
-    steps: [
-      { kind: 'extension.options.open' },
-      { kind: 'options.hue.set', value: hueFromOptions },
-    ],
+    steps: [{ kind: 'options.hue.set', value: hueFromOptions }],
     expect: [
       { kind: 'options.hue.value', value: hueFromOptions },
       {
@@ -47,7 +44,6 @@ export const optionsScenarios = [
       'Setting the shift action to copy the hash stores that binding in the list and in click storage.',
     tags: ['options'],
     steps: [
-      { kind: 'extension.options.open' },
       {
         kind: 'options.clickBinding.set',
         keys: [modifierKey.shift],
@@ -73,7 +69,6 @@ export const optionsScenarios = [
       'After saving a hue in options, the next selection paints the highlight with that hue.',
     tags: ['options', 'selection'],
     steps: [
-      { kind: 'extension.options.open' },
       { kind: 'options.hue.set', value: hueForNextSelection },
       { kind: 'page.goto', path: E2E_FIXTURE_PATH },
       { kind: 'extension.icon.click', button: 'left' },

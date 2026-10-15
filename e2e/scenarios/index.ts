@@ -1,13 +1,17 @@
 import { clickActionScenarios, openNewWindowScenario } from './click-actions';
 import { optionsScenarios } from './options';
 import { selectionCoreScenarios } from './selection.core';
-import { selectionEdgeScenarios } from './selection.edges';
+import {
+  selectionBeforeActionScenarios,
+  selectionSessionScenarios,
+} from './selection.edges';
 import type { E2eScenario } from './types';
 
 export const e2eScenarios = [
   ...selectionCoreScenarios,
-  ...selectionEdgeScenarios,
+  ...selectionBeforeActionScenarios,
   ...clickActionScenarios,
+  ...selectionSessionScenarios,
   ...optionsScenarios,
   openNewWindowScenario,
 ] as const satisfies readonly E2eScenario[];

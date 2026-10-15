@@ -24,6 +24,8 @@ function actionScenario(input: {
   description: string;
   preset: Pick<StoredConfig, 'click'>;
   modifiers?: readonly ModifierKey[];
+  /** Reload the fixture first. Needed when the address bar must start empty. */
+  loadFixture?: boolean;
   expect: readonly E2eAssertion[];
 }): E2eScenario {
   return {
@@ -33,7 +35,9 @@ function actionScenario(input: {
     tags: ['action'],
     steps: [
       { kind: 'extension.storage.sync.set', values: input.preset },
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
+      ...(input.loadFixture
+        ? [{ kind: 'page.goto' as const, path: E2E_FIXTURE_PATH }]
+        : []),
       { kind: 'extension.icon.click', button: 'left' },
       {
         kind: 'page.element.click',
@@ -46,6 +50,21 @@ function actionScenario(input: {
 }
 
 export const clickActionScenarios = [
+  actionScenario({
+    id: 'action.copy-hash',
+    title: 'A click copies only the hash',
+    description: 'The copy-hash binding puts only the hash on the clipboard.',
+    preset: copyHashPreset,
+    expect: [{ kind: 'clipboard.equals', text: headingHash }],
+  }),
+  actionScenario({
+    id: 'action.copy-url',
+    title: 'A click copies the full URL',
+    description:
+      'The copy-url binding puts the page URL, including the chosen hash, on the clipboard.',
+    preset: copyUrlPreset,
+    expect: [{ kind: 'clipboard.matches', pattern: headingUrlPattern }],
+  }),
   actionScenario({
     id: 'action.replace-address-bar',
     title: 'A click replaces the address-bar hash',
@@ -65,26 +84,12 @@ export const clickActionScenarios = [
       'With ctrl bound to open-new-tab, a ctrl-click adds one tab whose URL includes the chosen hash.',
     preset: openNewTabCtrlPreset,
     modifiers: [modifierKey.ctrl],
+    loadFixture: true,
     expect: [
       { kind: 'page.url.hash', value: '' },
       { kind: 'tabs.delta', by: 1 },
       { kind: 'tabs.newest.url.matches', pattern: headingUrlPattern },
     ],
-  }),
-  actionScenario({
-    id: 'action.copy-url',
-    title: 'A click copies the full URL',
-    description:
-      'The copy-url binding puts the page URL, including the chosen hash, on the clipboard.',
-    preset: copyUrlPreset,
-    expect: [{ kind: 'clipboard.matches', pattern: headingUrlPattern }],
-  }),
-  actionScenario({
-    id: 'action.copy-hash',
-    title: 'A click copies only the hash',
-    description: 'The copy-hash binding puts only the hash on the clipboard.',
-    preset: copyHashPreset,
-    expect: [{ kind: 'clipboard.equals', text: headingHash }],
   }),
 ] as const satisfies readonly E2eScenario[];
 
@@ -94,6 +99,7 @@ export const openNewWindowScenario = actionScenario({
   description:
     'The open-new-window binding adds one window whose URL includes the chosen hash.',
   preset: openNewWindowPreset,
+  loadFixture: true,
   expect: [
     { kind: 'windows.delta', by: 1 },
     { kind: 'windows.newest.url.matches', pattern: headingUrlPattern },

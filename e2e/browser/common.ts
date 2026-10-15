@@ -261,9 +261,13 @@ export abstract class PageAutomation implements E2eAutomation {
     await this.switchToWindow(next);
   }
 
+  /**
+   * Run an extension API on the probe tab without holding it. A held switch
+   * fires Firefox `pagehide`, which closes the selection overlay.
+   */
   protected async probe<T>(script: string, ...args: unknown[]): Promise<T> {
     const current = await this.driver.getWindowHandle();
-    await this.switchToWindow(this.probeHandle);
+    await this.driver.switchTo().window(this.probeHandle);
     try {
       const result = (await this.driver.executeAsyncScript(script, ...args)) as
         T | { error: string };
@@ -277,7 +281,10 @@ export abstract class PageAutomation implements E2eAutomation {
       }
       return result as T;
     } finally {
-      await this.switchToWindow(current).catch(() => undefined);
+      await this.driver
+        .switchTo()
+        .window(current)
+        .catch(() => undefined);
     }
   }
 

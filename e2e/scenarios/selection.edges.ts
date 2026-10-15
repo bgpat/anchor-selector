@@ -1,7 +1,6 @@
 import { modifierKey } from '@/util/config';
 import type { E2eScenario } from './types';
 import {
-  E2E_FIXTURE_PATH,
   E2E_FIXTURE_PATH_2,
   fixturePath2Pattern,
   headingHash,
@@ -114,7 +113,6 @@ const modifierActionScenarios = [
         kind: 'extension.storage.sync.set',
         values: modifierCopyHashPreset,
       },
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
       { kind: 'extension.icon.click', button: 'left' },
       {
         kind: 'page.element.click',
@@ -131,7 +129,7 @@ const modifierActionScenarios = [
   },
 ] as const satisfies readonly E2eScenario[];
 
-const selectionSessionScenarios = [
+export const selectionSessionScenarios = [
   {
     id: 'selection.history-back-forward-clears',
     title: 'Navigating and history back or forward clear selection',
@@ -221,8 +219,11 @@ const selectionSessionScenarios = [
   },
 ] as const satisfies readonly E2eScenario[];
 
-export const selectionEdgeScenarios = [
-  ...selectionTargetScenarios,
+const [nonAnchorScenario, ...selectionHashScenarios] = selectionTargetScenarios;
+
+/** Clicks that stay on the fixture. Actions run before the session leaves it. */
+export const selectionBeforeActionScenarios = [
+  nonAnchorScenario,
   ...modifierActionScenarios,
-  ...selectionSessionScenarios,
+  ...selectionHashScenarios,
 ];
