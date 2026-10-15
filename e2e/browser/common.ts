@@ -113,7 +113,7 @@ const originY = typeof window.mozInnerScreenY === 'number'
 return { x: originX + x, y: originY + y };`;
 
 /** Hold each operation and tab switch in the recording. */
-export const actionPauseMs = 1000;
+export const actionPauseMs = 500;
 
 export function delay(ms: number): Promise<void> {
   return new Promise((resolveDelay) => {
