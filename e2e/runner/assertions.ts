@@ -151,9 +151,10 @@ export async function explainAssertion(
     }
     case 'overlay.highlight.strokeChanged': {
       const stroke = await automation.overlayHighlightStroke();
-      return stroke !== baseline.strokeBefore
-        ? null
-        : `highlight stroke is still ${stroke}`;
+      if (stroke == null || stroke === baseline.strokeBefore) {
+        return `highlight stroke is still ${stroke}`;
+      }
+      return null;
     }
     case 'overlay.highlight.alignsWithElement': {
       const highlight = await automation.overlayHighlightBox();

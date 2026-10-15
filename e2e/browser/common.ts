@@ -1194,8 +1194,8 @@ function highlightScript(mode: 'stroke' | 'box'): string {
     const path = document.querySelector(${JSON.stringify(HIGHLIGHT)});
     if (!path) return null;
     const style = getComputedStyle(path);
-    if (Number(style.opacity) === 0 || !path.getAttribute('d')) return null;
     if (${JSON.stringify(mode)} === 'stroke') return style.stroke || null;
+    if (Number(style.opacity) === 0 || !path.getAttribute('d')) return null;
     const box = path.getBBox();
     const matrix = path.getScreenCTM();
     if (matrix == null) return null;
