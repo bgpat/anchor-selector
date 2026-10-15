@@ -35,6 +35,17 @@ const browserWindowsSource = `function browserWindows() {
   const wins = services.wm.getEnumerator('navigator:browser');
   while (wins.hasMoreElements()) found.push(wins.getNext());
   return found;
+}
+function tabHandle(browser) {
+  try {
+    const { NavigableManager } = ChromeUtils.importESModule(
+      'chrome://remote/content/shared/NavigableManager.sys.mjs',
+    );
+    const id = NavigableManager.getIdForBrowser(browser);
+    if (id) return id;
+  } catch (error) {}
+  const context = browser.browsingContext;
+  return context ? String(context.id) : String(browser.outerWindowID);
 }`;
 
 type AddonManifest = {
@@ -175,13 +186,11 @@ export class FirefoxAutomation extends PageAutomation {
     await this.firefox.setContext(Context.CHROME);
     try {
       return await this.firefox.executeScript<string>(
-        `const button = document.getElementById(arguments[0]);
+        `        const widget = document.getElementById(arguments[0]);
+        const button = widget?.querySelector('.unified-extensions-item-action-button')
+          || widget;
         if (!button) return '';
-        const attribute = button.getAttribute('badge');
-        if (attribute) return attribute;
-        const node = button.querySelector('.toolbarbutton-badge');
-        if (!node || node.hidden || node.getClientRects().length === 0) return '';
-        return node.textContent || ''`,
+        return button.getAttribute('badge') || ''`,
         this.actionWidgetId,
       );
     } finally {
@@ -301,16 +310,9 @@ export class FirefoxAutomation extends PageAutomation {
           y: win.mozInnerScreenY + rect.top + rect.height / 2,
         };
       }
-      function matches(browser) {
-        const context = browser.browsingContext;
-        return [
-          context && String(context.id),
-          String(browser.outerWindowID),
-        ].includes(handle);
-      }
       for (const win of browserWindows()) {
         for (const tab of win.gBrowser.tabs) {
-          if (!matches(tab.linkedBrowser)) continue;
+          if (tabHandle(tab.linkedBrowser) !== handle) continue;
           if (part === 'close') {
             const close = tab.querySelector('.tab-close-button');
             const point = close && pointOf(close, win);
@@ -332,12 +334,7 @@ export class FirefoxAutomation extends PageAutomation {
       for (const win of browserWindows()) {
         for (const tab of win.gBrowser.tabs) {
           const browser = tab.linkedBrowser;
-          const context = browser.browsingContext;
-          const ids = [
-            context && String(context.id),
-            String(browser.outerWindowID),
-          ];
-          if (ids.includes(handle)) return browser.currentURI.spec;
+          if (tabHandle(browser) === handle) return browser.currentURI.spec;
         }
       }
       return null;`,
@@ -352,7 +349,7 @@ export class FirefoxAutomation extends PageAutomation {
         for (const tab of win.gBrowser.tabs) {
           const spec = tab.linkedBrowser.currentURI.spec;
           if (spec.includes('options.html') || /[?&]options=/.test(spec)) {
-            return String(tab.linkedBrowser.browsingContext.id);
+            return tabHandle(tab.linkedBrowser);
           }
         }
       }
