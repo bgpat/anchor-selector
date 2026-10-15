@@ -2,6 +2,11 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Browser, Builder, Button, type WebElement } from 'selenium-webdriver';
 import {
+  BrowsingContext,
+  type BrowsingContextInfo,
+} from 'selenium-webdriver/bidi/generated/browsing_context.js';
+import { Script } from 'selenium-webdriver/bidi/generated/script.js';
+import {
   Context,
   Driver as FirefoxDriver,
   Options as FirefoxOptions,
@@ -21,6 +26,7 @@ import {
   installProbePage,
   keepSingleTab,
   prepareTabs,
+  probeExpression,
 } from './common';
 
 /** Stable internal UUID so the probe page URL does not change between runs. */
@@ -546,6 +552,47 @@ export class FirefoxAutomation extends PageAutomation {
       selector,
     );
   }
+
+  protected override async evaluateProbe<T>(
+    script: string,
+    ...args: unknown[]
+  ): Promise<T> {
+    const contexts = await BrowsingContext.create(this.firefox);
+    const tree = await contexts.getTree({});
+    const context = findProbeContext(tree.contexts);
+    if (context == null) {
+      throw new Error('probe browsing context was not found');
+    }
+    const bidi = await Script.create(this.firefox);
+    const evaluated = await bidi.evaluate({
+      expression: probeExpression(script, args),
+      target: { context },
+      awaitPromise: true,
+    });
+    if (evaluated.type !== 'success' || evaluated.result.type !== 'string') {
+      const text =
+        evaluated.type === 'exception'
+          ? evaluated.exceptionDetails.text
+          : 'probe script did not return JSON';
+      throw new Error(text);
+    }
+    return JSON.parse(evaluated.result.value) as T;
+  }
+}
+
+function findProbeContext(nodes: readonly BrowsingContextInfo[]): string | null {
+  for (const node of nodes) {
+    if (node.url.includes('e2e-probe.html')) {
+      return node.context;
+    }
+    if (node.children != null) {
+      const nested = findProbeContext(node.children);
+      if (nested != null) {
+        return nested;
+      }
+    }
+  }
+  return null;
 }
 
 export async function launchFirefox(input: {
@@ -556,6 +603,7 @@ export async function launchFirefox(input: {
   const extensionId = extensionIdFrom(input.extensionDir);
   process.env.MOZ_DISABLE_CONTENT_SANDBOX = '1';
   const options = new FirefoxOptions();
+  options.enableBidi();
   options.setBinary('/usr/bin/firefox');
   options.setPreference('security.sandbox.content.level', 0);
   options.setPreference('intl.locale.requested', 'en-US');

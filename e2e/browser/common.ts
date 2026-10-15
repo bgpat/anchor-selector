@@ -346,31 +346,29 @@ export abstract class PageAutomation implements E2eAutomation {
   }
 
   /**
-   * Run an extension API on the probe tab without holding it. A held switch
-   * fires Firefox `pagehide`, which closes the selection overlay.
+   * Run an extension API in the probe page without selecting its tab.
+   * Selecting it would be a tab switch, and on Firefox that fires `pagehide`.
    */
   protected async probe<T>(script: string, ...args: unknown[]): Promise<T> {
-    const current = await this.driver.getWindowHandle();
-    await this.driver.switchTo().window(this.probeHandle);
-    try {
-      const result = (await this.driver.executeAsyncScript(script, ...args)) as
-        T | { error: string };
-      if (
-        result != null &&
-        typeof result === 'object' &&
-        'error' in result &&
-        typeof result.error === 'string'
-      ) {
-        throw new Error(result.error);
-      }
-      return result as T;
-    } finally {
-      await this.driver
-        .switchTo()
-        .window(current)
-        .catch(() => undefined);
+    const result = await this.evaluateProbe<T | { error: string }>(
+      script,
+      ...args,
+    );
+    if (
+      result != null &&
+      typeof result === 'object' &&
+      'error' in result &&
+      typeof result.error === 'string'
+    ) {
+      throw new Error(result.error);
     }
+    return result as T;
   }
+
+  protected abstract evaluateProbe<T>(
+    script: string,
+    ...args: unknown[]
+  ): Promise<T>;
 
   protected async reopenProbe(): Promise<void> {
     const handles = await this.driver.getAllWindowHandles();
@@ -1187,6 +1185,14 @@ export abstract class PageAutomation implements E2eAutomation {
     }
     return checkbox;
   }
+}
+
+export function probeExpression(script: string, args: readonly unknown[]): string {
+  return `new Promise((resolveProbe) => {
+    const arguments = ${JSON.stringify(args)};
+    arguments.push((value) => resolveProbe(JSON.stringify(value ?? null)));
+    ${script}
+  })`;
 }
 
 function highlightScript(mode: 'stroke' | 'box'): string {

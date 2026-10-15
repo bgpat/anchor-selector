@@ -26,6 +26,7 @@ import {
   keepSingleTab,
   listAtspi,
   prepareTabs,
+  probeExpression,
 } from './common';
 
 type AtspiMatch = {
@@ -682,6 +683,28 @@ export class ChromeAutomation extends PageAutomation {
       text,
     );
   }
+
+  protected override async evaluateProbe<T>(
+    script: string,
+    ...args: unknown[]
+  ): Promise<T> {
+    const target = (await this.pageTargets()).find(
+      (item) =>
+        item.url.includes('e2e-probe.html') && item.webSocketDebuggerUrl != null,
+    );
+    if (target?.webSocketDebuggerUrl == null) {
+      throw new Error('probe target was not found');
+    }
+    const encoded = await evaluateOnTarget<string>(
+      target.webSocketDebuggerUrl,
+      probeExpression(script, args),
+      true,
+    );
+    if (typeof encoded !== 'string') {
+      throw new Error('probe script did not return JSON');
+    }
+    return JSON.parse(encoded) as T;
+  }
 }
 
 function cdpCommand(
@@ -724,6 +747,7 @@ function cdpCommand(
 function evaluateOnTarget<T>(
   webSocketUrl: string,
   expression: string,
+  awaitPromise = false,
 ): Promise<T> {
   return new Promise((resolve, reject) => {
     const socket = new WebSocket(webSocketUrl);
@@ -747,6 +771,7 @@ function evaluateOnTarget<T>(
           method: 'Runtime.evaluate',
           params: {
             expression,
+            awaitPromise,
             returnByValue: true,
           },
         }),
