@@ -64,7 +64,7 @@
     "stylelint-order": "8.1.2",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-7": "npm:typescript@7.0.2",
-    "web-ext": "10.7.0",
+    "web-ext": "10.8.0",
     "web-ext-submit": "7.8.0",
     "wxt": "0.21.4"
   },
