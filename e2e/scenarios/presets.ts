@@ -12,9 +12,6 @@ export const hueWhileSelecting = 120;
 /** Hue chosen from the options page and stored. */
 export const hueFromOptions = 42;
 
-/** Hue that the next selection session should paint. */
-export const hueForNextSelection = 200;
-
 export function clickPreset(
   action: ClickAction['action'],
   keys: readonly ModifierKey[],

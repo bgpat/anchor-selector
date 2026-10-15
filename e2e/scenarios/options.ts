@@ -1,7 +1,7 @@
 import { clickActionName, modifierKey } from '@/util/config';
 import type { E2eScenario } from './types';
 import { E2E_FIXTURE_PATH, headingSelector } from './fixture';
-import { hueForNextSelection, hueFromOptions } from './presets';
+import { hueFromOptions } from './presets';
 
 /** Matches `formatBinding` in `src/entrypoints/options/App.tsx`. */
 const shiftCopyHashBindingLabel = '[shift ⇧]: Copy only hash';
@@ -19,22 +19,6 @@ export const optionsScenarios = [
       { kind: 'page.heading.visible', name: 'Anchor Selector', level: 1 },
       { kind: 'page.heading.visible', name: 'Click', level: 2 },
       { kind: 'page.heading.visible', name: 'Color', level: 2 },
-    ],
-  },
-  {
-    id: 'options.hue-persists',
-    title: 'Changing the options color is saved',
-    description:
-      'Moving the Color slider makes the on-screen value match the stored hue.',
-    tags: ['options'],
-    steps: [{ kind: 'options.hue.set', value: hueFromOptions }],
-    expect: [
-      { kind: 'options.hue.value', value: hueFromOptions },
-      {
-        kind: 'extension.storage.sync.equals',
-        key: 'hue',
-        value: hueFromOptions,
-      },
     ],
   },
   {
@@ -63,17 +47,28 @@ export const optionsScenarios = [
     ],
   },
   {
-    id: 'options.hue-applies-on-next-selection',
-    title: 'A color saved in options applies to the next selection',
+    id: 'options.hue-persists',
+    title: 'Changing the options color is saved and the next selection uses it',
     description:
-      'After saving a hue in options, the next selection paints the highlight with that hue.',
+      'Moving the Color slider stores that hue, and the next selection paints the highlight with it.',
     tags: ['options', 'selection'],
     steps: [
-      { kind: 'options.hue.set', value: hueForNextSelection },
+      {
+        kind: 'options.hue.set',
+        value: hueFromOptions,
+        expect: [
+          { kind: 'options.hue.value', value: hueFromOptions },
+          {
+            kind: 'extension.storage.sync.equals',
+            key: 'hue',
+            value: hueFromOptions,
+          },
+        ],
+      },
       { kind: 'page.goto', path: E2E_FIXTURE_PATH },
       { kind: 'extension.icon.click', button: 'left' },
       { kind: 'page.pointer.move', selector: headingSelector },
     ],
-    expect: [{ kind: 'overlay.highlight.hue', hue: hueForNextSelection }],
+    expect: [{ kind: 'overlay.highlight.hue', hue: hueFromOptions }],
   },
 ] as const satisfies readonly E2eScenario[];
