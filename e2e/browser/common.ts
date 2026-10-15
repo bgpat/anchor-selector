@@ -68,6 +68,9 @@ const originY = typeof window.mozInnerScreenY === 'number'
   : window.screenY + Math.max(0, window.outerHeight - window.innerHeight - borderX);
 return { x: originX + x, y: originY + y };`;
 
+/** Hold each operation and tab switch in the recording. */
+export const actionPauseMs = 1000;
+
 export function delay(ms: number): Promise<void> {
   return new Promise((resolveDelay) => {
     setTimeout(resolveDelay, ms);
@@ -222,7 +225,22 @@ export abstract class PageAutomation implements E2eAutomation {
   }
 
   protected async focusFixture(): Promise<void> {
-    await this.driver.switchTo().window(this.fixtureHandle);
+    await this.switchToWindow(this.fixtureHandle);
+  }
+
+  /** Leave the new tab on screen long enough to see which one was selected. */
+  protected async switchToWindow(handle: string): Promise<void> {
+    let current: string | undefined;
+    try {
+      current = await this.driver.getWindowHandle();
+    } catch {
+      current = undefined;
+    }
+    if (current === handle) {
+      return;
+    }
+    await this.driver.switchTo().window(handle);
+    await delay(actionPauseMs);
   }
 
   /** Selenium keeps the closed tab selected after `driver.close()`. */
@@ -240,12 +258,12 @@ export abstract class PageAutomation implements E2eAutomation {
     if (next == null) {
       throw new Error('Browser has no open windows');
     }
-    await this.driver.switchTo().window(next);
+    await this.switchToWindow(next);
   }
 
   protected async probe<T>(script: string, ...args: unknown[]): Promise<T> {
     const current = await this.driver.getWindowHandle();
-    await this.driver.switchTo().window(this.probeHandle);
+    await this.switchToWindow(this.probeHandle);
     try {
       const result = (await this.driver.executeAsyncScript(script, ...args)) as
         T | { error: string };
@@ -259,10 +277,7 @@ export abstract class PageAutomation implements E2eAutomation {
       }
       return result as T;
     } finally {
-      await this.driver
-        .switchTo()
-        .window(current)
-        .catch(() => undefined);
+      await this.switchToWindow(current).catch(() => undefined);
     }
   }
 
@@ -270,11 +285,13 @@ export abstract class PageAutomation implements E2eAutomation {
     const handles = await this.driver.getAllWindowHandles();
     if (!handles.includes(this.probeHandle)) {
       await this.driver.switchTo().newWindow('tab');
+      await delay(actionPauseMs);
       this.probeHandle = await this.driver.getWindowHandle();
     } else {
-      await this.driver.switchTo().window(this.probeHandle);
+      await this.switchToWindow(this.probeHandle);
     }
     await this.driver.get(this.probeUrl);
+    await delay(actionPauseMs);
     await this.focusFixture();
   }
 
@@ -286,16 +303,16 @@ export abstract class PageAutomation implements E2eAutomation {
     const current = await this.driver.getWindowHandle();
     const handles = await this.driver.getAllWindowHandles();
     for (const handle of handles) {
-      await this.driver.switchTo().window(handle);
+      await this.switchToWindow(handle);
       const url = await this.driver.getCurrentUrl();
       if (this.isOptionsUrl(url)) {
         this.optionsHandle = handle;
-        await this.driver.switchTo().window(current);
+        await this.switchToWindow(current);
         return;
       }
     }
     this.optionsHandle = null;
-    await this.driver.switchTo().window(current);
+    await this.switchToWindow(current);
   }
 
   private async optionsHeadingPresent(): Promise<boolean> {
@@ -346,7 +363,7 @@ export abstract class PageAutomation implements E2eAutomation {
     if (this.optionsHandle == null) {
       throw new Error('Options page is not open');
     }
-    await this.driver.switchTo().window(this.optionsHandle);
+    await this.switchToWindow(this.optionsHandle);
     await this.waitFor(async () => {
       if (!(await this.enterOptionsFrame())) {
         return false;
@@ -823,7 +840,7 @@ export abstract class PageAutomation implements E2eAutomation {
         continue;
       }
       seen.add(handle);
-      await this.driver.switchTo().window(handle);
+      await this.switchToWindow(handle);
       if (handle === this.optionsHandle) {
         if (!(await this.enterOptionsFrame())) {
           continue;

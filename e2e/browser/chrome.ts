@@ -17,6 +17,7 @@ import {
   EXTENSION_NAME,
   PageAutomation,
   closeDriver,
+  actionPauseMs,
   configureDriver,
   delay,
   fitWindow,
@@ -210,7 +211,7 @@ export class ChromeAutomation extends PageAutomation {
         await this.driver.actions().click(options).perform();
         await delay(400);
         return false;
-      }, 'options page did not open from chrome://extensions');
+      }, 'options page did not open from chrome://extensions', 60000);
     });
   }
 
@@ -481,6 +482,7 @@ export class ChromeAutomation extends PageAutomation {
   private async withExtensionsPage<T>(action: () => Promise<T>): Promise<T> {
     await this.preparePage();
     await this.driver.switchTo().newWindow('tab');
+    await delay(actionPauseMs);
     const extensionsHandle = await this.driver.getWindowHandle();
     try {
       await this.driver.get('chrome://extensions');
@@ -488,11 +490,12 @@ export class ChromeAutomation extends PageAutomation {
         async () => (await this.extensionItem()) != null,
         'chrome://extensions did not list the extension',
       );
+      await delay(actionPauseMs);
       return await action();
     } finally {
       const handles = await this.driver.getAllWindowHandles();
       if (handles.includes(extensionsHandle)) {
-        await this.driver.switchTo().window(extensionsHandle);
+        await this.switchToWindow(extensionsHandle);
         const url = await this.driver.getCurrentUrl();
         if (!this.isOptionsUrl(url)) {
           await this.driver.close();

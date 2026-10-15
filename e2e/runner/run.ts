@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { stepKindMethod } from '../automation/contract';
 import { launchChrome } from '../browser/chrome';
-import { extensionOutput, type BrowserName } from '../browser/common';
+import { actionPauseMs, extensionOutput, type BrowserName } from '../browser/common';
 import { launchFirefox } from '../browser/firefox';
 import { e2eScenarios } from '../scenarios/index';
 import type { E2eAssertion, E2eScenario, E2eStep } from '../scenarios/types';
@@ -14,7 +14,6 @@ import type { BrowserReport, ScenarioReport } from './report';
 import './bun-globals';
 
 const EVENTUAL_TIMEOUT_MS = 2500;
-const ACTION_PAUSE_MS = 1000;
 const SCENARIO_TIMEOUT_MS = 180000;
 
 function flag(name: string): string | undefined {
@@ -99,9 +98,7 @@ async function runScenario(
     automation.noteScenario({ id: scenario.id, title: scenario.title });
   await showScenario();
   for (const [index, step] of scenario.steps.entries()) {
-    if (index > 0) {
-      await pause(ACTION_PAUSE_MS);
-    }
+    await pause(actionPauseMs);
     const watchesStroke = step.expect?.some(
       (assertion) => assertion.kind === 'overlay.highlight.strokeChanged',
     );
@@ -110,6 +107,7 @@ async function runScenario(
     }
     await dispatch(automation, step);
     await showScenario();
+    await pause(actionPauseMs);
     await checkAll(
       step.expect,
       automation,
@@ -119,7 +117,7 @@ async function runScenario(
   }
   // Hold the screen the last step left behind. Later checks may switch back
   // to the fixture tab, which would hide a newly opened tab or window.
-  await pause(ACTION_PAUSE_MS);
+  await pause(actionPauseMs);
   // Scenario-level expectations describe the state after the last step.
   // Earlier steps, such as opening the fixture, do not satisfy them yet.
   await checkAll(scenario.expect, automation, baseline, 'scenario');
@@ -271,7 +269,7 @@ async function runRecording(
     } catch (error) {
       failure = errorMessage(error);
       console.error(failure);
-      await pause(ACTION_PAUSE_MS);
+      await pause(actionPauseMs);
       const pngPath = join(resultsDir, `${scenario.id}.png`);
       try {
         await automation.capturePng(pngPath);

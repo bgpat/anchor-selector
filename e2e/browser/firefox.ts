@@ -13,6 +13,7 @@ import {
   EXTENSION_NAME,
   PageAutomation,
   closeDriver,
+  actionPauseMs,
   configureDriver,
   delay,
   fitWindow,
@@ -149,11 +150,13 @@ export class FirefoxAutomation extends PageAutomation {
     // enter. The preferences action reveals that page; drive the same URL.
     const optionsUrl = await this.readAddonOptionsUrl();
     await this.firefox.switchTo().newWindow('tab');
+    await delay(actionPauseMs);
     await this.firefox.get(optionsUrl);
+    await delay(actionPauseMs);
     await this.waitFor(async () => {
       await this.rememberOptionsTab();
       return this.optionsHandle != null;
-    }, 'options page did not open from about:addons');
+    }, 'options page did not open from about:addons', 60000);
   }
 
   async readExtensionBadgeText(): Promise<string> {
@@ -285,6 +288,7 @@ export class FirefoxAutomation extends PageAutomation {
   private async withAddonsPage<T>(action: () => Promise<T>): Promise<T> {
     await this.preparePage();
     await this.firefox.switchTo().newWindow('tab');
+    await delay(actionPauseMs);
     const addonsHandle = await this.firefox.getWindowHandle();
     try {
       await this.firefox.get('about:addons');
@@ -298,11 +302,12 @@ export class FirefoxAutomation extends PageAutomation {
         const message = error instanceof Error ? error.message : String(error);
         throw new Error(`${message}\n${dump}`);
       }
+      await delay(actionPauseMs);
       return await action();
     } finally {
       const handles = await this.firefox.getAllWindowHandles();
       if (handles.includes(addonsHandle)) {
-        await this.firefox.switchTo().window(addonsHandle);
+        await this.switchToWindow(addonsHandle);
         const url = await this.firefox.getCurrentUrl();
         if (!this.isOptionsUrl(url)) {
           await this.firefox.close();
