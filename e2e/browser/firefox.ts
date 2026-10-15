@@ -184,26 +184,34 @@ export class FirefoxAutomation extends PageAutomation {
   async readExtensionBadgeText(): Promise<string> {
     await this.preparePage();
     const url = await this.driver.getCurrentUrl();
-    return this.probe<string>(
-      `const done = arguments[arguments.length - 1];
-      const url = arguments[0];
-      const ext = globalThis.browser && globalThis.browser.tabs
-        ? globalThis.browser
-        : globalThis.chrome;
-      ext.tabs.query({}).then((tabs) => {
-        const match = tabs.find((tab) => tab.url === url);
-        if (!match || match.id == null) {
-          done('');
-          return;
-        }
-        const action = ext.action || ext.browserAction;
-        return action.getBadgeText({ tabId: match.id }).then(
-          (text) => done(text || ''),
-          (error) => done({ error: String(error) }),
-        );
-      }).catch((error) => done({ error: String(error) }));`,
-      url,
-    );
+    try {
+      return await this.probe<string>(
+        `const done = arguments[arguments.length - 1];
+        const url = arguments[0];
+        const ext = globalThis.browser && globalThis.browser.tabs
+          ? globalThis.browser
+          : globalThis.chrome;
+        ext.tabs.query({}).then((tabs) => {
+          const match = tabs.find((tab) => tab.url === url);
+          if (!match || match.id == null) {
+            done('');
+            return;
+          }
+          const action = ext.action || ext.browserAction;
+          return action.getBadgeText({ tabId: match.id }).then(
+            (text) => done(text || ''),
+            (error) => done({ error: String(error) }),
+          );
+        }).catch((error) => done({ error: String(error) }));`,
+        url,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message === 'extension background was not found') {
+        return '';
+      }
+      throw error;
+    }
   }
 
   async readExtensionEnabled(): Promise<boolean> {
