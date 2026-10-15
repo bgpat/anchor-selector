@@ -44,47 +44,49 @@ function gh(args: string[]): string {
   return result.stdout;
 }
 
-function section(report: BrowserReport, videoPath: string | null): string {
-  const counts = {
-    passed: 0,
-    failed: 0,
-    skipped: 0,
-  };
-  const rows: string[] = [];
-  const errors: string[] = [];
+function countsOf(report: BrowserReport): {
+  passed: number;
+  failed: number;
+  skipped: number;
+} {
+  const counts = { passed: 0, failed: 0, skipped: 0 };
   for (const scenario of report.scenarios) {
     counts[scenario.status] += 1;
+  }
+  return counts;
+}
+
+function tally(report: BrowserReport): string {
+  const counts = countsOf(report);
+  return `${counts.passed} passed, ${counts.failed} failed, ${counts.skipped} skipped`;
+}
+
+function section(report: BrowserReport): string {
+  const rows: string[] = [];
+  const errors = new Map<string, string[]>();
+  for (const scenario of report.scenarios) {
     const seconds = (scenario.durationMs / 1000).toFixed(1);
     rows.push(
       `| ${scenario.status} | \`${scenario.id}\` ${scenario.title} | ${seconds}s |`,
     );
-    if (scenario.error != null) {
-      errors.push(
-        `### \`${scenario.id}\``,
-        '',
-        scenario.title,
-        '',
-        '```',
-        scenario.error,
-        '```',
-        '',
-      );
+    if (scenario.error == null) {
+      continue;
     }
+    const ids = errors.get(scenario.error) ?? [];
+    ids.push(`\`${scenario.id}\``);
+    errors.set(scenario.error, ids);
   }
   const lines = [
-    `## E2E ${report.browser}`,
-    '',
-    `${counts.passed} passed, ${counts.failed} failed, ${counts.skipped} skipped`,
+    `### ${report.browser}`,
     '',
     '| Result | Scenario | Time |',
     '| --- | --- | --- |',
     ...rows,
     '',
   ];
-  if (videoPath != null) {
-    lines.push(`![${report.browser}](${videoPath})`, '');
+  for (const [error, ids] of errors) {
+    lines.push(`#### ${ids.join(', ')}`, '', '```', error, '```', '');
   }
-  lines.push(...errors);
   return `${lines.join('\n')}\n`;
 }
 
@@ -192,6 +194,7 @@ function main() {
     return;
   }
   const login = gh(['api', 'user', '--jq', '.login']).trim();
+  const lines = [marker, ''];
   const sections: string[] = [];
   const videos: string[] = [];
   for (const { report, dir } of reports) {
@@ -199,13 +202,16 @@ function main() {
       (scenario) => scenario.video != null,
     )?.video;
     const videoPath = videoName == null ? null : join(dir, videoName);
+    lines.push(`## E2E ${report.browser}`, '', tally(report), '');
     if (videoPath != null) {
       videos.push(videoPath);
+      lines.push(`![${report.browser}](${videoPath})`, '');
     }
-    sections.push(section(report, videoPath));
+    sections.push(section(report));
   }
+  lines.push(...sections);
   const bodyPath = join(mkdtempSync(join(tmpdir(), 'e2e-comment-')), 'body.md');
-  writeFileSync(bodyPath, `${marker}\n\n${sections.join('\n')}`);
+  writeFileSync(bodyPath, `${lines.join('\n')}\n`);
   hideOwnComments(pr, login);
   const args = ['pr', 'comment', String(pr), '--body-file', bodyPath];
   for (const video of videos) {
