@@ -347,7 +347,7 @@ export class ChromeAutomation extends PageAutomation {
     await delay(200);
     try {
       await atspiClick({
-        name: 'Extensions menu',
+        name: 'Extensions',
         role: 'push button',
         exact: true,
         timeout: 5,
@@ -356,8 +356,8 @@ export class ChromeAutomation extends PageAutomation {
       await atspiClick({
         name: `See more options for ${EXTENSION_NAME}`,
         exact: true,
-        timeout: 3,
-      });
+        timeout: 2,
+      }).catch(() => undefined);
       await delay(300);
       await atspiClick({
         name: 'Pin',
@@ -370,7 +370,7 @@ export class ChromeAutomation extends PageAutomation {
       // The extensions menu can stay open and report the pinned icon at 0x0.
       if ((await this.toolbarExtensionButton(1)) == null) {
         await atspiClick({
-          name: 'Extensions menu',
+          name: 'Extensions',
           role: 'push button',
           exact: true,
           timeout: 2,
