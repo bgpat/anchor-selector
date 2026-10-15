@@ -379,7 +379,7 @@ export class ChromeAutomation extends PageAutomation {
       }
     } catch (error) {
       const dump = await atspiDump();
-      writeFileSync('e2e-results/chrome/atspi-dump.txt', dump);
+      writeFileSync('test-results/chrome/atspi-dump.txt', dump);
       const message = error instanceof Error ? error.message : String(error);
       const buttons = dump
         .split('\n')
@@ -393,7 +393,7 @@ export class ChromeAutomation extends PageAutomation {
     }
     if ((await this.toolbarExtensionButton(3)) == null) {
       const dump = await atspiDump();
-      writeFileSync('e2e-results/chrome/atspi-dump.txt', dump);
+      writeFileSync('test-results/chrome/atspi-dump.txt', dump);
       throw new Error(`Pinned ${EXTENSION_NAME} button was not found`);
     }
   }

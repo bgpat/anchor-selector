@@ -145,7 +145,7 @@ function deleteOwnComments(pr: number, marker: string, login: string) {
 
 function main() {
   const pr = Number(flag('--pr'));
-  const resultsDir = resolve(flag('--results') ?? 'e2e-results');
+  const resultsDir = resolve(flag('--results') ?? 'test-results');
   if (!Number.isInteger(pr) || pr <= 0) {
     throw new Error('Pass --pr <number>');
   }

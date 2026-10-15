@@ -171,7 +171,7 @@ async function main(): Promise<void> {
     },
   });
   const fixtureOrigin = `http://127.0.0.1:${server.port}`;
-  const resultsDir = resolve(process.cwd(), 'e2e-results', browserName);
+  const resultsDir = resolve(process.cwd(), 'test-results', browserName);
   mkdirSync(resultsDir, { recursive: true });
   const report: BrowserReport = { browser: browserName, scenarios: [] };
 

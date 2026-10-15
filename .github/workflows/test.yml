@@ -88,7 +88,7 @@ jobs:
         if: always()
         with:
           name: e2e-${{ matrix.browser }}
-          path: e2e-results/${{ matrix.browser }}
+          path: test-results/${{ matrix.browser }}
           if-no-files-found: ignore
 
   e2e-comment:
@@ -106,8 +106,8 @@ jobs:
         continue-on-error: true
         with:
           pattern: e2e-*
-          path: e2e-results
+          path: test-results
       - name: Comment with recordings
         env:
           GH_TOKEN: ${{ secrets.PR_COMMENT_TOKEN }}
-        run: bun scripts/e2e-comment.ts --pr "${{ github.event.pull_request.number }}" --results e2e-results
+        run: bun scripts/e2e-comment.ts --pr "${{ github.event.pull_request.number }}" --results test-results
