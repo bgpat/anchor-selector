@@ -113,15 +113,6 @@ jobs:
         with:
           pattern: e2e-*
           path: e2e-results
-      - name: Ensure GitHub CLI can attach media
-        run: |
-          if gh pr comment --help | grep -q -- --attach; then
-            exit 0
-          fi
-          tag=$(curl -fsSL https://api.github.com/repos/cli/cli/releases/latest | jq -r .tag_name)
-          curl -fsSL -o /tmp/gh.tgz "https://github.com/cli/cli/releases/download/${tag}/gh_${tag#v}_linux_amd64.tar.gz"
-          tar -C /tmp -xzf /tmp/gh.tgz
-          sudo mv /tmp/gh_*/bin/gh /usr/local/bin/gh
       - name: Comment with recordings
         env:
           GH_TOKEN: ${{ secrets.PR_COMMENT_TOKEN }}
