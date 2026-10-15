@@ -129,10 +129,6 @@ function pause(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function videoName(id: string): string {
-  return `${id.replace(/[^a-z0-9._-]+/gi, '_')}.mp4`;
-}
-
 async function main(): Promise<void> {
   const browserName = flag('--browser');
   if (browserName !== 'chrome' && browserName !== 'firefox') {
@@ -183,12 +179,9 @@ async function main(): Promise<void> {
   };
 
   try {
-    for (const group of recordingsOf(selected)) {
-      report.scenarios.push(
-        ...(await runRecording(browserName, group, fixtureOrigin, resultsDir)),
-      );
-      writeReport();
-    }
+    report.scenarios.push(
+      ...(await runRecording(browserName, selected, fixtureOrigin, resultsDir)),
+    );
   } finally {
     writeReport();
     server.stop(true);
@@ -203,22 +196,6 @@ async function main(): Promise<void> {
   if (failed.length > 0) {
     process.exitCode = 1;
   }
-}
-
-function recordingsOf(scenarios: readonly E2eScenario[]): E2eScenario[][] {
-  const order: string[] = [];
-  const groups = new Map<string, E2eScenario[]>();
-  for (const scenario of scenarios) {
-    const id = scenario.recording ?? scenario.id;
-    const group = groups.get(id);
-    if (group == null) {
-      groups.set(id, [scenario]);
-      order.push(id);
-      continue;
-    }
-    group.push(scenario);
-  }
-  return order.map((id) => groups.get(id) ?? []);
 }
 
 function skippedReport(scenario: E2eScenario): ScenarioReport {
@@ -240,8 +217,7 @@ async function runRecording(
   fixtureOrigin: string,
   resultsDir: string,
 ): Promise<ScenarioReport[]> {
-  const recording = scenarios[0]?.recording ?? scenarios[0]?.id ?? 'e2e';
-  const video = videoName(recording);
+  const video = `${browserName}.mp4`;
   const videoPath = join(resultsDir, video);
   const runnable = scenarios.some((scenario) => scenario.skipUntil == null);
   if (!runnable) {

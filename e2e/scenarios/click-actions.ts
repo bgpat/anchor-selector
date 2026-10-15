@@ -31,7 +31,6 @@ function actionScenario(input: {
     title: input.title,
     description: input.description,
     tags: ['action'],
-    recording: 'actions',
     steps: [
       { kind: 'extension.storage.sync.set', values: input.preset },
       { kind: 'page.goto', path: E2E_FIXTURE_PATH },
@@ -87,15 +86,16 @@ export const clickActionScenarios = [
     preset: copyHashPreset,
     expect: [{ kind: 'clipboard.equals', text: headingHash }],
   }),
-  actionScenario({
-    id: 'action.open-new-window',
-    title: 'A click opens a new window',
-    description:
-      'The open-new-window binding adds one window whose URL includes the chosen hash.',
-    preset: openNewWindowPreset,
-    expect: [
-      { kind: 'windows.delta', by: 1 },
-      { kind: 'windows.newest.url.matches', pattern: headingUrlPattern },
-    ],
-  }),
 ] as const satisfies readonly E2eScenario[];
+
+export const openNewWindowScenario = actionScenario({
+  id: 'action.open-new-window',
+  title: 'A click opens a new window',
+  description:
+    'The open-new-window binding adds one window whose URL includes the chosen hash.',
+  preset: openNewWindowPreset,
+  expect: [
+    { kind: 'windows.delta', by: 1 },
+    { kind: 'windows.newest.url.matches', pattern: headingUrlPattern },
+  ],
+});

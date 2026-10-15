@@ -1,4 +1,4 @@
-import { clickActionScenarios } from './click-actions';
+import { clickActionScenarios, openNewWindowScenario } from './click-actions';
 import { optionsScenarios } from './options';
 import { selectionCoreScenarios } from './selection.core';
 import { selectionEdgeScenarios } from './selection.edges';
@@ -9,6 +9,7 @@ export const e2eScenarios = [
   ...selectionEdgeScenarios,
   ...clickActionScenarios,
   ...optionsScenarios,
+  openNewWindowScenario,
 ] as const satisfies readonly E2eScenario[];
 
 const ids = e2eScenarios.map((scenario) => scenario.id);

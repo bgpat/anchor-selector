@@ -1,4 +1,3 @@
-import { withRecording } from './record';
 import type { E2eScenario } from './types';
 import {
   E2E_FIXTURE_PATH,
@@ -10,7 +9,7 @@ import {
 } from './fixture';
 import { hueWhileSelecting } from './presets';
 
-export const selectionCoreScenarios = withRecording('selection', [
+export const selectionCoreScenarios = [
   {
     id: 'selection.toolbar-opens-overlay',
     title: 'Left-click the toolbar icon to start selecting',
@@ -147,4 +146,4 @@ export const selectionCoreScenarios = withRecording('selection', [
       { kind: 'extension.badge.text', text: '' },
     ],
   },
-] as const satisfies readonly E2eScenario[]);
+] as const satisfies readonly E2eScenario[];

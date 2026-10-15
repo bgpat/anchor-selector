@@ -2,12 +2,11 @@ import { clickActionName, modifierKey } from '@/util/config';
 import type { E2eScenario } from './types';
 import { E2E_FIXTURE_PATH, headingSelector } from './fixture';
 import { hueForNextSelection, hueFromOptions } from './presets';
-import { withRecording } from './record';
 
 /** Matches `formatBinding` in `src/entrypoints/options/App.tsx`. */
 const shiftCopyHashBindingLabel = '[shift ⇧]: Copy only hash';
 
-export const optionsScenarios = withRecording('options', [
+export const optionsScenarios = [
   {
     id: 'options.opens-from-extension',
     title: 'Opening options from the extension shows the settings headings',
@@ -82,4 +81,4 @@ export const optionsScenarios = withRecording('options', [
     ],
     expect: [{ kind: 'overlay.highlight.hue', hue: hueForNextSelection }],
   },
-] as const satisfies readonly E2eScenario[]);
+] as const satisfies readonly E2eScenario[];

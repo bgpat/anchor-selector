@@ -207,11 +207,6 @@ export type E2eScenario = {
    * capability exists.
    */
   skipUntil?: string;
-  /**
-   * Scenarios with the same id share one browser session and one video.
-   * Omit it to record this scenario by itself.
-   */
-  recording?: string;
   steps: readonly E2eStep[];
   /** Assertions evaluated after every step. */
   expect?: readonly E2eAssertion[];

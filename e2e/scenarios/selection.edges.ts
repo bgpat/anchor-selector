@@ -15,7 +15,6 @@ import {
   plainSelector,
 } from './fixture';
 import { modifierCopyHashPreset } from './presets';
-import { withRecording } from './record';
 
 const selectionOff = [
   { kind: 'overlay.visible', visible: false },
@@ -223,7 +222,7 @@ const selectionSessionScenarios = [
 ] as const satisfies readonly E2eScenario[];
 
 export const selectionEdgeScenarios = [
-  ...withRecording('selection', selectionTargetScenarios),
-  ...withRecording('actions', modifierActionScenarios),
-  ...withRecording('selection', selectionSessionScenarios),
+  ...selectionTargetScenarios,
+  ...modifierActionScenarios,
+  ...selectionSessionScenarios,
 ];
