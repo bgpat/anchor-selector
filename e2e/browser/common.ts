@@ -573,7 +573,24 @@ export abstract class PageAutomation implements E2eAutomation {
   }
 
   protected async focusAddressBarForTyping(): Promise<void> {
-    // Browsers focus the address field on click; nothing else to do by default.
+    await execFileAsync('xdotool', ['key', '--clearmodifiers', 'ctrl+l']);
+    await delay(actionPauseMs);
+  }
+
+  protected navigationUrlMatches(current: string, expected: string): boolean {
+    if (current === expected || current.startsWith(expected)) {
+      return true;
+    }
+    if (current.startsWith(`${expected}#`)) {
+      return true;
+    }
+    try {
+      const left = new URL(current);
+      const right = new URL(expected);
+      return left.origin === right.origin && left.pathname === right.pathname;
+    } catch {
+      return false;
+    }
   }
 
   protected async openUrlInAddressBar(url: string): Promise<void> {
@@ -581,10 +598,11 @@ export abstract class PageAutomation implements E2eAutomation {
     await this.clickAddressBar();
     await delay(actionPauseMs);
     await this.focusAddressBarForTyping();
-    await typeAtKeyboard(url, { submit: true, selectAll: true });
+    await typeAtKeyboard(url, { submit: true, selectAll: false });
     await delay(actionPauseMs);
     await this.waitFor(
-      async () => (await this.driver.getCurrentUrl()).startsWith(url),
+      async () =>
+        this.navigationUrlMatches(await this.driver.getCurrentUrl(), url),
       'address bar navigation did not finish',
       30000,
     );

@@ -81,6 +81,7 @@ export class FirefoxAutomation extends PageAutomation {
   }
 
   protected override async focusAddressBarForTyping(): Promise<void> {
+    await super.focusAddressBarForTyping();
     await this.inChrome(
       `const input = document.getElementById('urlbar-input')
         || document.querySelector('#urlbar input');
