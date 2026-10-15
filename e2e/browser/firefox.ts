@@ -2,11 +2,6 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Browser, Builder, Button, type WebElement } from 'selenium-webdriver';
 import {
-  BrowsingContext,
-  type BrowsingContextInfo,
-} from 'selenium-webdriver/bidi/generated/browsing_context.js';
-import { Script } from 'selenium-webdriver/bidi/generated/script.js';
-import {
   Context,
   Driver as FirefoxDriver,
   Options as FirefoxOptions,
@@ -26,7 +21,6 @@ import {
   installProbePage,
   keepSingleTab,
   prepareTabs,
-  probeExpression,
 } from './common';
 
 /** Stable internal UUID so the probe page URL does not change between runs. */
@@ -172,10 +166,11 @@ export class FirefoxAutomation extends PageAutomation {
       return await this.firefox.executeScript<string>(
         `const button = document.getElementById(arguments[0]);
         if (!button) return '';
-        const badge = button.getAttribute('badge')
-          || button.querySelector('.toolbarbutton-badge')?.textContent
-          || '';
-        return badge`,
+        const attribute = button.getAttribute('badge');
+        if (attribute) return attribute;
+        const node = button.querySelector('.toolbarbutton-badge');
+        if (!node || node.hidden || node.getClientRects().length === 0) return '';
+        return node.textContent || ''`,
         this.actionWidgetId,
       );
     } finally {
@@ -376,14 +371,17 @@ export class FirefoxAutomation extends PageAutomation {
 
   protected override async openTabByMouse(): Promise<void> {
     const point = await this.inChrome<{ x: number; y: number } | null>(
-      `const button = document.getElementById('new-tab-button')
-        || document.getElementById('tabs-newtab-button');
-      if (!button) return null;
-      const rect = button.getBoundingClientRect();
-      return {
-        x: window.mozInnerScreenX + rect.left + rect.width / 2,
-        y: window.mozInnerScreenY + rect.top + rect.height / 2,
-      };`,
+      `function pointOf(button) {
+        if (!button || button.hidden) return null;
+        const rect = button.getBoundingClientRect();
+        if (rect.width < 4 || rect.height < 4) return null;
+        return {
+          x: window.mozInnerScreenX + rect.left + rect.width / 2,
+          y: window.mozInnerScreenY + rect.top + rect.height / 2,
+        };
+      }
+      return pointOf(document.getElementById('tabs-newtab-button'))
+        || pointOf(document.getElementById('new-tab-button'));`,
     );
     if (point == null) {
       throw new Error('Firefox new-tab button was not found');
@@ -553,46 +551,65 @@ export class FirefoxAutomation extends PageAutomation {
     );
   }
 
+  /**
+   * Run the probe script in the extension background. That page is not a tab,
+   * so the selected tab stays where the pointer left it.
+   */
   protected override async evaluateProbe<T>(
     script: string,
     ...args: unknown[]
   ): Promise<T> {
-    const contexts = await BrowsingContext.create(this.firefox);
-    const tree = await contexts.getTree({});
-    const context = findProbeContext(tree.contexts);
-    if (context == null) {
-      throw new Error('probe browsing context was not found');
-    }
-    const bidi = await Script.create(this.firefox);
-    const evaluated = await bidi.evaluate({
-      expression: probeExpression(script, args),
-      target: { context },
-      awaitPromise: true,
-    });
-    if (evaluated.type !== 'success' || evaluated.result.type !== 'string') {
-      const text =
-        evaluated.type === 'exception'
-          ? evaluated.exceptionDetails.text
-          : 'probe script did not return JSON';
-      throw new Error(text);
-    }
-    return JSON.parse(evaluated.result.value) as T;
-  }
-}
-
-function findProbeContext(nodes: readonly BrowsingContextInfo[]): string | null {
-  for (const node of nodes) {
-    if (node.url.includes('e2e-probe.html')) {
-      return node.context;
-    }
-    if (node.children != null) {
-      const nested = findProbeContext(node.children);
-      if (nested != null) {
-        return nested;
+    await this.firefox.setContext(Context.CHROME);
+    try {
+      const result = (await this.firefox.executeAsyncScript(
+        `const done = arguments[arguments.length - 1];
+        const extensionId = arguments[0];
+        const source = arguments[1];
+        const payload = arguments[2];
+        const { ExtensionParent } = ChromeUtils.importESModule(
+          'resource://gre/modules/ExtensionParent.sys.mjs',
+        );
+        const extension = ExtensionParent.GlobalManager.getExtension(extensionId);
+        const view = extension && [...extension.views].find((item) =>
+          item.viewType === 'background' && item.browsingContext?.currentWindowGlobal,
+        );
+        if (!view) {
+          done({ error: 'extension background was not found' });
+          return;
+        }
+        const actor = view.browsingContext.currentWindowGlobal.getActor(
+          'MarionetteCommands',
+        );
+        actor.executeScript(source, payload, {
+          timeout: 15000,
+          sandboxName: null,
+          newSandbox: false,
+          file: '',
+          line: 0,
+          async: true,
+        }).then(
+          (value) => done(value ?? null),
+          (error) => done({
+            error: String(error && error.message ? error.message : error),
+          }),
+        );`,
+        this.extensionId,
+        script,
+        args,
+      )) as T | { error: string };
+      if (
+        result != null &&
+        typeof result === 'object' &&
+        'error' in result &&
+        typeof result.error === 'string'
+      ) {
+        throw new Error(result.error);
       }
+      return result as T;
+    } finally {
+      await this.firefox.setContext(Context.CONTENT);
     }
   }
-  return null;
 }
 
 export async function launchFirefox(input: {
@@ -603,7 +620,6 @@ export async function launchFirefox(input: {
   const extensionId = extensionIdFrom(input.extensionDir);
   process.env.MOZ_DISABLE_CONTENT_SANDBOX = '1';
   const options = new FirefoxOptions();
-  options.enableBidi();
   options.setBinary('/usr/bin/firefox');
   options.setPreference('security.sandbox.content.level', 0);
   options.setPreference('intl.locale.requested', 'en-US');

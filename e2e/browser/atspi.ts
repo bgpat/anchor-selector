@@ -274,6 +274,71 @@ function movePointer(x: number, y: number, durationMs = 500): void {
   Atspi.generate_mouse_event(targetX, targetY, 'abs');
 }
 
+function accessibleAt(x: number, y: number): Atspi.Accessible | null {
+  let desktop: Atspi.Accessible;
+  try {
+    desktop = Atspi.get_desktop(0);
+  } catch {
+    return null;
+  }
+  let count = 0;
+  try {
+    count = desktop.get_child_count();
+  } catch {
+    return null;
+  }
+  for (let index = 0; index < count; index += 1) {
+    let child: Atspi.Accessible | null = null;
+    try {
+      child = desktop.get_child_at_index(index);
+    } catch {
+      child = null;
+    }
+    if (child == null) {
+      continue;
+    }
+    let component: Atspi.Component | null = null;
+    try {
+      component = child.get_component_iface();
+    } catch {
+      component = null;
+    }
+    if (component == null) {
+      continue;
+    }
+    try {
+      const found = component.get_accessible_at_point(
+        x,
+        y,
+        Atspi.CoordType.SCREEN,
+      );
+      if (found != null) {
+        return found;
+      }
+    } catch {
+      // Another application owns this corner of the screen.
+    }
+  }
+  return null;
+}
+
+/** Chrome's tab strip ignores synthesized clicks. Activate the control under the pointer. */
+function activateControlAt(x: number, y: number): boolean {
+  const roles = new Set(['push button', 'button', 'page tab', 'tab']);
+  let node = accessibleAt(x, y);
+  for (let depth = 0; node != null && depth < 8; depth += 1) {
+    if (roles.has(roleName(node)) && doClickAction(node)) {
+      return true;
+    }
+    try {
+      node = node.get_parent();
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
 function clickBox(box: Box, button: Button): Box {
   const x = Math.trunc(box.x + box.width / 2);
   const y = Math.trunc(box.y + box.height / 2);
@@ -358,6 +423,12 @@ function main(): void {
     return;
   }
   if (query.command === 'click-xy') {
+    movePointer(query.x, query.y);
+    GLib.usleep(150_000);
+    if (query.button === 'left' && activateControlAt(query.x, query.y)) {
+      print(JSON.stringify({ action: 'click', x: query.x, y: query.y }));
+      return;
+    }
     print(
       JSON.stringify(
         clickBox(
