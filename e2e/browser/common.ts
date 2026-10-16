@@ -1170,6 +1170,31 @@ export abstract class PageAutomation implements E2eAutomation {
     );
   }
 
+  private async setRangeInputValue(
+    slider: WebElement,
+    value: number,
+  ): Promise<void> {
+    await this.driver.executeScript(
+      `const slider = arguments[0];
+      const target = String(arguments[1]);
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set;
+      slider.focus();
+      if (setter) {
+        setter.call(slider, target);
+      } else {
+        slider.value = target;
+      }
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+      slider.dispatchEvent(new Event('change', { bubbles: true }));`,
+      slider,
+      value,
+    );
+    await delay(actionPauseMs);
+  }
+
   async setOptionsHue(input: { value: number }): Promise<void> {
     await this.focusOptions();
     const slider = await this.driver.findElement(By.css('input[type="range"]'));
@@ -1187,28 +1212,21 @@ export abstract class PageAutomation implements E2eAutomation {
       input.value,
     );
     await this.clickWebElementAtOffset(slider, offset.x, offset.y);
-    await this.waitFor(
-      async () =>
-        Number(
-          await this.driver.executeScript<string>(
-            "return document.querySelector('input[type=\"range\"]')?.value ?? ''",
-          ),
-        ) === input.value,
-      'options hue slider did not reach target value',
-      3000,
-    ).catch(async () => {
-      await this.driver.executeScript(
-        `const slider = arguments[0];
-        const value = String(arguments[1]);
-        slider.focus();
-        slider.value = value;
-        slider.dispatchEvent(new InputEvent('input', { bubbles: true }));
-        slider.dispatchEvent(new Event('change', { bubbles: true }));`,
-        slider,
-        input.value,
+    const readHue = async (): Promise<number> =>
+      Number(
+        await this.driver.executeScript<string>(
+          'return arguments[0].value',
+          slider,
+        ),
       );
-      await delay(actionPauseMs);
-    });
+    if ((await readHue()) !== input.value) {
+      await this.setRangeInputValue(slider, input.value);
+    }
+    await this.waitFor(
+      async () => (await readHue()) === input.value,
+      'options hue slider did not reach target value',
+      5000,
+    );
   }
 
   async setOptionsClickBinding(input: {
@@ -1220,6 +1238,15 @@ export abstract class PageAutomation implements E2eAutomation {
       const checkbox = await this.modifierCheckbox(key);
       if (!(await checkbox.isSelected())) {
         await this.clickWebElement(checkbox);
+      }
+      if (!(await checkbox.isSelected())) {
+        await this.driver.executeScript(
+          `arguments[0].checked = true;
+          arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
+          arguments[0].dispatchEvent(new Event('change', { bubbles: true }));`,
+          checkbox,
+        );
+        await delay(actionPauseMs);
       }
     }
     const select = await this.driver.findElement(By.id('click-action'));
