@@ -410,10 +410,14 @@ export class ChromeAutomation extends PageAutomation {
   }
 
   protected override async findOptionsHandle(): Promise<string | null> {
-    const target = (await this.pageTargets()).find(
-      (item) => item.type === 'page' && this.isOptionsUrl(item.url),
-    );
-    return target?.id ?? null;
+    for (const handle of await this.driver.getAllWindowHandles()) {
+      await this.driver.switchTo().window(handle);
+      const url = await this.driver.getCurrentUrl();
+      if (this.isOptionsUrl(url)) {
+        return handle;
+      }
+    }
+    return null;
   }
 
   private async chromeTabBox(

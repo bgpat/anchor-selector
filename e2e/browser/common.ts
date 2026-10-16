@@ -560,7 +560,9 @@ export abstract class PageAutomation implements E2eAutomation {
   }
 
   async gotoUninjectable(): Promise<void> {
-    await this.openUrlInAddressBar(this.uninjectableUrl);
+    await this.preparePage();
+    await this.driver.get(this.uninjectableUrl);
+    await this.waitForReady();
   }
 
   async reload(): Promise<void> {
