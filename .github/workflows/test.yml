@@ -85,6 +85,9 @@ jobs:
       - run: bun run build:${{ matrix.browser }}
       - name: Run e2e
         run: dbus-run-session -- xvfb-run -a -s '-screen 0 960x600x24' bun run e2e:${{ matrix.browser }}
+      - name: Annotate e2e failures
+        if: always()
+        run: bun scripts/e2e-workflow-errors.ts --browser ${{ matrix.browser }}
       - uses: actions/upload-artifact@v7
         if: always()
         with:

@@ -22,6 +22,7 @@
     "e2e/scenarios/**/*.ts",
     "e2e/browser/**/*.ts",
     "e2e/runner/**/*.ts",
-    "scripts/e2e-comment.ts"
+    "scripts/e2e-comment.ts",
+    "scripts/e2e-workflow-errors.ts"
   ]
 }

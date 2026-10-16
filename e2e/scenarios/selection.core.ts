@@ -7,8 +7,6 @@ import {
   scrollDeltaY,
   secondarySelector,
 } from './fixture';
-import { hueWhileSelecting } from './presets';
-
 export const selectionCoreScenarios = [
   {
     id: 'selection.toolbar-opens-overlay',
@@ -81,20 +79,6 @@ export const selectionCoreScenarios = [
             selector: headingSelector,
           },
         ],
-      },
-    ],
-  },
-  {
-    id: 'selection.hue-updates-while-selecting',
-    title: 'Changing hue while selecting recolors the highlight',
-    description:
-      'Updating the stored hue while the overlay is open changes the visible highlight stroke.',
-    tags: ['selection', 'overlay'],
-    steps: [
-      {
-        kind: 'extension.storage.sync.set',
-        values: { hue: hueWhileSelecting },
-        expect: [{ kind: 'overlay.highlight.strokeChanged' }],
       },
     ],
   },

@@ -1,7 +1,7 @@
 import { clickActionName, modifierKey } from '@/util/config';
 import type { E2eScenario } from './types';
 import { E2E_FIXTURE_PATH, headingSelector } from './fixture';
-import { hueFromOptions } from './presets';
+import { hueFromOptions, hueWhileSelecting } from './presets';
 
 /** Matches `formatBinding` in `src/entrypoints/options/App.tsx`. */
 const shiftCopyHashBindingLabel = '[shift ⇧]: Copy only hash';
@@ -43,6 +43,23 @@ export const optionsScenarios = [
         kind: 'extension.storage.sync.clickIncludes',
         action: clickActionName.copyHash,
         keys: [modifierKey.shift],
+      },
+    ],
+  },
+  {
+    id: 'options.hue-updates-while-selecting',
+    title: 'Changing hue while selecting recolors the highlight',
+    description:
+      'Updating the stored hue while the overlay is open changes the visible highlight stroke.',
+    tags: ['options', 'selection', 'overlay'],
+    steps: [
+      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
+      { kind: 'extension.icon.click', button: 'left' },
+      { kind: 'page.pointer.move', selector: headingSelector },
+      {
+        kind: 'extension.storage.sync.set',
+        values: { hue: hueWhileSelecting },
+        expect: [{ kind: 'overlay.highlight.strokeChanged' }],
       },
     ],
   },

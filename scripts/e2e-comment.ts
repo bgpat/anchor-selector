@@ -7,7 +7,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import type { BrowserReport } from '../e2e/runner/report';
+import type { BrowserReport, ScenarioReport } from '../e2e/runner/report';
 
 const marker = '<!-- e2e-recordings -->';
 
@@ -58,36 +58,36 @@ function countsOf(report: BrowserReport): {
 
 function tally(report: BrowserReport): string {
   const counts = countsOf(report);
-  return `${counts.passed} passed, ${counts.failed} failed, ${counts.skipped} skipped`;
+  return `✅ ${counts.passed} passed · ❌ ${counts.failed} failed · ⏭️ ${counts.skipped} skipped`;
 }
 
-function section(report: BrowserReport): string {
-  const rows: string[] = [];
-  const errors = new Map<string, string[]>();
-  for (const scenario of report.scenarios) {
-    const seconds = (scenario.durationMs / 1000).toFixed(1);
-    rows.push(
-      `| ${scenario.status} | \`${scenario.id}\` ${scenario.title} | ${seconds}s |`,
-    );
-    if (scenario.error == null) {
-      continue;
-    }
-    const ids = errors.get(scenario.error) ?? [];
-    ids.push(`\`${scenario.id}\``);
-    errors.set(scenario.error, ids);
+function scenarioLines(
+  report: BrowserReport,
+  status: ScenarioReport['status'],
+  heading: string,
+): string[] {
+  const scenarios = report.scenarios.filter(
+    (scenario) => scenario.status === status,
+  );
+  if (scenarios.length === 0) {
+    return [];
   }
-  const lines = [
-    `### ${report.browser}`,
+  return [
+    heading,
     '',
-    '| Result | Scenario | Time |',
-    '| --- | --- | --- |',
-    ...rows,
+    ...scenarios.map(
+      (scenario) => `- \`${scenario.id}\` ${scenario.title}`,
+    ),
     '',
   ];
-  for (const [error, ids] of errors) {
-    lines.push(`#### ${ids.join(', ')}`, '', '```', error, '```', '');
-  }
-  return `${lines.join('\n')}\n`;
+}
+
+function resultSections(report: BrowserReport): string[] {
+  return [
+    ...scenarioLines(report, 'passed', '### ✅ Passed'),
+    ...scenarioLines(report, 'failed', '### ❌ Failed'),
+    ...scenarioLines(report, 'skipped', '### ⏭️ Skipped'),
+  ];
 }
 
 function reportsIn(
@@ -195,21 +195,24 @@ function main() {
   }
   const login = gh(['api', 'user', '--jq', '.login']).trim();
   const lines = [marker, ''];
-  const sections: string[] = [];
   const videos: string[] = [];
   for (const { report, dir } of reports) {
     const videoName = report.scenarios.find(
       (scenario) => scenario.video != null,
     )?.video;
     const videoPath = videoName == null ? null : join(dir, videoName);
-    lines.push(`## E2E ${report.browser}`, '', tally(report), '');
+    lines.push(
+      `## E2E ${report.browser}`,
+      '',
+      tally(report),
+      '',
+      ...resultSections(report),
+    );
     if (videoPath != null) {
       videos.push(videoPath);
       lines.push(`![${report.browser}](${videoPath})`, '');
     }
-    sections.push(section(report));
   }
-  lines.push(...sections);
   const bodyPath = join(mkdtempSync(join(tmpdir(), 'e2e-comment-')), 'body.md');
   writeFileSync(bodyPath, `${lines.join('\n')}\n`);
   hideOwnComments(pr, login);
