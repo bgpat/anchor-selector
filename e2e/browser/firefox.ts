@@ -679,6 +679,75 @@ export class FirefoxAutomation extends PageAutomation {
       await this.firefox.setContext(Context.CONTENT);
     }
   }
+
+  private async clickFirefoxChromeCommandButton(
+    buttonIds: readonly string[],
+  ): Promise<void> {
+    const point = await this.inChrome<{ x: number; y: number } | null>(
+      `function pointOf(id) {
+        const button = document.getElementById(id);
+        if (!button || button.hidden) return null;
+        const rect = button.getBoundingClientRect();
+        if (rect.width < 4 || rect.height < 4) return null;
+        return {
+          x: window.mozInnerScreenX + rect.left + rect.width / 2,
+          y: window.mozInnerScreenY + rect.top + rect.height / 2,
+        };
+      }
+      for (const id of arguments[0]) {
+        const found = pointOf(id);
+        if (found) return found;
+      }
+      return null;`,
+      buttonIds,
+    );
+    if (point == null) {
+      throw new Error(
+        `Firefox chrome button not found: ${buttonIds.join(', ')}`,
+      );
+    }
+    await clickAtScreen(point.x, point.y);
+    await delay(actionPauseMs);
+    await this.inChrome(
+      `for (const id of arguments[0]) {
+        const button = document.getElementById(id);
+        if (!button || button.hidden) continue;
+        if (typeof button.doCommand === 'function') {
+          button.doCommand();
+          return;
+        }
+      }`,
+      buttonIds,
+    );
+    await delay(actionPauseMs);
+  }
+
+  protected override async clickBrowserBack(): Promise<void> {
+    try {
+      await this.clickFirefoxChromeCommandButton(['back-button']);
+    } catch {
+      await super.clickBrowserBack();
+    }
+  }
+
+  protected override async clickBrowserForward(): Promise<void> {
+    try {
+      await this.clickFirefoxChromeCommandButton(['forward-button']);
+    } catch {
+      await super.clickBrowserForward();
+    }
+  }
+
+  protected override async clickBrowserReload(): Promise<void> {
+    try {
+      await this.clickFirefoxChromeCommandButton([
+        'reload-button',
+        'urlbar-reload-button',
+      ]);
+    } catch {
+      await super.clickBrowserReload();
+    }
+  }
 }
 
 export async function launchFirefox(input: {

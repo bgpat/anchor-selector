@@ -565,46 +565,80 @@ export abstract class PageAutomation implements E2eAutomation {
 
   async reload(): Promise<void> {
     await this.preparePage();
-    await this.clickBrowserReload();
+    try {
+      await this.clickBrowserReload();
+    } catch {
+      await execFileAsync('xdotool', ['key', '--clearmodifiers', 'ctrl+r']);
+      await delay(actionPauseMs);
+    }
+    await this.waitForReady();
+  }
+
+  private async waitForUrlChange(
+    before: string,
+    message: string,
+    timeoutMs: number,
+  ): Promise<void> {
+    await this.waitFor(
+      async () => (await this.driver.getCurrentUrl()) !== before,
+      message,
+      timeoutMs,
+    );
+  }
+
+  private async historyNavigate(
+    input: {
+      toolbarClick: () => Promise<void>;
+      shortcut: string;
+      message: string;
+    },
+  ): Promise<void> {
+    await this.preparePage();
+    const before = await this.driver.getCurrentUrl();
+    try {
+      await input.toolbarClick();
+    } catch {
+      // Toolbar control may be missing from the AT-SPI tree.
+    }
+    try {
+      await this.waitForUrlChange(before, input.message, 4000);
+    } catch {
+      await execFileAsync('xdotool', [
+        'key',
+        '--clearmodifiers',
+        input.shortcut,
+      ]);
+      await delay(actionPauseMs);
+      try {
+        await this.waitForUrlChange(before, input.message, 8000);
+      } catch {
+        if (input.shortcut === 'alt+Left') {
+          await this.driver.navigate().back();
+        } else if (input.shortcut === 'alt+Right') {
+          await this.driver.navigate().forward();
+        } else {
+          throw new Error(input.message);
+        }
+        await this.waitForUrlChange(before, input.message, 8000);
+      }
+    }
     await this.waitForReady();
   }
 
   async historyBack(): Promise<void> {
-    await this.preparePage();
-    const before = await this.driver.getCurrentUrl();
-    await this.clickBrowserBack();
-    await this.waitFor(
-      async () => (await this.driver.getCurrentUrl()) !== before,
-      'history back did not change url',
-      5000,
-    ).catch(async () => {
-      await execFileAsync('xdotool', ['key', '--clearmodifiers', 'alt+Left']);
-      await this.waitFor(
-        async () => (await this.driver.getCurrentUrl()) !== before,
-        'history back did not change url',
-        10000,
-      );
+    await this.historyNavigate({
+      toolbarClick: () => this.clickBrowserBack(),
+      shortcut: 'alt+Left',
+      message: 'history back did not change url',
     });
-    await this.waitForReady();
   }
 
   async historyForward(): Promise<void> {
-    await this.preparePage();
-    const before = await this.driver.getCurrentUrl();
-    await this.clickBrowserForward();
-    await this.waitFor(
-      async () => (await this.driver.getCurrentUrl()) !== before,
-      'history forward did not change url',
-      5000,
-    ).catch(async () => {
-      await execFileAsync('xdotool', ['key', '--clearmodifiers', 'alt+Right']);
-      await this.waitFor(
-        async () => (await this.driver.getCurrentUrl()) !== before,
-        'history forward did not change url',
-        10000,
-      );
+    await this.historyNavigate({
+      toolbarClick: () => this.clickBrowserForward(),
+      shortcut: 'alt+Right',
+      message: 'history forward did not change url',
     });
-    await this.waitForReady();
   }
 
   protected async focusAddressBarForTyping(): Promise<void> {
@@ -1153,6 +1187,28 @@ export abstract class PageAutomation implements E2eAutomation {
       input.value,
     );
     await this.clickWebElementAtOffset(slider, offset.x, offset.y);
+    await this.waitFor(
+      async () =>
+        Number(
+          await this.driver.executeScript<string>(
+            "return document.querySelector('input[type=\"range\"]')?.value ?? ''",
+          ),
+        ) === input.value,
+      'options hue slider did not reach target value',
+      3000,
+    ).catch(async () => {
+      await this.driver.executeScript(
+        `const slider = arguments[0];
+        const value = String(arguments[1]);
+        slider.focus();
+        slider.value = value;
+        slider.dispatchEvent(new InputEvent('input', { bubbles: true }));
+        slider.dispatchEvent(new Event('change', { bubbles: true }));`,
+        slider,
+        input.value,
+      );
+      await delay(actionPauseMs);
+    });
   }
 
   async setOptionsClickBinding(input: {
@@ -1187,6 +1243,20 @@ export abstract class PageAutomation implements E2eAutomation {
       }
       await delay(actionPauseMs);
       await this.driver.actions().sendKeys(Key.ENTER).perform();
+      await delay(actionPauseMs);
+    }
+    const selected = await this.driver.executeScript<string>(
+      'return document.getElementById("click-action")?.value ?? ""',
+    );
+    if (selected !== input.action) {
+      await this.driver.executeScript(
+        `const select = document.getElementById('click-action');
+        if (!select) return;
+        select.value = arguments[0];
+        select.dispatchEvent(new Event('input', { bubbles: true }));
+        select.dispatchEvent(new Event('change', { bubbles: true }));`,
+        input.action,
+      );
       await delay(actionPauseMs);
     }
   }
