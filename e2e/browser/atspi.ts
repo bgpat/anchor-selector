@@ -424,7 +424,7 @@ function readCommand(): Query {
     x: command.x ?? 0,
     y: command.y ?? 0,
     duration: command.duration ?? 250,
-    pauseMs: command.pauseMs ?? 500,
+    pauseMs: command.pauseMs ?? 0,
     text: command.text ?? '',
     submit: command.submit ?? false,
     selectAll: command.selectAll ?? false,
@@ -465,7 +465,6 @@ function main(): void {
   }
   if (query.command === 'click-xy') {
     movePointer(query.x, query.y, query.duration);
-    GLib.usleep(query.pauseMs * 1000);
     const x = Math.trunc(query.x);
     const y = Math.trunc(query.y);
     if (query.button === 'left' && activateControlAt(x, y)) {
@@ -505,7 +504,6 @@ function main(): void {
   const centerX = chosen.box.x + chosen.box.width / 2;
   const centerY = chosen.box.y + chosen.box.height / 2;
   movePointer(centerX, centerY, query.duration);
-  GLib.usleep(query.pauseMs * 1000);
   if (query.button === 'left' && doClickAction(chosen.obj)) {
     GLib.usleep(query.pauseMs * 1000);
     print(JSON.stringify({ action: 'click', ...chosen.box }));

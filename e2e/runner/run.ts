@@ -3,7 +3,11 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { stepKindMethod } from '../automation/contract';
 import { launchChrome } from '../browser/chrome';
-import { actionPauseMs, extensionOutput, type BrowserName } from '../browser/common';
+import {
+  extensionOutput,
+  pauseAfterOperation,
+  type BrowserName,
+} from '../browser/common';
 import { launchFirefox } from '../browser/firefox';
 import { e2eScenarios } from '../scenarios/index';
 import type { E2eAssertion, E2eScenario, E2eStep } from '../scenarios/types';
@@ -105,7 +109,6 @@ async function runScenario(
   };
   await showScenario();
   for (const [index, step] of scenario.steps.entries()) {
-    await pause(actionPauseMs);
     const watchesStroke = step.expect?.some(
       (assertion) => assertion.kind === 'overlay.highlight.strokeChanged',
     );
@@ -114,7 +117,6 @@ async function runScenario(
     }
     await dispatch(automation, step);
     await showScenario();
-    await pause(actionPauseMs);
     await checkAll(
       step.expect,
       automation,
@@ -275,7 +277,7 @@ async function runRecording(
     } catch (error) {
       failure = errorMessage(error);
       console.error(failure);
-      await pause(actionPauseMs);
+      await pauseAfterOperation();
       const pngPath = join(resultsDir, `${scenario.id}.png`);
       try {
         await automation.capturePng(pngPath);

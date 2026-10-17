@@ -16,7 +16,7 @@ import { runAtspi } from './atspi-host';
 import {
   EXTENSION_NAME,
   PageAutomation,
-  actionPauseMs,
+  pauseAfterOperation,
   clickAtScreen,
   closeDriver,
   configureDriver,
@@ -102,8 +102,9 @@ async function atspiClick(input: {
     prefer: input.prefer,
     timeout: input.timeout,
     exact: input.exact,
-    pauseMs: actionPauseMs,
+    pauseMs: 0,
   });
+  await pauseAfterOperation();
 }
 
 async function atspiDump(): Promise<string> {
@@ -321,44 +322,8 @@ export class ChromeAutomation extends PageAutomation {
 
   override async setOptionsHue(input: { value: number }): Promise<void> {
     await this.ensureOptionsTabForChrome();
-    const point = await this.optionsPageEvaluate<{ x: number; y: number } | null>(
-      `(() => {
-        const slider = document.querySelector('input[type="range"]');
-        if (!slider) return null;
-        const min = Number(slider.min || 0);
-        const max = Number(slider.max || 359);
-        const ratio = (${input.value} - min) / (max - min);
-        const rect = slider.getBoundingClientRect();
-        return {
-          x: window.screenX + rect.left + rect.width * ratio,
-          y: window.screenY + rect.top + rect.height / 2,
-        };
-      })()`,
-    );
-    if (point == null) {
-      throw new Error('options hue slider was not found');
-    }
-    await clickAtScreen(point.x, point.y);
-    await delay(actionPauseMs);
-    await this.optionsPageEvaluate<void>(
-      `(() => {
-        const slider = document.querySelector('input[type="range"]');
-        if (!slider) return;
-        const target = String(${input.value});
-        const setter = Object.getOwnPropertyDescriptor(
-          window.HTMLInputElement.prototype,
-          'value',
-        )?.set;
-        if (setter) {
-          setter.call(slider, target);
-        } else {
-          slider.value = target;
-        }
-        slider.dispatchEvent(new Event('input', { bubbles: true }));
-        slider.dispatchEvent(new Event('change', { bubbles: true }));
-      })()`,
-    );
-    await delay(actionPauseMs);
+    await this.focusOptions();
+    await super.setOptionsHue(input);
   }
 
   override async setOptionsClickBinding(input: {
@@ -366,30 +331,8 @@ export class ChromeAutomation extends PageAutomation {
     action: string;
   }): Promise<void> {
     await this.ensureOptionsTabForChrome();
-    const keys = JSON.stringify(input.keys);
-    const action = JSON.stringify(input.action);
-    await this.optionsPageEvaluate<void>(
-      `(() => {
-        const keys = ${keys};
-        const action = ${action};
-        for (const key of keys) {
-          const labels = [...document.querySelectorAll('fieldset label')];
-          const label = labels.find((entry) =>
-            (entry.textContent || '').includes(key),
-          );
-          const checkbox = label?.querySelector('input[type="checkbox"]');
-          if (checkbox && !checkbox.checked) {
-            checkbox.click();
-          }
-        }
-        const select = document.getElementById('click-action');
-        if (!select) return;
-        select.value = action;
-        select.dispatchEvent(new Event('input', { bubbles: true }));
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-      })()`,
-    );
-    await delay(actionPauseMs);
+    await this.focusOptions();
+    await super.setOptionsClickBinding(input);
   }
 
   async readExtensionEnabled(): Promise<boolean> {
@@ -676,7 +619,6 @@ export class ChromeAutomation extends PageAutomation {
         async () => (await this.extensionItem()) != null,
         'chrome://extensions did not list the extension',
       );
-      await delay(actionPauseMs);
       return await action();
     } finally {
       const handles = await this.driver.getAllWindowHandles();

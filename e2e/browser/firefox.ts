@@ -12,7 +12,7 @@ import type { ExtensionIconButton } from '../automation/interface';
 import {
   EXTENSION_NAME,
   PageAutomation,
-  actionPauseMs,
+  pauseAfterOperation,
   clickAtScreen,
   pointAtScreen,
   closeDriver,
@@ -179,7 +179,6 @@ export class FirefoxAutomation extends PageAutomation {
     try {
       const button = await this.toolbarButton();
       await this.pointAt(button);
-      await delay(actionPauseMs);
       const actions = this.firefox.actions().move({
         origin: button,
         duration: 0,
@@ -191,7 +190,7 @@ export class FirefoxAutomation extends PageAutomation {
       } else {
         await actions.click(button).perform();
       }
-      await delay(actionPauseMs);
+      await pauseAfterOperation();
     } finally {
       await this.firefox.setContext(Context.CONTENT);
     }
@@ -218,7 +217,7 @@ export class FirefoxAutomation extends PageAutomation {
     const optionsUrl = await this.readAddonOptionsUrl();
     await this.openBrowserTab();
     await this.firefox.get(optionsUrl);
-    await delay(actionPauseMs);
+    await pauseAfterOperation();
     await this.waitFor(async () => {
       await this.rememberOptionsTab();
       return this.optionsHandle != null;
@@ -443,7 +442,6 @@ export class FirefoxAutomation extends PageAutomation {
       throw new Error('Firefox new-tab button was not found');
     }
     await pointAtScreen(point.x, point.y);
-    await delay(actionPauseMs);
     await this.inChrome(
       `function visible(id) {
         const button = document.getElementById(id);
@@ -455,7 +453,7 @@ export class FirefoxAutomation extends PageAutomation {
       const button = visible('tabs-newtab-button') || visible('new-tab-button');
       if (button) button.doCommand();`,
     );
-    await delay(actionPauseMs);
+    await pauseAfterOperation();
   }
 
   protected override async closeTabByMouse(handle: string): Promise<void> {
@@ -502,7 +500,6 @@ export class FirefoxAutomation extends PageAutomation {
         const message = error instanceof Error ? error.message : String(error);
         throw new Error(`${message}\n${dump}`);
       }
-      await delay(actionPauseMs);
       return await action();
     } finally {
       const handles = await this.firefox.getAllWindowHandles();
@@ -706,8 +703,7 @@ export class FirefoxAutomation extends PageAutomation {
         `Firefox chrome button not found: ${buttonIds.join(', ')}`,
       );
     }
-    await clickAtScreen(point.x, point.y);
-    await delay(actionPauseMs);
+    await clickAtScreen(point.x, point.y, 'left', { pause: false });
     await this.inChrome(
       `for (const id of arguments[0]) {
         const button = document.getElementById(id);
@@ -719,7 +715,7 @@ export class FirefoxAutomation extends PageAutomation {
       }`,
       buttonIds,
     );
-    await delay(actionPauseMs);
+    await pauseAfterOperation();
   }
 
   protected override async clickBrowserBack(): Promise<void> {

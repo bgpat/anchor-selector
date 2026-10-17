@@ -93,18 +93,21 @@ export async function clickAtScreen(
   x: number,
   y: number,
   button: PointerButton = 'left',
+  options?: { pause?: boolean },
 ): Promise<void> {
   await pointAtScreen(x, y);
-  await delay(actionPauseMs);
   await runAtspi([
     JSON.stringify({
       command: 'press-at',
       x: Math.round(x),
       y: Math.round(y),
       button,
-      pauseMs: actionPauseMs,
+      pauseMs: atspiPauseMs,
     }),
   ]);
+  if (options?.pause ?? true) {
+    await pauseAfterOperation();
+  }
 }
 
 export async function listAtspi(input: {
@@ -169,13 +172,20 @@ const originY = typeof view.mozInnerScreenY === 'number'
   : view.screenY + Math.max(0, view.outerHeight - view.innerHeight - borderX);
 return { x: originX + x, y: originY + y };`;
 
-/** Hold each operation and tab switch in the recording. */
+/** Gap between recorded operations in the video. */
 export const actionPauseMs = 500;
+
+/** AT-SPI holds its own pause; all gaps use {@link pauseAfterOperation} in TS. */
+const atspiPauseMs = 0;
 
 export function delay(ms: number): Promise<void> {
   return new Promise((resolveDelay) => {
     setTimeout(resolveDelay, ms);
   });
+}
+
+export async function pauseAfterOperation(): Promise<void> {
+  await delay(actionPauseMs);
 }
 
 export async function configureDriver(driver: WebDriver): Promise<void> {
@@ -349,7 +359,7 @@ export abstract class PageAutomation implements E2eAutomation {
     }
     await this.clickTab(handle);
     await this.driver.switchTo().window(handle);
-    await delay(actionPauseMs);
+    await pauseAfterOperation();
   }
 
   protected abstract clickTab(handle: string): Promise<void>;
@@ -378,14 +388,14 @@ export abstract class PageAutomation implements E2eAutomation {
       throw new Error('Clicking the new-tab button did not open a tab');
     }
     await this.driver.switchTo().window(created);
-    await delay(actionPauseMs);
+    await pauseAfterOperation();
     return created;
   }
 
   /** Close a tab from its close button. */
   protected async closeBrowserTab(handle: string): Promise<void> {
     await this.closeTabByMouse(handle);
-    await delay(actionPauseMs);
+    await pauseAfterOperation();
   }
 
   /** Selenium keeps the closed tab selected after `driver.close()`. */
@@ -439,7 +449,7 @@ export abstract class PageAutomation implements E2eAutomation {
       await this.switchToWindow(this.probeHandle);
     }
     await this.driver.get(this.probeUrl);
-    await delay(actionPauseMs);
+    await pauseAfterOperation();
     await this.focusFixture();
   }
 
@@ -494,7 +504,7 @@ export abstract class PageAutomation implements E2eAutomation {
     return false;
   }
 
-  private async focusOptions(): Promise<void> {
+  protected async focusOptions(): Promise<void> {
     const renderOptions = async (): Promise<boolean> => {
       if (!(await this.enterOptionsFrame())) {
         return false;
@@ -560,9 +570,7 @@ export abstract class PageAutomation implements E2eAutomation {
   }
 
   async gotoUninjectable(): Promise<void> {
-    await this.preparePage();
-    await this.driver.get(this.uninjectableUrl);
-    await this.waitForReady();
+    await this.openUrlInAddressBar(this.uninjectableUrl);
   }
 
   async reload(): Promise<void> {
@@ -571,7 +579,7 @@ export abstract class PageAutomation implements E2eAutomation {
       await this.clickBrowserReload();
     } catch {
       await execFileAsync('xdotool', ['key', '--clearmodifiers', 'ctrl+r']);
-      await delay(actionPauseMs);
+      await pauseAfterOperation();
     }
     await this.waitForReady();
   }
@@ -610,7 +618,7 @@ export abstract class PageAutomation implements E2eAutomation {
         '--clearmodifiers',
         input.shortcut,
       ]);
-      await delay(actionPauseMs);
+      await pauseAfterOperation();
       try {
         await this.waitForUrlChange(before, input.message, 8000);
       } catch {
@@ -645,7 +653,6 @@ export abstract class PageAutomation implements E2eAutomation {
 
   protected async focusAddressBarForTyping(): Promise<void> {
     await execFileAsync('xdotool', ['key', '--clearmodifiers', 'ctrl+l']);
-    await delay(actionPauseMs);
   }
 
   protected navigationUrlMatches(current: string, expected: string): boolean {
@@ -683,10 +690,9 @@ export abstract class PageAutomation implements E2eAutomation {
   protected async openUrlInAddressBar(url: string): Promise<void> {
     await this.preparePage();
     await this.clickAddressBar();
-    await delay(actionPauseMs);
     await this.focusAddressBarForTyping();
     await typeAtKeyboard(url, { submit: true, selectAll: false });
-    await delay(actionPauseMs);
+    await pauseAfterOperation();
     try {
       await this.waitForNavigation(url, 30000);
     } catch {
@@ -760,11 +766,12 @@ export abstract class PageAutomation implements E2eAutomation {
             role,
             name,
             exact: input.exact ?? false,
-            pauseMs: actionPauseMs,
+            pauseMs: atspiPauseMs,
             x,
             y,
           }),
         ]);
+        await pauseAfterOperation();
         return;
       }
     }
@@ -803,7 +810,6 @@ export abstract class PageAutomation implements E2eAutomation {
     await this.preparePage();
     const element = await this.driver.findElement(By.css(input.selector));
     await this.movePointerToElement(element);
-    await delay(actionPauseMs);
     const actions = this.driver.actions();
     for (const modifier of input.modifiers ?? []) {
       actions.keyDown(modifierSelenium[modifier]);
@@ -813,13 +819,13 @@ export abstract class PageAutomation implements E2eAutomation {
       actions.keyUp(modifierSelenium[modifier]);
     }
     await actions.perform();
-    await delay(actionPauseMs);
     if (this.relayPageEvents) {
       await this.relayToContentScript(
         { type: 'click', selector: input.selector },
         input.modifiers,
       );
     }
+    await pauseAfterOperation();
   }
 
   async hoverElement(input: { selector: string }): Promise<void> {
@@ -864,18 +870,16 @@ export abstract class PageAutomation implements E2eAutomation {
     offsetY: number,
   ): Promise<void> {
     await this.movePointerToElement(element, offsetX, offsetY);
-    await delay(actionPauseMs);
     await this.driver
       .actions()
       .move({ origin: element, x: offsetX, y: offsetY, duration: 0 })
       .click()
       .perform();
-    await delay(actionPauseMs);
+    await pauseAfterOperation();
   }
 
   private async clickViewport(x: number, y: number): Promise<void> {
     await this.movePointerToViewport(x, y);
-    await delay(actionPauseMs);
     await this.driver
       .actions()
       .move({
@@ -886,7 +890,7 @@ export abstract class PageAutomation implements E2eAutomation {
       })
       .click()
       .perform();
-    await delay(actionPauseMs);
+    await pauseAfterOperation();
   }
 
   private async movePointerToElement(
@@ -1002,7 +1006,6 @@ export abstract class PageAutomation implements E2eAutomation {
           selector: input.selector,
         });
       }
-      await delay(actionPauseMs);
       return;
     }
     const inside = await this.driver.executeScript<boolean>(
@@ -1024,7 +1027,6 @@ export abstract class PageAutomation implements E2eAutomation {
           }))`,
         );
       }
-      await delay(actionPauseMs);
       return;
     }
     await this.withPointerTravel(this.pointAtViewport(input.x, input.y), () =>
@@ -1045,7 +1047,7 @@ export abstract class PageAutomation implements E2eAutomation {
         y: input.y,
       });
     }
-    await delay(actionPauseMs);
+    await pauseAfterOperation();
   }
 
   async pressKey(input: { key: string }): Promise<void> {
@@ -1055,6 +1057,7 @@ export abstract class PageAutomation implements E2eAutomation {
     if (this.relayPageEvents) {
       await this.relayToContentScript({ type: 'keydown', key: input.key });
     }
+    await pauseAfterOperation();
   }
 
   /**
@@ -1194,7 +1197,7 @@ export abstract class PageAutomation implements E2eAutomation {
       slider,
       value,
     );
-    await delay(actionPauseMs);
+    await pauseAfterOperation();
   }
 
   async setOptionsHue(input: { value: number }): Promise<void> {
@@ -1229,6 +1232,7 @@ export abstract class PageAutomation implements E2eAutomation {
       'options hue slider did not reach target value',
       5000,
     );
+    await pauseAfterOperation();
   }
 
   async setOptionsClickBinding(input: {
@@ -1248,7 +1252,7 @@ export abstract class PageAutomation implements E2eAutomation {
           arguments[0].dispatchEvent(new Event('change', { bubbles: true }));`,
           checkbox,
         );
-        await delay(actionPauseMs);
+        await pauseAfterOperation();
       }
     }
     const select = await this.driver.findElement(By.id('click-action'));
@@ -1267,12 +1271,11 @@ export abstract class PageAutomation implements E2eAutomation {
     if (steps !== 0) {
       const arrow = steps > 0 ? Key.ARROW_DOWN : Key.ARROW_UP;
       for (let index = 0; index < Math.abs(steps); index += 1) {
-        await delay(actionPauseMs);
         await this.driver.actions().sendKeys(arrow).perform();
+        await pauseAfterOperation();
       }
-      await delay(actionPauseMs);
       await this.driver.actions().sendKeys(Key.ENTER).perform();
-      await delay(actionPauseMs);
+      await pauseAfterOperation();
     }
     const selected = await this.driver.executeScript<string>(
       'return document.getElementById("click-action")?.value ?? ""',
@@ -1286,7 +1289,7 @@ export abstract class PageAutomation implements E2eAutomation {
         select.dispatchEvent(new Event('change', { bubbles: true }));`,
         input.action,
       );
-      await delay(actionPauseMs);
+      await pauseAfterOperation();
     }
   }
 
