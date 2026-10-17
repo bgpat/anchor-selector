@@ -27,6 +27,7 @@ import {
   listAtspi,
   prepareTabs,
   probeExpression,
+  typeAtKeyboard,
 } from './common';
 
 type AtspiMatch = {
@@ -300,15 +301,16 @@ export class ChromeAutomation extends PageAutomation {
     );
   }
 
-  private async ensureOptionsTabForChrome(): Promise<void> {
+  protected override async focusOptions(): Promise<void> {
     await this.rememberOptionsTab();
     if (this.optionsHandle == null) {
       await this.openExtensionOptions();
       await this.rememberOptionsTab();
     }
-    if (this.optionsHandle != null) {
-      await this.switchToWindow(this.optionsHandle);
+    if (this.optionsHandle == null) {
+      throw new Error('Options page is not open');
     }
+    await this.switchToWindow(this.optionsHandle);
     await this.waitFor(async () => {
       try {
         return await this.optionsPageEvaluate<boolean>(
@@ -320,19 +322,23 @@ export class ChromeAutomation extends PageAutomation {
     }, 'options page did not render', 15000);
   }
 
-  override async setOptionsHue(input: { value: number }): Promise<void> {
-    await this.ensureOptionsTabForChrome();
-    await this.focusOptions();
-    await super.setOptionsHue(input);
-  }
-
-  override async setOptionsClickBinding(input: {
-    keys: readonly ModifierKey[];
-    action: string;
-  }): Promise<void> {
-    await this.ensureOptionsTabForChrome();
-    await this.focusOptions();
-    await super.setOptionsClickBinding(input);
+  override async gotoUninjectable(): Promise<void> {
+    await this.preparePage();
+    await this.clickAddressBar();
+    await this.focusAddressBarForTyping();
+    await typeAtKeyboard('chrome://version', { submit: true, selectAll: false });
+    await pauseAfterOperation();
+    const onVersionPage = async (): Promise<boolean> =>
+      (await this.driver.getCurrentUrl())
+        .replace(/\/$/, '')
+        .startsWith('chrome://version');
+    try {
+      await this.waitFor(onVersionPage, 'chrome version page did not open', 30000);
+    } catch {
+      await this.driver.get('chrome://version');
+      await this.waitFor(onVersionPage, 'chrome version page did not open', 15000);
+    }
+    await this.waitForReady();
   }
 
   async readExtensionEnabled(): Promise<boolean> {

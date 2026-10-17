@@ -101,7 +101,7 @@ const stdin = GLib.IOChannel.unix_new(0);
 stdin.set_encoding(null);
 stdin.set_buffered(false);
 
-GLib.io_add_watch(stdin, GLib.IO_IN, (channel) => {
+GLib.io_add_watch(stdin, GLib.PRIORITY_DEFAULT, GLib.IO_IN, (channel) => {
   const [status, line] = channel.read_line_utf8();
   if (status === GLib.IOStatus.NORMAL && line != null && line.trim() !== '') {
     handleMessage(line.trim());
