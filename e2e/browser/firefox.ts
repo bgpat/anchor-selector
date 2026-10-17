@@ -218,12 +218,11 @@ export class FirefoxAutomation extends PageAutomation {
               done({ error: 'extension addon was not found' });
               return;
             }
-            if (enabled) {
-              void addon.enable();
-            } else {
-              void addon.disable();
-            }
-            done(null);
+            const change = enabled ? addon.enable() : addon.disable();
+            return Promise.resolve(change).then(
+              () => done(null),
+              (error) => done({ error: String(error) }),
+            );
           })
           .catch((error) => done({ error: String(error) }));`,
         this.extensionId,

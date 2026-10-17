@@ -78,6 +78,7 @@ async function checkEventually(
   assertion: E2eAssertion,
   automation: E2eAutomation,
   baseline: AssertionBaseline,
+  deadlineMs?: number,
 ): Promise<string | null> {
   if (assertion.kind === 'overlay.highlight.animating') {
     const first = await explainAssertion(assertion, automation, baseline);
@@ -88,7 +89,7 @@ async function checkEventually(
     return explainAssertion(assertion, automation, baseline);
   }
   const started = Date.now();
-  const deadline = started + EVENTUAL_TIMEOUT_MS;
+  const deadline = deadlineMs ?? started + EVENTUAL_TIMEOUT_MS;
   let explanation = await explainAssertion(assertion, automation, baseline);
   let polls = 1;
   while (explanation != null && Date.now() < deadline) {
@@ -116,9 +117,19 @@ async function checkAll(
   automation: E2eAutomation,
   baseline: AssertionBaseline,
   label: string,
+  deadlineMs?: number,
 ): Promise<void> {
+  const deadline = deadlineMs ?? Date.now() + E2E_TIMEOUT_MS;
   for (const assertion of assertions ?? []) {
-    const explanation = await checkEventually(assertion, automation, baseline);
+    if (Date.now() >= deadline) {
+      throw new Error(`${label} timed out after ${E2E_TIMEOUT_MS}ms`);
+    }
+    const explanation = await checkEventually(
+      assertion,
+      automation,
+      baseline,
+      deadline,
+    );
     if (explanation != null) {
       throw new Error(`${label} ${assertion.kind}: ${explanation}`);
     }
@@ -152,6 +163,7 @@ async function runScenario(
       baseline.strokeBefore = await automation.overlayHighlightStroke();
     }
     const stepLabel = `step ${index + 1} (${step.kind})`;
+    const stepDeadline = Date.now() + E2E_TIMEOUT_MS;
     await Promise.race([
       (async () => {
         await dispatch(automation, step);
@@ -161,6 +173,7 @@ async function runScenario(
           automation,
           baseline,
           stepLabel,
+          stepDeadline,
         );
       })(),
       timeout(E2E_TIMEOUT_MS, stepLabel),
@@ -168,8 +181,15 @@ async function runScenario(
   }
   // Scenario-level expectations describe the state after the last step.
   // Earlier steps, such as opening the fixture, do not satisfy them yet.
+  const scenarioDeadline = Date.now() + E2E_TIMEOUT_MS;
   await Promise.race([
-    checkAll(scenario.expect, automation, baseline, 'scenario'),
+    checkAll(
+      scenario.expect,
+      automation,
+      baseline,
+      `scenario ${scenario.id}`,
+      scenarioDeadline,
+    ),
     timeout(E2E_TIMEOUT_MS, `scenario ${scenario.id}`),
   ]);
   }, { id: scenario.id });
