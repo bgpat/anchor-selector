@@ -218,11 +218,12 @@ export class FirefoxAutomation extends PageAutomation {
               done({ error: 'extension addon was not found' });
               return;
             }
-            const change = enabled ? addon.enable() : addon.disable();
-            return Promise.resolve(change).then(
-              () => done(null),
-              (error) => done({ error: String(error) }),
-            );
+            if (enabled) {
+              void addon.enable();
+            } else {
+              void addon.disable();
+            }
+            done(null);
           })
           .catch((error) => done({ error: String(error) }));`,
         this.extensionId,
@@ -233,9 +234,6 @@ export class FirefoxAutomation extends PageAutomation {
       }
     } finally {
       await this.firefox.setContext(Context.CONTENT);
-    }
-    if (input.enabled) {
-      await this.reopenProbe();
     }
     await pauseAfterOperation('extension.setEnabled');
   }
@@ -250,11 +248,8 @@ export class FirefoxAutomation extends PageAutomation {
       this.optionsHandle = await this.driver.getWindowHandle();
     }
     await this.firefox.get(optionsUrl);
-    await this.waitFor(async () => {
-      await this.rememberOptionsTab();
-      return this.optionsHandle != null;
-    }, 'options page did not open', E2E_TIMEOUT_MS);
-    await this.focusFixture();
+    await this.waitForReady();
+    this.optionsHandle = await this.driver.getWindowHandle();
     await pauseAfterOperation('extension.options.open');
   }
 
@@ -448,6 +443,20 @@ export class FirefoxAutomation extends PageAutomation {
       }
       return null;`,
     );
+  }
+
+  protected override async switchToWindow(handle: string): Promise<void> {
+    let current: string | undefined;
+    try {
+      current = await this.driver.getWindowHandle();
+    } catch {
+      current = undefined;
+    }
+    if (current === handle) {
+      return;
+    }
+    await this.driver.switchTo().window(handle);
+    await pauseAfterOperation();
   }
 
   protected override async clickTab(handle: string): Promise<void> {
