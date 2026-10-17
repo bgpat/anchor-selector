@@ -261,19 +261,7 @@ export class ChromeAutomation extends PageAutomation {
 
   private async clickToolbarExtensionLeft(): Promise<void> {
     await activateChromeWindow();
-    try {
-      await atspiClick({
-        name: EXTENSION_NAME,
-        role: 'push button',
-        prefer: 'top',
-        timeout: 1,
-        maxNodes: 400,
-        processTimeoutMs: 3_500,
-      });
-      return;
-    } catch {
-      // Fall back to coordinates pinned during launch.
-    }
+    await this.refreshToolbarCoordsOnce();
     const match = chromeToolbarButton ?? this.toolbarButtonCache;
     if (match == null) {
       throw new Error(`${EXTENSION_NAME} toolbar button was not found`);
@@ -282,13 +270,28 @@ export class ChromeAutomation extends PageAutomation {
     const y = Math.round(match.y + match.height / 2);
     await execFileAsync('xdotool', ['mousemove', String(x), String(y)], xdotoolOpts);
     await execFileAsync('xdotool', ['click', '1'], xdotoolOpts);
+    try {
+      await atspi(
+        {
+          command: 'click-xy',
+          x,
+          y,
+          button: 'left',
+          pauseMs: 0,
+          duration: 0,
+        },
+        capTimeoutMs(2_000),
+      );
+    } catch {
+      // XTest click may already have toggled the icon.
+    }
   }
 
   async setExtensionEnabled(input: { enabled: boolean }): Promise<void> {
     if ((await this.readExtensionEnabled()) === input.enabled) {
       return;
     }
-    await this.withExtensionsPage(async () => {
+    await this.withExtensionsPageInNewTab(async () => {
       const toggle = await this.extensionToggle();
       await this.clickWebElement(toggle);
     });
@@ -301,14 +304,8 @@ export class ChromeAutomation extends PageAutomation {
           (await this.driver.executeScript('return document.readyState')) ===
           'complete',
         'fixture did not reload after re-enable',
-        capTimeoutMs(3_000),
+        capTimeoutMs(2_000),
       );
-      chromeToolbarButton = null;
-      this.toolbarButtonCache = null;
-      await this.refreshToolbarCoordsOnce();
-    } else {
-      chromeToolbarButton = null;
-      this.toolbarButtonCache = null;
     }
     await pauseAfterOperation('extension.setEnabled');
   }
