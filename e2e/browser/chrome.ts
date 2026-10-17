@@ -1,4 +1,6 @@
+import { execFile } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
+import { promisify } from 'node:util';
 import {
   Browser,
   Builder,
@@ -25,10 +27,14 @@ import {
   fitWindow,
   installProbePage,
   keepSingleTab,
-  listAtspi,
   prepareTabs,
   probeExpression,
 } from './common';
+
+const execFileAsync = promisify(execFile);
+
+/** Survives for the browser session; set during pin/warmup before e2e steps run. */
+let chromeToolbarButton: AtspiMatch | null = null;
 
 type AtspiMatch = {
   name: string;
@@ -184,6 +190,7 @@ export class ChromeAutomation extends PageAutomation {
           ? 'middle'
           : 'left';
     const match =
+      chromeToolbarButton ??
       this.toolbarButtonCache ??
       await this.locateToolbarExtensionButton(capTimeoutSec(5));
     if (match == null) {
@@ -195,7 +202,8 @@ export class ChromeAutomation extends PageAutomation {
     if (button === 'left') {
       const x = Math.round(match.x + match.width / 2);
       const y = Math.round(match.y + match.height / 2);
-      await clickAtScreen(x, y, 'left');
+      await execFileAsync('xdotool', ['mousemove', '--sync', String(x), String(y)]);
+      await execFileAsync('xdotool', ['click', '1']);
       await pauseAfterOperation('extension.icon.click');
       return;
     }
@@ -720,6 +728,7 @@ export class ChromeAutomation extends PageAutomation {
         });
         if (match != null && this.toolbarButtonInChromeBar(match, rect)) {
           this.toolbarButtonCache = match;
+          chromeToolbarButton = match;
           return match;
         }
       }
@@ -1063,9 +1072,15 @@ export async function launchChrome(input: {
       extensionId,
     );
     await automation.pinActionButton();
+    if (chromeToolbarButton == null) {
+      throw new Error(`${EXTENSION_NAME} toolbar button was not cached for e2e`);
+    }
     return {
       automation,
-      close: () => closeDriver(driver),
+      close: () => {
+        chromeToolbarButton = null;
+        return closeDriver(driver);
+      },
     };
   } catch (error) {
     await closeDriver(driver);
