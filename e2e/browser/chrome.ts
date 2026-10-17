@@ -290,44 +290,28 @@ export class ChromeAutomation extends PageAutomation {
   private async syncToolbarLeftClickIfNeeded(): Promise<void> {
     const beforeOverlay = await this.isOverlayVisible();
     const beforeBadge = await this.readExtensionBadgeText();
-    const wantActive = !beforeOverlay;
     const deadline = Date.now() + capTimeoutMs(2_500);
-    let changed = false;
     while (Date.now() < deadline) {
       const overlay = await this.isOverlayVisible();
       const badge = await this.readExtensionBadgeText();
       if (overlay !== beforeOverlay || badge !== beforeBadge) {
-        changed = true;
-        break;
-      }
-      await delay(50);
-    }
-    if (!changed) {
-      await this.ensureFixtureSelectionViaProbe(wantActive);
-    }
-    await this.reconcileFixtureSelection(wantActive);
-  }
-
-  private async reconcileFixtureSelection(wantActive: boolean): Promise<void> {
-    const settleDeadline = Date.now() + capTimeoutMs(1_000);
-    while (Date.now() < settleDeadline) {
-      if ((await this.isOverlayVisible()) === wantActive) {
         return;
       }
       await delay(50);
     }
-    if ((await this.isOverlayVisible()) !== wantActive) {
-      await this.ensureFixtureSelectionViaProbe(wantActive);
+    if (beforeOverlay) {
+      await this.pressKey({ key: 'Escape' });
+      return;
     }
+    await this.ensureFixtureSelectionOnViaProbe();
   }
 
-  private async ensureFixtureSelectionViaProbe(active: boolean): Promise<void> {
+  private async ensureFixtureSelectionOnViaProbe(): Promise<void> {
     const fixtureUrl = await this.driver.getCurrentUrl();
     try {
       await this.probe<void>(
       `const done = arguments[arguments.length - 1];
       const url = arguments[0];
-      const active = arguments[1];
       const ext = globalThis.chrome;
       (async () => {
         const tabs = await ext.tabs.query({});
@@ -345,7 +329,7 @@ export class ChromeAutomation extends PageAutomation {
           }
         };
         let state = await readState();
-        if (state == null && active) {
+        if (state == null) {
           await ext.scripting.executeScript({
             target: { tabId },
             files: ['/content_script.js'],
@@ -357,14 +341,10 @@ export class ChromeAutomation extends PageAutomation {
           state = await readState();
         }
         if (state == null) {
-          if (!active) {
-            done(null);
-            return;
-          }
           done({ error: 'content script unavailable' });
           return;
         }
-        if (state.overlayActive === active) {
+        if (state.overlayActive === true) {
           done(null);
           return;
         }
@@ -372,15 +352,14 @@ export class ChromeAutomation extends PageAutomation {
         const click = await ext.runtime.sendMessage({ type: 'get-config', key: 'click' });
         const result = await ext.tabs.sendMessage(tabId, {
           type: 'set-selection',
-          active,
+          active: true,
           config: { hue, click },
         });
-        const badgeText = active && result?.overlayActive ? '\\u200B' : '';
+        const badgeText = result?.overlayActive ? '\\u200B' : '';
         await ext.action.setBadgeText({ tabId, text: badgeText });
         done(null);
       })().catch((error) => done({ error: String(error) }));`,
       fixtureUrl,
-      active,
     );
     } catch {
       // Toolbar UI may already have started selection; probe is best-effort.
@@ -411,10 +390,6 @@ export class ChromeAutomation extends PageAutomation {
   }
 
   protected override async reopenProbe(): Promise<void> {
-    const handles = await this.driver.getAllWindowHandles();
-    if (!handles.includes(this.probeHandle)) {
-      this.probeHandle = await this.openBrowserTab();
-    }
     const targets = await this.pageTargets();
     let probeTarget = targets.find((item) => item.id === this.probeHandle);
     if (probeTarget?.webSocketDebuggerUrl == null) {
@@ -436,16 +411,23 @@ export class ChromeAutomation extends PageAutomation {
           capTimeoutMs(2_000),
         );
       } catch {
-        await super.reopenProbe();
-        return;
+        await this.openFreshProbeTab();
       }
     } else {
-      await super.reopenProbe();
-      return;
+      await this.openFreshProbeTab();
     }
     await this.driver.switchTo().window(this.fixtureHandle);
     this.markActiveWindow(this.fixtureHandle);
     await pauseAfterOperation('reopenProbe');
+  }
+
+  private async openFreshProbeTab(): Promise<void> {
+    await this.driver.switchTo().newWindow('tab');
+    this.probeHandle = await this.driver.getWindowHandle();
+    await this.driver
+      .manage()
+      .setTimeouts({ pageLoad: capTimeoutMs(3_000) });
+    await this.driver.get(this.probeUrl);
   }
 
   override async pressKey(input: { key: string }): Promise<void> {
