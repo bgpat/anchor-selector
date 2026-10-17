@@ -665,9 +665,6 @@ export abstract class PageAutomation implements E2eAutomation {
     await this.preparePage();
     const before = await this.driver.getCurrentUrl();
     const availability = await this.readHistoryAvailability();
-    // #region agent log
-    fetch('http://127.0.0.1:7560/ingest/8b319461-2a5e-44a6-bf04-0e10ded65cc1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a50bb4'},body:JSON.stringify({sessionId:'a50bb4',location:'common.ts:historyNavigate',message:'history availability',hypothesisId:'H-no-history',data:{direction,before,availability},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     logE2eOp('history.state', {
       direction,
       before,
@@ -688,15 +685,15 @@ export abstract class PageAutomation implements E2eAutomation {
     }
 
     if (direction === 'back') {
-      await this.driver.navigate().back();
+      await this.clickBrowserBack();
     } else {
-      await this.driver.navigate().forward();
+      await this.clickBrowserForward();
     }
 
     await this.waitForUrlChange(
       before,
       `history ${direction} did not change url`,
-      3000,
+      8000,
     );
     const after = await this.driver.getCurrentUrl();
     if (after === before) {
@@ -710,9 +707,6 @@ export abstract class PageAutomation implements E2eAutomation {
       canBack: afterAvailability.back,
       canForward: afterAvailability.forward,
     });
-    // #region agent log
-    fetch('http://127.0.0.1:7560/ingest/8b319461-2a5e-44a6-bf04-0e10ded65cc1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a50bb4'},body:JSON.stringify({sessionId:'a50bb4',location:'common.ts:historyNavigate',message:'history result',hypothesisId:'H-url-must-change',data:{direction,before,after,urlChanged:after!==before,afterAvailability},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     await this.waitForReady();
     await pauseAfterOperation(`history.${direction}`);
   }
