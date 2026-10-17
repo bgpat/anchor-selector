@@ -194,8 +194,48 @@ export class ChromeAutomation extends PageAutomation {
     });
     if (input.enabled) {
       await this.reopenProbe();
-      await this.pinActionButton();
+      if ((await this.toolbarExtensionButton(1)) == null) {
+        try {
+          await this.waitFor(
+            async () => (await this.toolbarExtensionButton(1)) != null,
+            'extension toolbar button did not appear after enable',
+            15000,
+          );
+        } catch {
+          await this.pinActionButton();
+        }
+      }
     }
+  }
+
+  protected override async reopenProbe(): Promise<void> {
+    const handles = await this.driver.getAllWindowHandles();
+    if (!handles.includes(this.probeHandle)) {
+      this.probeHandle = await this.openBrowserTab();
+    }
+    const targets = await this.pageTargets();
+    let probeTarget = targets.find((item) => item.id === this.probeHandle);
+    if (probeTarget?.webSocketDebuggerUrl == null) {
+      probeTarget = targets.find(
+        (item) =>
+          item.url.includes('e2e-probe.html') &&
+          item.webSocketDebuggerUrl != null,
+      );
+      if (probeTarget != null) {
+        this.probeHandle = probeTarget.id;
+      }
+    }
+    if (probeTarget?.webSocketDebuggerUrl != null) {
+      await evaluateOnTarget(
+        probeTarget.webSocketDebuggerUrl,
+        `location.replace(${JSON.stringify(this.probeUrl)})`,
+      );
+    } else {
+      await this.driver.switchTo().window(this.probeHandle);
+      await this.driver.get(this.probeUrl);
+    }
+    await this.driver.switchTo().window(this.fixtureHandle);
+    await pauseAfterOperation('reopenProbe');
   }
 
   override async pressKey(input: { key: string }): Promise<void> {
@@ -215,7 +255,7 @@ export class ChromeAutomation extends PageAutomation {
   }
 
   async openExtensionOptions(): Promise<void> {
-    await this.withExtensionsPage(async () => {
+    await this.withExtensionsPageInNewTab(async () => {
       const details = await this.extensionControl('#detailsButton');
       await this.clickWebElement(details);
       await this.waitFor(async () => {
@@ -629,6 +669,38 @@ export class ChromeAutomation extends PageAutomation {
       } catch {
         await this.activateOpenWindow();
       }
+      await pauseAfterOperation('extension.extensionsPage');
+    }
+  }
+
+  /** Options flow opens another tab; keep the fixture on the test page. */
+  private async withExtensionsPageInNewTab<T>(
+    action: () => Promise<T>,
+  ): Promise<T> {
+    await this.driver.switchTo().window(this.fixtureHandle);
+    const extensionsHandle = await this.openBrowserTab();
+    try {
+      await this.driver.switchTo().window(extensionsHandle);
+      await this.driver.get('chrome://extensions');
+      await this.waitFor(
+        async () => (await this.extensionItem()) != null,
+        'chrome://extensions did not list the extension',
+      );
+      return await action();
+    } finally {
+      const handles = await this.driver.getAllWindowHandles();
+      if (handles.includes(extensionsHandle)) {
+        const target = (await this.pageTargets()).find(
+          (item) => item.id === extensionsHandle,
+        );
+        if (target != null && !this.isOptionsUrl(target.url)) {
+          await this.driver.switchTo().window(extensionsHandle);
+          await this.driver.close();
+        }
+      }
+      await this.activateOpenWindow();
+      await this.rememberOptionsTab();
+      await this.driver.switchTo().window(this.fixtureHandle);
       await pauseAfterOperation('extension.extensionsPage');
     }
   }
