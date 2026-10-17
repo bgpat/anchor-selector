@@ -290,16 +290,35 @@ export class ChromeAutomation extends PageAutomation {
   private async syncToolbarLeftClickIfNeeded(): Promise<void> {
     const beforeOverlay = await this.isOverlayVisible();
     const beforeBadge = await this.readExtensionBadgeText();
+    const wantActive = !beforeOverlay;
     const deadline = Date.now() + capTimeoutMs(2_500);
+    let changed = false;
     while (Date.now() < deadline) {
       const overlay = await this.isOverlayVisible();
       const badge = await this.readExtensionBadgeText();
       if (overlay !== beforeOverlay || badge !== beforeBadge) {
+        changed = true;
+        break;
+      }
+      await delay(50);
+    }
+    if (!changed) {
+      await this.ensureFixtureSelectionViaProbe(wantActive);
+    }
+    await this.reconcileFixtureSelection(wantActive);
+  }
+
+  private async reconcileFixtureSelection(wantActive: boolean): Promise<void> {
+    const settleDeadline = Date.now() + capTimeoutMs(1_000);
+    while (Date.now() < settleDeadline) {
+      if ((await this.isOverlayVisible()) === wantActive) {
         return;
       }
       await delay(50);
     }
-    await this.ensureFixtureSelectionViaProbe(!beforeOverlay);
+    if ((await this.isOverlayVisible()) !== wantActive) {
+      await this.ensureFixtureSelectionViaProbe(wantActive);
+    }
   }
 
   private async ensureFixtureSelectionViaProbe(active: boolean): Promise<void> {
@@ -338,6 +357,10 @@ export class ChromeAutomation extends PageAutomation {
           state = await readState();
         }
         if (state == null) {
+          if (!active) {
+            done(null);
+            return;
+          }
           done({ error: 'content script unavailable' });
           return;
         }
@@ -405,13 +428,20 @@ export class ChromeAutomation extends PageAutomation {
       }
     }
     if (probeTarget?.webSocketDebuggerUrl != null) {
-      await evaluateOnTarget(
-        probeTarget.webSocketDebuggerUrl,
-        `location.replace(${JSON.stringify(this.probeUrl)})`,
-      );
+      try {
+        await evaluateOnTarget(
+          probeTarget.webSocketDebuggerUrl,
+          `location.replace(${JSON.stringify(this.probeUrl)})`,
+          false,
+          capTimeoutMs(2_000),
+        );
+      } catch {
+        await super.reopenProbe();
+        return;
+      }
     } else {
-      await this.driver.switchTo().window(this.probeHandle);
-      await this.driver.get(this.probeUrl);
+      await super.reopenProbe();
+      return;
     }
     await this.driver.switchTo().window(this.fixtureHandle);
     this.markActiveWindow(this.fixtureHandle);
@@ -1106,13 +1136,14 @@ function evaluateOnTarget<T>(
   webSocketUrl: string,
   expression: string,
   awaitPromise = false,
+  timeoutMs: number = E2E_TIMEOUT_MS,
 ): Promise<T> {
   return new Promise((resolve, reject) => {
     const socket = new WebSocket(webSocketUrl);
     const timer = setTimeout(() => {
       socket.close();
       reject(new Error('CDP evaluate timed out'));
-    }, E2E_TIMEOUT_MS);
+    }, timeoutMs);
     const finish = (error: Error | null, value?: T) => {
       clearTimeout(timer);
       socket.close();
