@@ -183,6 +183,21 @@ export class ChromeAutomation extends PageAutomation {
   async clickExtensionIcon(input: {
     button: ExtensionIconButton;
   }): Promise<void> {
+    const button =
+      input.button === 'right'
+        ? 'right'
+        : input.button === 'middle'
+          ? 'middle'
+          : 'left';
+    const cached = chromeToolbarButton ?? this.toolbarButtonCache;
+    if (button === 'left' && cached != null) {
+      const x = Math.round(cached.x + cached.width / 2);
+      const y = Math.round(cached.y + cached.height / 2);
+      await execFileAsync('xdotool', ['mousemove', String(x), String(y)]);
+      await execFileAsync('xdotool', ['click', '1']);
+      await pauseAfterOperation('extension.icon.click');
+      return;
+    }
     try {
       const current = await this.driver.getWindowHandle();
       if (current !== this.fixtureHandle) {
@@ -191,13 +206,7 @@ export class ChromeAutomation extends PageAutomation {
     } catch {
       await this.driver.switchTo().window(this.fixtureHandle);
     }
-    const button =
-      input.button === 'right'
-        ? 'right'
-        : input.button === 'middle'
-          ? 'middle'
-          : 'left';
-    let match = chromeToolbarButton ?? this.toolbarButtonCache;
+    let match = cached;
     if (match == null) {
       match = await this.locateToolbarExtensionButton(capTimeoutSec(5));
     }
