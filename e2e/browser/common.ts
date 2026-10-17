@@ -317,6 +317,9 @@ export abstract class PageAutomation implements E2eAutomation {
 
   private scenarioId = '';
 
+  /** Last window handle WebDriver was switched to (avoids slow getWindowHandle). */
+  protected activeWebDriverWindow: string;
+
   constructor(
     protected readonly driver: WebDriver,
     protected fixtureHandle: string,
@@ -324,7 +327,13 @@ export abstract class PageAutomation implements E2eAutomation {
     protected readonly probeUrl: string,
     protected readonly fixtureOrigin: string,
     private readonly uninjectableHref: string,
-  ) {}
+  ) {
+    this.activeWebDriverWindow = fixtureHandle;
+  }
+
+  protected markActiveWindow(handle: string): void {
+    this.activeWebDriverWindow = handle;
+  }
 
   abstract clickExtensionIcon(
     input: Parameters<E2eAutomation['clickExtensionIcon']>[0],
@@ -366,17 +375,12 @@ export abstract class PageAutomation implements E2eAutomation {
    * recording shows; WebDriver does not track a click on the tab strip.
    */
   protected async switchToWindow(handle: string): Promise<void> {
-    let current: string | undefined;
-    try {
-      current = await this.driver.getWindowHandle();
-    } catch {
-      current = undefined;
-    }
-    if (current === handle) {
+    if (this.activeWebDriverWindow === handle) {
       return;
     }
     await this.clickTab(handle);
     await this.driver.switchTo().window(handle);
+    this.activeWebDriverWindow = handle;
     await pauseAfterOperation();
   }
 

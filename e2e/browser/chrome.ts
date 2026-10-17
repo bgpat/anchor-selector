@@ -34,6 +34,24 @@ import {
 
 const execFileAsync = promisify(execFile);
 
+async function activateChromeWindow(): Promise<void> {
+  try {
+    const { stdout } = await execFileAsync('xdotool', [
+      'search',
+      '--onlyvisible',
+      '--classname',
+      'google-chrome',
+    ]);
+    const windowId = stdout.trim().split('\n')[0];
+    if (windowId !== '') {
+      await execFileAsync('xdotool', ['windowactivate', windowId]);
+      await delay(50);
+    }
+  } catch {
+    // Best-effort: xdotool clicks still run if focus is already on Chrome.
+  }
+}
+
 /** Survives for the browser session; set during pin/warmup before e2e steps run. */
 let chromeToolbarButton: AtspiMatch | null = null;
 
@@ -167,16 +185,11 @@ export class ChromeAutomation extends PageAutomation {
   }
 
   protected override async switchToWindow(handle: string): Promise<void> {
-    let current: string | undefined;
-    try {
-      current = await this.driver.getWindowHandle();
-    } catch {
-      current = undefined;
-    }
-    if (current === handle) {
+    if (this.activeWebDriverWindow === handle) {
       return;
     }
     await this.driver.switchTo().window(handle);
+    this.markActiveWindow(handle);
     await pauseAfterOperation();
   }
 
@@ -193,19 +206,12 @@ export class ChromeAutomation extends PageAutomation {
     if (button === 'left' && cached != null) {
       const x = Math.round(cached.x + cached.width / 2);
       const y = Math.round(cached.y + cached.height / 2);
-      await execFileAsync('xdotool', ['mousemove', String(x), String(y)]);
-      await execFileAsync('xdotool', ['click', '1']);
+      await activateChromeWindow();
+      await clickAtScreen(x, y, 'left', { pause: false });
       await pauseAfterOperation('extension.icon.click');
       return;
     }
-    try {
-      const current = await this.driver.getWindowHandle();
-      if (current !== this.fixtureHandle) {
-        await this.driver.switchTo().window(this.fixtureHandle);
-      }
-    } catch {
-      await this.driver.switchTo().window(this.fixtureHandle);
-    }
+    await this.switchToWindow(this.fixtureHandle);
     let match = cached;
     if (match == null) {
       match = await this.locateToolbarExtensionButton(capTimeoutSec(5));
@@ -219,8 +225,8 @@ export class ChromeAutomation extends PageAutomation {
     const x = Math.round(match.x + match.width / 2);
     const y = Math.round(match.y + match.height / 2);
     if (button === 'left') {
-      await execFileAsync('xdotool', ['mousemove', String(x), String(y)]);
-      await execFileAsync('xdotool', ['click', '1']);
+      await activateChromeWindow();
+      await clickAtScreen(x, y, 'left', { pause: false });
       await pauseAfterOperation('extension.icon.click');
       return;
     }
@@ -231,18 +237,54 @@ export class ChromeAutomation extends PageAutomation {
     if ((await this.readExtensionEnabled()) === input.enabled) {
       return;
     }
-    await this.withExtensionsPage(async () => {
-      const toggle = await this.extensionToggle();
-      await this.clickWebElement(toggle);
-    });
+    const result = await this.probe<null | { error: string }>(
+      `const done = arguments[arguments.length - 1];
+      const id = arguments[0];
+      const enabled = arguments[1];
+      const ext = globalThis.chrome;
+      ext.management.setEnabled(id, enabled, () => {
+        const err = ext.runtime?.lastError;
+        if (err) {
+          done({ error: String(err.message ?? err) });
+          return;
+        }
+        done(null);
+      });`,
+      this.extensionId,
+      input.enabled,
+    );
+    if (result != null && typeof result === 'object' && 'error' in result) {
+      throw new Error(result.error);
+    }
     if (input.enabled) {
       await this.reopenProbe();
-      await this.waitFor(
-        async () => (await this.toolbarExtensionButton(0)) != null,
-        'extension toolbar button did not appear after enable',
-        E2E_TIMEOUT_MS,
+      const fixtureUrl = await this.driver.getCurrentUrl();
+      await this.probe<void>(
+        `const done = arguments[arguments.length - 1];
+        const url = arguments[0];
+        const ext = globalThis.chrome;
+        ext.tabs.query({}).then((tabs) => {
+          const tab = tabs.find((item) => item.url === url);
+          if (!tab || tab.id == null) {
+            done({ error: 'fixture tab was not found' });
+            return;
+          }
+          return ext.tabs.reload(tab.id).then(
+            () => done(null),
+            (error) => done({ error: String(error) }),
+          );
+        }).catch((error) => done({ error: String(error) }));`,
+        fixtureUrl,
       );
+      await this.waitForReady();
+      if (chromeToolbarButton == null) {
+        await this.locateToolbarExtensionButton(capTimeoutSec(3));
+      }
+    } else {
+      chromeToolbarButton = null;
+      this.toolbarButtonCache = null;
     }
+    await pauseAfterOperation('extension.setEnabled');
   }
 
   protected override async reopenProbe(): Promise<void> {
@@ -272,6 +314,7 @@ export class ChromeAutomation extends PageAutomation {
       await this.driver.get(this.probeUrl);
     }
     await this.driver.switchTo().window(this.fixtureHandle);
+    this.markActiveWindow(this.fixtureHandle);
     await pauseAfterOperation('reopenProbe');
   }
 
