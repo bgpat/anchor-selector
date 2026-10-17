@@ -636,6 +636,21 @@ export abstract class PageAutomation implements E2eAutomation {
     );
   }
 
+  private async readHistoryAvailability(): Promise<{
+    back: boolean;
+    forward: boolean;
+    length: number;
+  }> {
+    return this.driver.executeScript(
+      `const nav = window.navigation;
+      return {
+        back: nav?.canGoBack ?? window.history.length > 1,
+        forward: nav?.canGoForward ?? false,
+        length: window.history.length,
+      };`,
+    );
+  }
+
   private async historyNavigate(
     input: {
       toolbarClick: () => Promise<void>;
@@ -645,34 +660,73 @@ export abstract class PageAutomation implements E2eAutomation {
   ): Promise<void> {
     await this.preparePage();
     const before = await this.driver.getCurrentUrl();
+    const direction = input.shortcut === 'alt+Left' ? 'back' : 'forward';
+    const availability = await this.readHistoryAvailability();
+    // #region agent log
+    fetch('http://127.0.0.1:7560/ingest/8b319461-2a5e-44a6-bf04-0e10ded65cc1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a50bb4'},body:JSON.stringify({sessionId:'a50bb4',location:'common.ts:historyNavigate',message:'history availability',hypothesisId:'H-no-history',data:{direction,before,availability},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    logE2eOp('history.state', {
+      direction,
+      before,
+      canBack: availability.back,
+      canForward: availability.forward,
+      length: availability.length,
+    });
+    const allowed =
+      direction === 'back' ? availability.back : availability.forward;
+    if (!allowed) {
+      throw new Error(
+        `history ${direction} is not available (length=${availability.length})`,
+      );
+    }
+
+    const webDriverStep = async (): Promise<void> => {
+      if (direction === 'back') {
+        await this.driver.navigate().back();
+      } else {
+        await this.driver.navigate().forward();
+      }
+      await this.waitForUrlChange(before, input.message, 3000);
+    };
+
+    try {
+      await webDriverStep();
+      const afterWebDriver = await this.driver.getCurrentUrl();
+      logE2eOp('history.webdriver.ok', { direction, after: afterWebDriver });
+      // #region agent log
+      fetch('http://127.0.0.1:7560/ingest/8b319461-2a5e-44a6-bf04-0e10ded65cc1',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a50bb4'},body:JSON.stringify({sessionId:'a50bb4',location:'common.ts:historyNavigate',message:'webdriver history ok',hypothesisId:'H-selenium-first',data:{direction,after:afterWebDriver},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      await this.waitForReady();
+      await pauseAfterOperation(`history.${direction}`);
+      return;
+    } catch (webDriverError) {
+      logE2eOp('history.webdriver.fallback', {
+        direction,
+        error:
+          webDriverError instanceof Error
+            ? webDriverError.message
+            : String(webDriverError),
+      });
+    }
+
     try {
       await input.toolbarClick();
     } catch {
       // Toolbar control may be missing from the AT-SPI tree.
     }
     try {
-      await this.waitForUrlChange(before, input.message, 4000);
+      await this.waitForUrlChange(before, input.message, 2000);
     } catch {
       await execFileAsync('xdotool', [
         'key',
         '--clearmodifiers',
         input.shortcut,
       ]);
-      await pauseAfterOperation();
-      try {
-        await this.waitForUrlChange(before, input.message, 8000);
-      } catch {
-        if (input.shortcut === 'alt+Left') {
-          await this.driver.navigate().back();
-        } else if (input.shortcut === 'alt+Right') {
-          await this.driver.navigate().forward();
-        } else {
-          throw new Error(input.message);
-        }
-        await this.waitForUrlChange(before, input.message, 8000);
-      }
+      await pauseAfterOperation(`history.${direction}.shortcut`);
+      await this.waitForUrlChange(before, input.message, 3000);
     }
     await this.waitForReady();
+    await pauseAfterOperation(`history.${direction}`);
   }
 
   async historyBack(): Promise<void> {
