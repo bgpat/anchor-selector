@@ -301,15 +301,6 @@ export class ChromeAutomation extends PageAutomation {
       await delay(50);
     }
     if (beforeOverlay) {
-      await this.pressKey({ key: 'Escape' });
-      await this.driver.navigate().refresh();
-      await this.waitFor(
-        async () =>
-          (await this.driver.executeScript('return document.readyState')) ===
-          'complete',
-        'fixture did not reload after ending selection',
-        capTimeoutMs(2_000),
-      );
       return;
     }
     await this.ensureFixtureSelectionOnViaProbe();

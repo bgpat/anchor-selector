@@ -115,7 +115,6 @@ const modifierActionScenarios = [
         kind: 'extension.storage.sync.set',
         values: modifierCopyHashPreset,
       },
-      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
       { kind: 'extension.icon.click', button: 'left' },
       {
         kind: 'page.element.click',
