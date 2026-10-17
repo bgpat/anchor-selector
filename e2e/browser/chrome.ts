@@ -57,28 +57,6 @@ function atspi(command: {
   return runAtspi([JSON.stringify(command)]);
 }
 
-async function atspiList(input: {
-  name?: string;
-  role?: string;
-  app?: string;
-  timeout?: number;
-  maxNodes?: number;
-}): Promise<AtspiMatch[]> {
-  try {
-    const output = await atspi({
-      command: 'list',
-      app: input.app ?? 'chrom',
-      name: input.name ?? '',
-      role: input.role ?? '',
-      timeout: input.timeout ?? 0,
-      maxNodes: input.maxNodes ?? 300,
-    });
-    return JSON.parse(output) as AtspiMatch[];
-  } catch {
-    return [];
-  }
-}
-
 async function atspiFind(input: {
   name: string;
   role?: string;
@@ -205,7 +183,9 @@ export class ChromeAutomation extends PageAutomation {
         : input.button === 'middle'
           ? 'middle'
           : 'left';
-    const match = await this.toolbarExtensionButton(capTimeoutSec(5));
+    const match =
+      this.toolbarButtonCache ??
+      await this.locateToolbarExtensionButton(capTimeoutSec(5));
     if (match == null) {
       const dump = await atspiDump();
       throw new Error(
@@ -541,7 +521,7 @@ export class ChromeAutomation extends PageAutomation {
         `Could not pin ${EXTENSION_NAME}\n${message}\n${buttons}`,
       );
     }
-    if ((await this.toolbarExtensionButton(3)) == null) {
+    if ((await this.locateToolbarExtensionButton(30)) == null) {
       const dump = await atspiDump();
       writeFileSync('test-results/chrome/atspi-dump.txt', dump);
       throw new Error(`Pinned ${EXTENSION_NAME} button was not found`);
@@ -709,38 +689,36 @@ export class ChromeAutomation extends PageAutomation {
     return evaluateOnTarget<T>(target.webSocketDebuggerUrl, expression);
   }
 
-  private async toolbarExtensionButton(
+  private toolbarButtonInChromeBar(
+    match: AtspiMatch,
+    rect: { y: number },
+  ): boolean {
+    return (
+      match.y >= rect.y &&
+      match.y < rect.y + 160 &&
+      !match.name.includes('See more options') &&
+      !match.name.includes('Ask on every visit') &&
+      !match.name.includes('is pinned')
+    );
+  }
+
+  /** Slow AT-SPI lookup; run during launch, not inside a 10s e2e step. */
+  private async locateToolbarExtensionButton(
     timeout: number,
   ): Promise<AtspiMatch | null> {
     const rect = await this.windowRect();
-    const cached = this.toolbarButtonCache;
-    if (
-      cached != null &&
-      cached.y >= rect.y &&
-      cached.y < rect.y + 160
-    ) {
-      return cached;
-    }
     const names = ['jump to the anchored element', EXTENSION_NAME];
     const deadline = Date.now() + timeout * 1000;
     while (Date.now() < deadline) {
-      const buttons = await atspiList({
-        role: 'push button',
-        maxNodes: 300,
-        timeout: 0,
-      });
       for (const name of names) {
-        const match = buttons.find(
-          (item) =>
-            item.y >= rect.y &&
-            item.y < rect.y + 160 &&
-            (item.name === name ||
-              item.name.toLowerCase().includes(name.toLowerCase())) &&
-            !item.name.includes('See more options') &&
-            !item.name.includes('Ask on every visit') &&
-            !item.name.includes('is pinned'),
-        );
-        if (match != null) {
+        const match = await atspiFind({
+          name,
+          role: 'push button',
+          prefer: 'top',
+          timeout: 0,
+          maxNodes: 800,
+        });
+        if (match != null && this.toolbarButtonInChromeBar(match, rect)) {
           this.toolbarButtonCache = match;
           return match;
         }
@@ -748,6 +726,15 @@ export class ChromeAutomation extends PageAutomation {
       await delay(200);
     }
     return null;
+  }
+
+  private async toolbarExtensionButton(
+    timeout: number,
+  ): Promise<AtspiMatch | null> {
+    if (this.toolbarButtonCache != null) {
+      return this.toolbarButtonCache;
+    }
+    return this.locateToolbarExtensionButton(timeout);
   }
 
   private async withExtensionsPage<T>(action: () => Promise<T>): Promise<T> {
