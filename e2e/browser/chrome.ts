@@ -27,7 +27,6 @@ import {
   listAtspi,
   prepareTabs,
   probeExpression,
-  typeAtKeyboard,
 } from './common';
 
 type AtspiMatch = {
@@ -320,25 +319,6 @@ export class ChromeAutomation extends PageAutomation {
         return false;
       }
     }, 'options page did not render', 15000);
-  }
-
-  override async gotoUninjectable(): Promise<void> {
-    await this.preparePage();
-    await this.clickAddressBar();
-    await this.focusAddressBarForTyping();
-    await typeAtKeyboard('chrome://version', { submit: true, selectAll: false });
-    await pauseAfterOperation();
-    const onVersionPage = async (): Promise<boolean> =>
-      (await this.driver.getCurrentUrl())
-        .replace(/\/$/, '')
-        .startsWith('chrome://version');
-    try {
-      await this.waitFor(onVersionPage, 'chrome version page did not open', 30000);
-    } catch {
-      await this.driver.get('chrome://version');
-      await this.waitFor(onVersionPage, 'chrome version page did not open', 15000);
-    }
-    await this.waitForReady();
   }
 
   async readExtensionEnabled(): Promise<boolean> {

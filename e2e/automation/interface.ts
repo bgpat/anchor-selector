@@ -4,6 +4,7 @@ import type {
   ModifierKey,
   StoredConfig,
 } from '@/util/config';
+import type { GotoInput } from '../browser/navigation';
 
 /** Toolbar button on the extension icon. Browser-agnostic. */
 export type ExtensionIconButton = 'left' | 'right' | 'middle';
@@ -40,16 +41,11 @@ export interface E2eAutomation {
   openExtensionOptions(): Promise<void>;
 
   /**
-   * Navigate the fixture tab to a path on the fixture origin.
-   * Does not replace the options tab.
+   * Navigate the fixture tab.
+   * `path` is on the fixture origin; `href` is an absolute URL;
+   * `uninjectable` opens the adapter's non-injectable page.
    */
-  goto(input: { path: string }): Promise<void>;
-
-  /**
-   * Open a document where content scripts cannot be injected.
-   * The adapter chooses the concrete URL.
-   */
-  gotoUninjectable(): Promise<void>;
+  goto(input: GotoInput): Promise<void>;
 
   /**
    * Click an element in the fixture tab.
@@ -82,9 +78,6 @@ export interface E2eAutomation {
    * position.
    */
   scrollBy(input: { x?: number; y?: number }): Promise<void>;
-
-  /** Navigate the fixture tab to another path on the fixture origin. */
-  navigate(input: { path: string }): Promise<void>;
 
   reload(): Promise<void>;
 

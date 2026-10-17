@@ -9,7 +9,6 @@ type HoverElement = Parameters<E2eAutomation['hoverElement']>[0];
 type MovePointer = Parameters<E2eAutomation['movePointer']>[0];
 type PressKey = Parameters<E2eAutomation['pressKey']>[0];
 type ScrollBy = Parameters<E2eAutomation['scrollBy']>[0];
-type Navigate = Parameters<E2eAutomation['navigate']>[0];
 type SetHue = Parameters<E2eAutomation['setOptionsHue']>[0];
 type SetBinding = Parameters<E2eAutomation['setOptionsClickBinding']>[0];
 type SetStorage = Parameters<E2eAutomation['setSyncStorage']>[0];
@@ -182,13 +181,11 @@ export type E2eStep = {
   | { kind: 'extension.options.open' }
   | ({ kind: 'extension.storage.sync.set' } & SetStorage)
   | ({ kind: 'page.goto' } & Goto)
-  | { kind: 'page.gotoUninjectable' }
   | ({ kind: 'page.element.click' } & ClickElement)
   | ({ kind: 'page.element.hover' } & HoverElement)
   | ({ kind: 'page.pointer.move' } & MovePointer)
   | ({ kind: 'page.keyboard.press' } & PressKey)
   | ({ kind: 'page.scroll.by' } & ScrollBy)
-  | ({ kind: 'page.navigate' } & Navigate)
   | { kind: 'page.reload' }
   | { kind: 'page.history.back' }
   | { kind: 'page.history.forward' }

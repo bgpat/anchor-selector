@@ -16,6 +16,11 @@ import type { ConfigKey, ModifierKey, StoredConfig } from '@/util/config';
 import variables from '@/util/variables';
 import type { DomBox, E2eAutomation } from '../automation/interface';
 import { runAtspi } from './atspi-host';
+import {
+  navigationUrlMatches,
+  resolveGotoUrl,
+  type GotoInput,
+} from './navigation';
 
 const execFileAsync = promisify(execFile);
 
@@ -305,7 +310,7 @@ export abstract class PageAutomation implements E2eAutomation {
     protected probeHandle: string,
     protected readonly probeUrl: string,
     protected readonly fixtureOrigin: string,
-    private readonly uninjectableUrl: string,
+    private readonly uninjectableHref: string,
   ) {}
 
   abstract clickExtensionIcon(
@@ -561,16 +566,22 @@ export abstract class PageAutomation implements E2eAutomation {
     throw new Error(`${message}${detail}`);
   }
 
-  async goto(input: { path: string }): Promise<void> {
-    await this.openUrlInAddressBar(`${this.fixtureOrigin}${input.path}`);
-  }
-
-  async navigate(input: { path: string }): Promise<void> {
-    await this.goto(input);
-  }
-
-  async gotoUninjectable(): Promise<void> {
-    await this.openUrlInAddressBar(this.uninjectableUrl);
+  async goto(input: GotoInput): Promise<void> {
+    const url = resolveGotoUrl(
+      input,
+      this.fixtureOrigin,
+      this.uninjectableHref,
+    );
+    await this.preparePage();
+    await this.driver.get(url);
+    await pauseAfterOperation();
+    await this.waitFor(
+      async () =>
+        navigationUrlMatches(await this.driver.getCurrentUrl(), url),
+      'page navigation did not finish',
+      15000,
+    );
+    await this.waitForReady();
   }
 
   async reload(): Promise<void> {
@@ -653,54 +664,6 @@ export abstract class PageAutomation implements E2eAutomation {
 
   protected async focusAddressBarForTyping(): Promise<void> {
     await execFileAsync('xdotool', ['key', '--clearmodifiers', 'ctrl+l']);
-  }
-
-  protected navigationUrlMatches(current: string, expected: string): boolean {
-    if (current === expected) {
-      return true;
-    }
-    try {
-      const currentUrl = new URL(current);
-      const expectedUrl = new URL(expected);
-      if (
-        currentUrl.origin !== expectedUrl.origin ||
-        currentUrl.pathname !== expectedUrl.pathname ||
-        currentUrl.search !== expectedUrl.search
-      ) {
-        return false;
-      }
-      if (expectedUrl.hash === '') {
-        return currentUrl.hash === '';
-      }
-      return currentUrl.hash === expectedUrl.hash;
-    } catch {
-      return current.startsWith(expected);
-    }
-  }
-
-  private async waitForNavigation(url: string, timeoutMs: number): Promise<void> {
-    await this.waitFor(
-      async () =>
-        this.navigationUrlMatches(await this.driver.getCurrentUrl(), url),
-      'address bar navigation did not finish',
-      timeoutMs,
-    );
-  }
-
-  protected async openUrlInAddressBar(url: string): Promise<void> {
-    await this.preparePage();
-    await this.clickAddressBar();
-    await this.focusAddressBarForTyping();
-    await typeAtKeyboard(url, { submit: true, selectAll: false });
-    await pauseAfterOperation();
-    try {
-      await this.waitForNavigation(url, 30000);
-    } catch {
-      await this.focusFixture();
-      await this.driver.get(url);
-      await this.waitForNavigation(url, 15000);
-    }
-    await this.waitForReady();
   }
 
   protected async clickBrowserBack(): Promise<void> {

@@ -139,7 +139,7 @@ export const selectionSessionScenarios = [
     steps: [
       { kind: 'extension.icon.click', button: 'left' },
       {
-        kind: 'page.navigate',
+        kind: 'page.goto',
         path: E2E_FIXTURE_PATH_2,
         expect: [
           ...selectionOff,
@@ -209,7 +209,7 @@ export const selectionSessionScenarios = [
       'A left-click on the icon on a page where the content script cannot run shows neither the overlay nor the badge.',
     tags: ['selection', 'edge'],
     steps: [
-      { kind: 'page.gotoUninjectable' },
+      { kind: 'page.goto', uninjectable: true },
       { kind: 'extension.icon.click', button: 'left' },
     ],
     expect: [
