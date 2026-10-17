@@ -11,6 +11,7 @@ import {
   ServiceBuilder,
 } from 'selenium-webdriver/chrome';
 import type { ModifierKey } from '@/util/config';
+import { capTimeoutSec, E2E_TIMEOUT_MS } from '../timeout';
 import type { ExtensionIconButton } from '../automation/interface';
 import { runAtspi } from './atspi-host';
 import {
@@ -153,17 +154,31 @@ export class ChromeAutomation extends PageAutomation {
     );
   }
 
+  protected override async switchToWindow(handle: string): Promise<void> {
+    let current: string | undefined;
+    try {
+      current = await this.driver.getWindowHandle();
+    } catch {
+      current = undefined;
+    }
+    if (current === handle) {
+      return;
+    }
+    await this.driver.switchTo().window(handle);
+    await pauseAfterOperation();
+  }
+
   async clickExtensionIcon(input: {
     button: ExtensionIconButton;
   }): Promise<void> {
-    await this.preparePage();
+    await this.driver.switchTo().window(this.fixtureHandle);
     const button =
       input.button === 'right'
         ? 'right'
         : input.button === 'middle'
           ? 'middle'
           : 'left';
-    const match = await this.toolbarExtensionButton(5);
+    const match = await this.toolbarExtensionButton(capTimeoutSec(5));
     if (match == null) {
       const dump = await atspiDump();
       throw new Error(
@@ -195,17 +210,11 @@ export class ChromeAutomation extends PageAutomation {
     });
     if (input.enabled) {
       await this.reopenProbe();
-      if ((await this.toolbarExtensionButton(1)) == null) {
-        try {
-          await this.waitFor(
-            async () => (await this.toolbarExtensionButton(1)) != null,
-            'extension toolbar button did not appear after enable',
-            15000,
-          );
-        } catch {
-          await this.pinActionButton();
-        }
-      }
+      await this.waitFor(
+        async () => (await this.toolbarExtensionButton(0)) != null,
+        'extension toolbar button did not appear after enable',
+        E2E_TIMEOUT_MS,
+      );
     }
   }
 
@@ -275,7 +284,7 @@ export class ChromeAutomation extends PageAutomation {
         await this.clickWebElement(options);
         await pauseAfterOperation('extension.options.link');
         return false;
-      }, 'options page did not open from chrome://extensions', 60000);
+      }, 'options page did not open from chrome://extensions', E2E_TIMEOUT_MS);
     });
     await pauseAfterOperation('extension.options.open');
   }
@@ -359,7 +368,7 @@ export class ChromeAutomation extends PageAutomation {
       } catch {
         return false;
       }
-    }, 'options page did not render', 15000);
+    }, 'options page did not render', E2E_TIMEOUT_MS);
     await pauseAfterOperation('focusOptions');
   }
 
@@ -383,7 +392,7 @@ export class ChromeAutomation extends PageAutomation {
     await this.waitFor(
       async () => (await this.readOptionsHue()) === input.value,
       'options hue slider did not reach target value',
-      5000,
+      E2E_TIMEOUT_MS,
     );
     await pauseAfterOperation('options.hue.set');
   }
@@ -421,7 +430,7 @@ export class ChromeAutomation extends PageAutomation {
             })()`,
           ),
         `modifier checkbox did not select: ${key}`,
-        5000,
+        E2E_TIMEOUT_MS,
       );
       await pauseAfterOperation(`options.modifier.${key}`);
     }
@@ -883,7 +892,7 @@ function cdpCommand(
     const timer = setTimeout(() => {
       socket.close();
       reject(new Error(`CDP ${method} timed out`));
-    }, 5000);
+    }, E2E_TIMEOUT_MS);
     socket.addEventListener('open', () => {
       socket.send(JSON.stringify({ id: 1, method, params }));
     });
@@ -920,7 +929,7 @@ function evaluateOnTarget<T>(
     const timer = setTimeout(() => {
       socket.close();
       reject(new Error('CDP evaluate timed out'));
-    }, 5000);
+    }, E2E_TIMEOUT_MS);
     const finish = (error: Error | null, value?: T) => {
       clearTimeout(timer);
       socket.close();

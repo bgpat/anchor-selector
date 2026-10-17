@@ -22,6 +22,7 @@ import {
   type GotoInput,
 } from './navigation';
 import { logE2eOp, readActionPauseMs } from '../op-log';
+import { E2E_TIMEOUT_MS } from '../timeout';
 
 const execFileAsync = promisify(execFile);
 
@@ -208,8 +209,8 @@ export async function pauseAfterOperation(context = 'operation'): Promise<void> 
 export async function configureDriver(driver: WebDriver): Promise<void> {
   await driver.manage().setTimeouts({
     implicit: 0,
-    pageLoad: 20000,
-    script: 15000,
+    pageLoad: E2E_TIMEOUT_MS,
+    script: E2E_TIMEOUT_MS,
   });
 }
 
@@ -391,7 +392,7 @@ export abstract class PageAutomation implements E2eAutomation {
   protected async openBrowserTab(): Promise<string> {
     const before = new Set(await this.driver.getAllWindowHandles());
     await this.openTabByMouse();
-    const deadline = Date.now() + 8000;
+    const deadline = Date.now() + E2E_TIMEOUT_MS;
     let created: string | undefined;
     while (Date.now() < deadline) {
       const handles = await this.driver.getAllWindowHandles();
@@ -538,7 +539,11 @@ export abstract class PageAutomation implements E2eAutomation {
         throw new Error('Options page is not open');
       }
       await this.switchToWindow(this.optionsHandle);
-      await this.waitFor(async () => renderOptions(), 'options page did not render', 15000);
+      await this.waitFor(
+        async () => renderOptions(),
+        'options page did not render',
+        E2E_TIMEOUT_MS,
+      );
     };
     try {
       await focus();
@@ -561,7 +566,7 @@ export abstract class PageAutomation implements E2eAutomation {
   protected async waitFor(
     predicate: () => Promise<boolean>,
     message: string,
-    timeoutMs = 8000,
+    timeoutMs = E2E_TIMEOUT_MS,
   ): Promise<void> {
     const started = Date.now();
     const deadline = started + timeoutMs;
@@ -609,7 +614,7 @@ export abstract class PageAutomation implements E2eAutomation {
       async () =>
         navigationUrlMatches(await this.driver.getCurrentUrl(), url),
       'page navigation did not finish',
-      8000,
+      E2E_TIMEOUT_MS,
     );
     await this.waitForReady();
     await pauseAfterOperation('goto');
@@ -685,7 +690,7 @@ export abstract class PageAutomation implements E2eAutomation {
     await this.waitForUrlChange(
       before,
       `history ${direction} did not change url`,
-      8000,
+      E2E_TIMEOUT_MS,
     );
     const after = await this.driver.getCurrentUrl();
     logE2eOp('history.done', { direction, before, after });
@@ -1231,7 +1236,7 @@ export abstract class PageAutomation implements E2eAutomation {
     await this.waitFor(
       async () => (await readHue()) === input.value,
       'options hue slider did not reach target value',
-      5000,
+      E2E_TIMEOUT_MS,
     );
     await pauseAfterOperation('options.hue.set');
   }
@@ -1654,5 +1659,5 @@ function highlightScript(mode: 'stroke' | 'box'): string {
 }
 
 export async function closeDriver(driver: WebDriver): Promise<void> {
-  await Promise.race([driver.quit(), delay(10000)]);
+  await Promise.race([driver.quit(), delay(E2E_TIMEOUT_MS)]);
 }

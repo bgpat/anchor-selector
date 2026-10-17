@@ -8,6 +8,7 @@ import {
   ServiceBuilder,
 } from 'selenium-webdriver/firefox';
 import type { ModifierKey } from '@/util/config';
+import { E2E_TIMEOUT_MS } from '../timeout';
 import type { ExtensionIconButton } from '../automation/interface';
 import {
   EXTENSION_NAME,
@@ -221,7 +222,7 @@ export class FirefoxAutomation extends PageAutomation {
     await this.waitFor(async () => {
       await this.rememberOptionsTab();
       return this.optionsHandle != null;
-    }, 'options page did not open from about:addons', 60000);
+    }, 'options page did not open from about:addons', E2E_TIMEOUT_MS);
     await pauseAfterOperation('extension.options.open');
   }
 
@@ -466,7 +467,7 @@ export class FirefoxAutomation extends PageAutomation {
   }
 
   private async toolbarButton(): Promise<WebElement> {
-    const deadline = Date.now() + 8000;
+    const deadline = Date.now() + E2E_TIMEOUT_MS;
     while (Date.now() < deadline) {
       const button = await this.firefox.executeScript<WebElement | null>(
         `return document.getElementById(arguments[0])
@@ -648,7 +649,7 @@ export class FirefoxAutomation extends PageAutomation {
           'MarionetteCommands',
         );
         actor.executeScript(source, payload, {
-          timeout: 15000,
+          timeout: E2E_TIMEOUT_MS,
           sandboxName: null,
           newSandbox: false,
           file: '',

@@ -22,9 +22,9 @@ import {
 } from './scenario-osd';
 import './bun-globals';
 import { logE2eOp, timeE2eOp } from '../op-log';
+import { E2E_TIMEOUT_MS } from '../timeout';
 
-const EVENTUAL_TIMEOUT_MS = 2500;
-const SCENARIO_TIMEOUT_MS = 180000;
+const EVENTUAL_TIMEOUT_MS = E2E_TIMEOUT_MS;
 
 function flag(name: string): string | undefined {
   const index = process.argv.indexOf(name);
@@ -60,18 +60,22 @@ async function dispatch(
   automation: E2eAutomation,
   step: E2eStep,
 ): Promise<void> {
-  await timeE2eOp(`step.${step.kind}`, async () => {
-    const method = stepKindMethod[step.kind];
-    const input: Record<string, unknown> = { ...step };
-    delete input.kind;
-    delete input.expect;
-    const fn = automation[method] as (value?: object) => Promise<void>;
-    if (Object.keys(input).length === 0) {
-      await fn.call(automation);
-      return;
-    }
-    await fn.call(automation, input);
-  }, { detail: stepSummary(step) });
+  const label = `step ${step.kind}`;
+  await Promise.race([
+    timeE2eOp(`step.${step.kind}`, async () => {
+      const method = stepKindMethod[step.kind];
+      const input: Record<string, unknown> = { ...step };
+      delete input.kind;
+      delete input.expect;
+      const fn = automation[method] as (value?: object) => Promise<void>;
+      if (Object.keys(input).length === 0) {
+        await fn.call(automation);
+        return;
+      }
+      await fn.call(automation, input);
+    }, { detail: stepSummary(step) }),
+    timeout(E2E_TIMEOUT_MS, label),
+  ]);
 }
 
 async function checkEventually(
@@ -260,7 +264,7 @@ async function runRecording(
   try {
     const session = await Promise.race([
       launch(browserName, fixtureOrigin),
-      timeout(SCENARIO_TIMEOUT_MS, 'browser launch'),
+      timeout(E2E_TIMEOUT_MS, 'browser launch'),
     ]);
     closeBrowser = session.close;
     automation = session.automation;
@@ -291,10 +295,7 @@ async function runRecording(
     let failure: string | null = null;
     let failureImage: string | null = null;
     try {
-      await Promise.race([
-        runScenario(automation, scenario, () => runId === scenarioRunId),
-        timeout(SCENARIO_TIMEOUT_MS, scenario.id),
-      ]);
+      await runScenario(automation, scenario, () => runId === scenarioRunId);
     } catch (error) {
       scenarioRunId += 1;
       failure = errorMessage(error);

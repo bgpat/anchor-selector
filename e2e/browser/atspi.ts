@@ -404,7 +404,7 @@ function pressAt(x: number, y: number, button: Button): void {
 }
 
 function dump(query: Query): void {
-  for (const node of candidates(query.app, 2500)) {
+  for (const node of candidates(query.app, 800)) {
     const box =
       node.rect == null
         ? ''
@@ -417,7 +417,7 @@ function waitFor(query: Query): Found[] {
   const deadline = Date.now() + query.timeout * 1000;
   let found: Found[] = [];
   for (;;) {
-    found = matching(query, 4000);
+    found = matching(query, 800);
     if (found.length > 0 || Date.now() >= deadline) {
       return found;
     }
@@ -440,7 +440,7 @@ function readCommand(): Query {
     role: command.role ?? '',
     exact: command.exact ?? false,
     prefer: command.prefer ?? 'top',
-    timeout: command.timeout ?? 3,
+    timeout: Math.min(command.timeout ?? 3, 10),
     exclude: command.exclude ?? '',
     app: command.app ?? 'chrom',
     button: command.button ?? 'left',
@@ -462,7 +462,7 @@ function main(): void {
     return;
   }
   if (query.command === 'list') {
-    print(JSON.stringify(matching(query, 4000).map((item) => item.box)));
+    print(JSON.stringify(matching(query, 800).map((item) => item.box)));
     return;
   }
   if (query.command === 'move') {
