@@ -22,7 +22,9 @@ import {
   type GotoInput,
 } from './navigation';
 import { logE2eOp, readActionPauseMs } from '../op-log';
-import { E2E_TIMEOUT_MS } from '../timeout';
+import { E2E_TIMEOUT_MS, capTimeoutMs } from '../timeout';
+
+const ATSPI_POINTER_MS = 3_000;
 
 const execFileAsync = promisify(execFile);
 
@@ -66,13 +68,16 @@ type AtspiBox = {
 
 /** x11grab records the system pointer. WebDriver actions do not move it. */
 export async function pointAtScreen(x: number, y: number): Promise<void> {
-  await runAtspi([
-    JSON.stringify({
-      command: 'move',
-      x: Math.round(x),
-      y: Math.round(y),
-    }),
-  ]);
+  await runAtspi(
+    [
+      JSON.stringify({
+        command: 'move',
+        x: Math.round(x),
+        y: Math.round(y),
+      }),
+    ],
+    { timeoutMs: capTimeoutMs(ATSPI_POINTER_MS) },
+  );
 }
 
 export async function typeAtKeyboard(
@@ -104,15 +109,18 @@ export async function clickAtScreen(
   options?: { pause?: boolean },
 ): Promise<void> {
   await pointAtScreen(x, y);
-  await runAtspi([
-    JSON.stringify({
-      command: 'press-at',
-      x: Math.round(x),
-      y: Math.round(y),
-      button,
-      pauseMs: atspiPauseMs,
-    }),
-  ]);
+  await runAtspi(
+    [
+      JSON.stringify({
+        command: 'press-at',
+        x: Math.round(x),
+        y: Math.round(y),
+        button,
+        pauseMs: atspiPauseMs,
+      }),
+    ],
+    { timeoutMs: capTimeoutMs(ATSPI_POINTER_MS) },
+  );
   if (options?.pause ?? true) {
     await pauseAfterOperation();
   }
@@ -1178,7 +1186,7 @@ export abstract class PageAutomation implements E2eAutomation {
       requestAnimationFrame(step);`,
       input.x ?? 0,
       input.y ?? 0,
-      1000,
+      500,
     );
   }
 

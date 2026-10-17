@@ -34,22 +34,42 @@ import {
 
 const execFileAsync = promisify(execFile);
 
+const xdotoolOpts = { timeout: 2_000 };
+
 async function activateChromeWindow(): Promise<void> {
   try {
-    const { stdout } = await execFileAsync('xdotool', [
-      'search',
-      '--onlyvisible',
-      '--classname',
-      'google-chrome',
-    ]);
+    const { stdout } = await execFileAsync(
+      'xdotool',
+      ['search', '--onlyvisible', '--classname', 'google-chrome'],
+      xdotoolOpts,
+    );
     const windowId = stdout.trim().split('\n')[0];
     if (windowId !== '') {
-      await execFileAsync('xdotool', ['windowactivate', windowId]);
+      await execFileAsync('xdotool', ['windowactivate', windowId], xdotoolOpts);
       await delay(50);
     }
   } catch {
-    // Best-effort: xdotool clicks still run if focus is already on Chrome.
+    // Best-effort: clicks still run if focus is already on Chrome.
   }
+}
+
+const TOOLBAR_CLICK_MS = 3_000;
+const ATSPI_FIND_MS = 3_000;
+
+/** AT-SPI activates Chrome toolbar controls; raw xdotool clicks often miss them. */
+async function clickToolbarAt(x: number, y: number): Promise<void> {
+  await activateChromeWindow();
+  await atspi(
+    {
+      command: 'click-xy',
+      x,
+      y,
+      button: 'left',
+      pauseMs: 0,
+      duration: 0,
+    },
+    capTimeoutMs(TOOLBAR_CLICK_MS),
+  );
 }
 
 /** Survives for the browser session; set during pin/warmup before e2e steps run. */
@@ -78,8 +98,11 @@ function atspi(command: {
   y?: number;
   pauseMs?: number;
   maxNodes?: number;
-}): Promise<string> {
-  return runAtspi([JSON.stringify(command)]);
+}, timeoutMs?: number): Promise<string> {
+  return runAtspi(
+    [JSON.stringify(command)],
+    timeoutMs == null ? undefined : { timeoutMs },
+  );
 }
 
 async function atspiFind(input: {
@@ -93,17 +116,20 @@ async function atspiFind(input: {
   maxNodes?: number;
 }): Promise<AtspiMatch | null> {
   try {
-    const output = await atspi({
-      command: 'find',
-      app: input.app ?? 'chrom',
-      name: input.name,
-      role: input.role,
-      exclude: input.exclude,
-      prefer: input.prefer,
-      timeout: input.timeout,
-      exact: input.exact,
-      maxNodes: input.maxNodes,
-    });
+    const output = await atspi(
+      {
+        command: 'find',
+        app: input.app ?? 'chrom',
+        name: input.name,
+        role: input.role,
+        exclude: input.exclude,
+        prefer: input.prefer,
+        timeout: input.timeout,
+        exact: input.exact,
+        maxNodes: input.maxNodes,
+      },
+      capTimeoutMs(ATSPI_FIND_MS),
+    );
     const parsed = JSON.parse(output) as { match: AtspiMatch };
     return parsed.match;
   } catch {
@@ -202,19 +228,15 @@ export class ChromeAutomation extends PageAutomation {
         : input.button === 'middle'
           ? 'middle'
           : 'left';
-    const cached = chromeToolbarButton ?? this.toolbarButtonCache;
-    if (button === 'left' && cached != null) {
-      const x = Math.round(cached.x + cached.width / 2);
-      const y = Math.round(cached.y + cached.height / 2);
-      await activateChromeWindow();
-      await clickAtScreen(x, y, 'left', { pause: false });
+    await this.switchToWindow(this.fixtureHandle);
+    if (button === 'left') {
+      await this.clickToolbarExtensionLeft();
       await pauseAfterOperation('extension.icon.click');
       return;
     }
-    await this.switchToWindow(this.fixtureHandle);
-    let match = cached;
+    let match = chromeToolbarButton ?? this.toolbarButtonCache;
     if (match == null) {
-      match = await this.locateToolbarExtensionButton(capTimeoutSec(5));
+      match = await this.locateToolbarExtensionButton(capTimeoutSec(3));
     }
     if (match == null) {
       const dump = await atspiDump();
@@ -224,13 +246,52 @@ export class ChromeAutomation extends PageAutomation {
     }
     const x = Math.round(match.x + match.width / 2);
     const y = Math.round(match.y + match.height / 2);
-    if (button === 'left') {
-      await activateChromeWindow();
-      await clickAtScreen(x, y, 'left', { pause: false });
-      await pauseAfterOperation('extension.icon.click');
-      return;
-    }
     await clickAtScreen(x, y, button);
+    await pauseAfterOperation('extension.icon.click');
+  }
+
+  private async clickToolbarExtensionLeft(): Promise<void> {
+    await activateChromeWindow();
+    const names = ['jump to the anchored element', EXTENSION_NAME];
+    let lastError: unknown;
+    for (const name of names) {
+      try {
+        await atspi(
+          {
+            command: 'click',
+            app: 'chrom',
+            name,
+            role: 'push button',
+            prefer: 'top',
+            timeout: capTimeoutSec(1),
+            maxNodes: 800,
+            pauseMs: 0,
+          },
+          capTimeoutMs(TOOLBAR_CLICK_MS),
+        );
+        return;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    let match =
+      (await this.refreshToolbarCoordsQuick()) ??
+      chromeToolbarButton ??
+      this.toolbarButtonCache;
+    if (match != null) {
+      try {
+        await clickToolbarAt(
+          Math.round(match.x + match.width / 2),
+          Math.round(match.y + match.height / 2),
+        );
+        return;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError instanceof Error
+      ? lastError
+      : new Error(`${EXTENSION_NAME} toolbar button could not be clicked`);
   }
 
   async setExtensionEnabled(input: { enabled: boolean }): Promise<void> {
@@ -766,6 +827,27 @@ export class ChromeAutomation extends PageAutomation {
       !match.name.includes('Ask on every visit') &&
       !match.name.includes('is pinned')
     );
+  }
+
+  /** Single bounded AT-SPI scan; safe inside a 10s step before toolbar clicks. */
+  private async refreshToolbarCoordsQuick(): Promise<AtspiMatch | null> {
+    const rect = await this.windowRect();
+    const names = ['jump to the anchored element', EXTENSION_NAME];
+    for (const name of names) {
+      const match = await atspiFind({
+        name,
+        role: 'push button',
+        prefer: 'top',
+        timeout: 0,
+        maxNodes: 400,
+      });
+      if (match != null && this.toolbarButtonInChromeBar(match, rect)) {
+        this.toolbarButtonCache = match;
+        chromeToolbarButton = match;
+        return match;
+      }
+    }
+    return null;
   }
 
   /** Slow AT-SPI lookup; run during launch, not inside a 10s e2e step. */

@@ -33,7 +33,10 @@ function atspiProgram(): Promise<string> {
   return compiled;
 }
 
-export async function runAtspi(args: string[]): Promise<string> {
+export async function runAtspi(
+  args: string[],
+  options?: { timeoutMs?: number },
+): Promise<string> {
   const program = await atspiProgram();
   const proc = spawn('/usr/bin/gjs', ['-m', program, ...args], {
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -42,10 +45,25 @@ export async function runAtspi(args: string[]): Promise<string> {
   const stderr: Buffer[] = [];
   proc.stdout.on('data', (chunk: Buffer) => stdout.push(chunk));
   proc.stderr.on('data', (chunk: Buffer) => stderr.push(chunk));
+  let timedOut = false;
+  const timeoutMs = options?.timeoutMs;
+  const timer =
+    timeoutMs == null
+      ? undefined
+      : setTimeout(() => {
+          timedOut = true;
+          proc.kill('SIGKILL');
+        }, timeoutMs);
   const code = await new Promise<number>((resolveCode, reject) => {
     proc.once('error', reject);
     proc.once('close', (status) => resolveCode(status ?? 1));
   });
+  if (timer != null) {
+    clearTimeout(timer);
+  }
+  if (timedOut) {
+    throw new Error(`atspi timed out after ${timeoutMs}ms`);
+  }
   const out = Buffer.concat(stdout).toString('utf8').trim();
   const err = Buffer.concat(stderr).toString('utf8').trim();
   if (code !== 0) {
