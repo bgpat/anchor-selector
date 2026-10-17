@@ -300,61 +300,17 @@ export class ChromeAutomation extends PageAutomation {
       await delay(50);
     }
     if (beforeOverlay) {
-      await this.ensureFixtureSelectionOffViaProbe();
-      await this.driver.navigate().refresh();
-      await this.waitFor(
-        async () =>
-          (await this.driver.executeScript('return document.readyState')) ===
-          'complete',
-        'fixture did not reload after ending selection',
-        capTimeoutMs(2_000),
-      );
+      await this.clickToolbarExtensionLeft();
+      const offDeadline = Date.now() + capTimeoutMs(2_500);
+      while (Date.now() < offDeadline) {
+        if (!(await this.isOverlayVisible())) {
+          return;
+        }
+        await delay(50);
+      }
       return;
     }
     await this.ensureFixtureSelectionOnViaProbe();
-  }
-
-  private async ensureFixtureSelectionOffViaProbe(): Promise<void> {
-    const fixtureUrl = await this.driver.getCurrentUrl();
-    try {
-      await this.probe<void>(
-        `const done = arguments[arguments.length - 1];
-        const url = arguments[0];
-        const ext = globalThis.chrome;
-        (async () => {
-          const tabs = await ext.tabs.query({});
-          const tab = tabs.find((item) => item.url === url);
-          if (!tab || tab.id == null) {
-            done({ error: 'fixture tab was not found' });
-            return;
-          }
-          const tabId = tab.id;
-          let state = null;
-          try {
-            state = await ext.tabs.sendMessage(tabId, { type: 'get-state' });
-          } catch {
-            state = null;
-          }
-          if (state?.overlayActive !== true) {
-            await ext.action.setBadgeText({ tabId, text: '' });
-            done(null);
-            return;
-          }
-          const hue = await ext.runtime.sendMessage({ type: 'get-config', key: 'hue' });
-          const click = await ext.runtime.sendMessage({ type: 'get-config', key: 'click' });
-          await ext.tabs.sendMessage(tabId, {
-            type: 'set-selection',
-            active: false,
-            config: { hue, click },
-          });
-          await ext.action.setBadgeText({ tabId, text: '' });
-          done(null);
-        })().catch((error) => done({ error: String(error) }));`,
-        fixtureUrl,
-      );
-    } catch {
-      // Toolbar UI may already have ended selection; probe is best-effort.
-    }
   }
 
   private async ensureFixtureSelectionOnViaProbe(): Promise<void> {
