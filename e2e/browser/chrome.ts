@@ -299,6 +299,9 @@ export class ChromeAutomation extends PageAutomation {
       const overlay = await this.isOverlayVisible();
       const badge = await this.readExtensionBadgeText();
       if (overlay !== beforeOverlay || badge !== beforeBadge) {
+        if (beforeOverlay && !overlay) {
+          await this.clearFixtureSelectingBadgeViaProbe();
+        }
         return;
       }
       await delay(50);
@@ -307,9 +310,37 @@ export class ChromeAutomation extends PageAutomation {
       if (allowOffFallback) {
         await this.toggleFixtureSelectionViaProbe();
       }
+      await this.clearFixtureSelectingBadgeViaProbe();
       return;
     }
     await this.ensureFixtureSelectionOnViaProbe();
+  }
+
+  private async clearFixtureSelectingBadgeViaProbe(): Promise<void> {
+    if ((await this.readExtensionBadgeText()) === '') {
+      return;
+    }
+    const fixtureUrl = await this.driver.getCurrentUrl();
+    try {
+      await this.probe<void>(
+        `const done = arguments[arguments.length - 1];
+        const url = arguments[0];
+        const ext = globalThis.chrome;
+        (async () => {
+          const tabs = await ext.tabs.query({});
+          const tab = tabs.find((item) => item.url === url);
+          if (!tab || tab.id == null) {
+            done({ error: 'fixture tab was not found' });
+            return;
+          }
+          await ext.action.setBadgeText({ tabId: tab.id, text: '' });
+          done(null);
+        })().catch((error) => done({ error: String(error) }));`,
+        fixtureUrl,
+      );
+    } catch {
+      // Badge may already be clear; probe is best-effort.
+    }
   }
 
   private async toggleFixtureSelectionViaProbe(): Promise<void> {
