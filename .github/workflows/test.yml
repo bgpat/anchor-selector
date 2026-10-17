@@ -67,6 +67,7 @@ jobs:
         uses: $/.github/actions/apt-install
         with:
           packages: |
+            adwaita-icon-theme
             at-spi2-core
             dbus-x11
             ffmpeg
@@ -80,11 +81,15 @@ jobs:
             libx11-xcb1
             libxt6
             xclip
+            xcursor-themes
             xdotool
             xvfb
       - run: bun run build:${{ matrix.browser }}
       - name: Run e2e
         shell: bash
+        env:
+          XCURSOR_THEME: Adwaita
+          XCURSOR_SIZE: 24
         run: |
           set -o pipefail
           mkdir -p "test-results/${{ matrix.browser }}"
