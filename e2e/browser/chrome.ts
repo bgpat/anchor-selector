@@ -223,6 +223,12 @@ export class ChromeAutomation extends PageAutomation {
     if (button === 'left') {
       await this.clickToolbarExtensionLeft();
       await this.syncToolbarLeftClickIfNeeded(input.syncOffFallback === true);
+      if (
+        (await this.isOverlayVisible()) &&
+        (await this.readExtensionBadgeText()) === ''
+      ) {
+        await this.ensureFixtureSelectionOnViaProbe();
+      }
       await pauseAfterOperation('extension.icon.click');
       return;
     }
@@ -299,7 +305,7 @@ export class ChromeAutomation extends PageAutomation {
       const overlay = await this.isOverlayVisible();
       const badge = await this.readExtensionBadgeText();
       if (overlay !== beforeOverlay || badge !== beforeBadge) {
-        if (beforeOverlay && !overlay) {
+        if (beforeOverlay && !overlay && allowOffFallback) {
           await this.clearFixtureSelectingBadgeViaProbe();
         } else if (!beforeOverlay && overlay) {
           const badgeDeadline = Date.now() + capTimeoutMs(2_000);
@@ -320,8 +326,8 @@ export class ChromeAutomation extends PageAutomation {
     if (beforeOverlay) {
       if (allowOffFallback) {
         await this.toggleFixtureSelectionViaProbe();
+        await this.clearFixtureSelectingBadgeViaProbe();
       }
-      await this.clearFixtureSelectingBadgeViaProbe();
       return;
     }
     await this.ensureFixtureSelectionOnViaProbe();
