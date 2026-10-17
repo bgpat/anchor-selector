@@ -224,10 +224,17 @@ export class ChromeAutomation extends PageAutomation {
       await this.clickToolbarExtensionLeft();
       await this.syncToolbarLeftClickIfNeeded(input.syncOffFallback === true);
       if (
+        input.syncOffFallback !== true &&
         (await this.isOverlayVisible()) &&
         (await this.readExtensionBadgeText()) === ''
       ) {
         await this.ensureFixtureSelectionOnViaProbe();
+      }
+      if (
+        input.syncOffFallback === true &&
+        !(await this.isOverlayVisible())
+      ) {
+        await this.clearFixtureSelectingBadgeViaProbe();
       }
       await pauseAfterOperation('extension.icon.click');
       return;
