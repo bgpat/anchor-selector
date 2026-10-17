@@ -21,6 +21,7 @@ import {
   stopScenarioOsd,
 } from './scenario-osd';
 import './bun-globals';
+import { logE2eOp, timeE2eOp } from '../op-log';
 
 const EVENTUAL_TIMEOUT_MS = 2500;
 const SCENARIO_TIMEOUT_MS = 180000;
@@ -40,20 +41,37 @@ function errorMessage(error: unknown): string {
   return String(error);
 }
 
+function stepSummary(step: E2eStep): string {
+  const copy = { ...step } as Record<string, unknown>;
+  delete copy.kind;
+  delete copy.expect;
+  const keys = Object.keys(copy);
+  if (keys.length === 0) {
+    return step.kind;
+  }
+  const brief = keys
+    .slice(0, 3)
+    .map((key) => `${key}=${JSON.stringify(copy[key])}`)
+    .join(' ');
+  return `${step.kind} ${brief}`;
+}
+
 async function dispatch(
   automation: E2eAutomation,
   step: E2eStep,
 ): Promise<void> {
-  const method = stepKindMethod[step.kind];
-  const input: Record<string, unknown> = { ...step };
-  delete input.kind;
-  delete input.expect;
-  const fn = automation[method] as (value?: object) => Promise<void>;
-  if (Object.keys(input).length === 0) {
-    await fn.call(automation);
-    return;
-  }
-  await fn.call(automation, input);
+  await timeE2eOp(`step.${step.kind}`, async () => {
+    const method = stepKindMethod[step.kind];
+    const input: Record<string, unknown> = { ...step };
+    delete input.kind;
+    delete input.expect;
+    const fn = automation[method] as (value?: object) => Promise<void>;
+    if (Object.keys(input).length === 0) {
+      await fn.call(automation);
+      return;
+    }
+    await fn.call(automation, input);
+  }, { detail: stepSummary(step) });
 }
 
 async function checkEventually(
@@ -69,13 +87,26 @@ async function checkEventually(
     await new Promise((resolve) => setTimeout(resolve, 40));
     return explainAssertion(assertion, automation, baseline);
   }
-  const deadline = Date.now() + EVENTUAL_TIMEOUT_MS;
+  const started = Date.now();
+  const deadline = started + EVENTUAL_TIMEOUT_MS;
   let explanation = await explainAssertion(assertion, automation, baseline);
+  let polls = 1;
   while (explanation != null && Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 50));
+    polls += 1;
     explanation = await explainAssertion(assertion, automation, baseline).catch(
       (error: unknown) => errorMessage(error),
     );
+  }
+  const durationMs = Date.now() - started;
+  if (durationMs >= 150 || polls > 1) {
+    logE2eOp(explanation == null ? 'assert.ok' : 'assert.timeout', {
+      kind: assertion.kind,
+      durationMs,
+      polls,
+      limitMs: EVENTUAL_TIMEOUT_MS,
+      ...(explanation == null ? {} : { detail: explanation }),
+    });
   }
   return explanation;
 }
@@ -98,6 +129,7 @@ async function runScenario(
   automation: E2eAutomation,
   scenario: E2eScenario,
 ): Promise<void> {
+  await timeE2eOp('scenario', async () => {
   const baseline: AssertionBaseline = {
     tabs: await automation.countTabs(),
     windows: await automation.countWindows(),
@@ -127,6 +159,7 @@ async function runScenario(
   // Scenario-level expectations describe the state after the last step.
   // Earlier steps, such as opening the fixture, do not satisfy them yet.
   await checkAll(scenario.expect, automation, baseline, 'scenario');
+  }, { id: scenario.id });
 }
 
 function pause(ms: number): Promise<void> {
@@ -195,7 +228,14 @@ async function main(): Promise<void> {
     (scenario) => scenario.status === 'failed',
   );
   for (const scenario of report.scenarios) {
-    console.log(`${scenario.status}\t${scenario.id}`);
+    console.log(
+      `${scenario.status}\t${scenario.id}\t${scenario.durationMs}ms`,
+    );
+    logE2eOp('scenario.summary', {
+      id: scenario.id,
+      status: scenario.status,
+      durationMs: scenario.durationMs,
+    });
   }
   if (failed.length > 0) {
     process.exitCode = 1;

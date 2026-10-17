@@ -84,7 +84,11 @@ jobs:
             xvfb
       - run: bun run build:${{ matrix.browser }}
       - name: Run e2e
-        run: dbus-run-session -- xvfb-run -a -s '-screen 0 960x600x24' bun run e2e:${{ matrix.browser }}
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p "test-results/${{ matrix.browser }}"
+          dbus-run-session -- xvfb-run -a -s '-screen 0 960x600x24' bun run e2e:${{ matrix.browser }} 2>&1 | tee "test-results/${{ matrix.browser }}/e2e-console.log"
       - name: Annotate e2e failures
         if: always()
         run: bun scripts/e2e-workflow-errors.ts --browser ${{ matrix.browser }}

@@ -21,6 +21,7 @@ import {
   resolveGotoUrl,
   type GotoInput,
 } from './navigation';
+import { logE2eOp, readActionPauseMs } from '../op-log';
 
 const execFileAsync = promisify(execFile);
 
@@ -177,11 +178,13 @@ const originY = typeof view.mozInnerScreenY === 'number'
   : view.screenY + Math.max(0, view.outerHeight - view.innerHeight - borderX);
 return { x: originX + x, y: originY + y };`;
 
-/** Gap between recorded operations in the video. */
-export const actionPauseMs = 500;
+/** Gap between recorded user actions in the video (override with E2E_ACTION_PAUSE_MS). */
+export const actionPauseMs = readActionPauseMs();
 
 /** AT-SPI holds its own pause; all gaps use {@link pauseAfterOperation} in TS. */
 const atspiPauseMs = 0;
+
+const pointerMoveDurationMs = 0;
 
 export function delay(ms: number): Promise<void> {
   return new Promise((resolveDelay) => {
@@ -189,8 +192,16 @@ export function delay(ms: number): Promise<void> {
   });
 }
 
-export async function pauseAfterOperation(): Promise<void> {
+export async function pauseAfterOperation(context = 'operation'): Promise<void> {
+  if (actionPauseMs <= 0) {
+    return;
+  }
+  const started = Date.now();
   await delay(actionPauseMs);
+  logE2eOp('recording.pause', {
+    after: context,
+    durationMs: Date.now() - started,
+  });
 }
 
 export async function configureDriver(driver: WebDriver): Promise<void> {
@@ -550,11 +561,18 @@ export abstract class PageAutomation implements E2eAutomation {
     message: string,
     timeoutMs = 8000,
   ): Promise<void> {
-    const deadline = Date.now() + timeoutMs;
+    const started = Date.now();
+    const deadline = started + timeoutMs;
     let lastError: unknown;
+    let polls = 0;
     while (Date.now() < deadline) {
+      polls += 1;
       try {
         if (await predicate()) {
+          const durationMs = Date.now() - started;
+          if (durationMs >= 100 || polls > 1) {
+            logE2eOp('waitFor.ok', { message, durationMs, polls, timeoutMs });
+          }
           return;
         }
       } catch (error) {
@@ -562,6 +580,12 @@ export abstract class PageAutomation implements E2eAutomation {
       }
       await delay(50);
     }
+    logE2eOp('waitFor.timeout', {
+      message,
+      durationMs: Date.now() - started,
+      polls,
+      timeoutMs,
+    });
     const detail = lastError instanceof Error ? `: ${lastError.message}` : '';
     throw new Error(`${message}${detail}`);
   }
@@ -573,15 +597,20 @@ export abstract class PageAutomation implements E2eAutomation {
       this.uninjectableHref,
     );
     await this.preparePage();
+    const loadStarted = Date.now();
     await this.driver.get(url);
-    await pauseAfterOperation();
+    logE2eOp('goto.driverGet', {
+      url,
+      durationMs: Date.now() - loadStarted,
+    });
     await this.waitFor(
       async () =>
         navigationUrlMatches(await this.driver.getCurrentUrl(), url),
       'page navigation did not finish',
-      15000,
+      8000,
     );
     await this.waitForReady();
+    await pauseAfterOperation('goto');
   }
 
   async reload(): Promise<void> {
@@ -788,7 +817,7 @@ export abstract class PageAutomation implements E2eAutomation {
         input.modifiers,
       );
     }
-    await pauseAfterOperation();
+    await pauseAfterOperation('clickElement');
   }
 
   async hoverElement(input: { selector: string }): Promise<void> {
@@ -870,7 +899,7 @@ export abstract class PageAutomation implements E2eAutomation {
             origin: element,
             x: offsetX,
             y: offsetY,
-            duration: 250,
+            duration: pointerMoveDurationMs,
           })
           .perform(),
       );
@@ -893,7 +922,7 @@ export abstract class PageAutomation implements E2eAutomation {
           x,
           y,
           origin: Origin.VIEWPORT,
-          duration: 250,
+          duration: pointerMoveDurationMs,
         })
         .perform(),
     );
@@ -960,7 +989,7 @@ export abstract class PageAutomation implements E2eAutomation {
       await this.runPointerAction(element, async () => {
         await this.driver
           .actions()
-          .move({ origin: element, duration: 250 })
+          .move({ origin: element, duration: pointerMoveDurationMs })
           .perform();
       });
       if (this.relayPageEvents) {
@@ -999,7 +1028,7 @@ export abstract class PageAutomation implements E2eAutomation {
           x: input.x,
           y: input.y,
           origin: Origin.VIEWPORT,
-          duration: 250,
+          duration: pointerMoveDurationMs,
         })
         .perform(),
     );
@@ -1010,7 +1039,6 @@ export abstract class PageAutomation implements E2eAutomation {
         y: input.y,
       });
     }
-    await pauseAfterOperation();
   }
 
   async pressKey(input: { key: string }): Promise<void> {

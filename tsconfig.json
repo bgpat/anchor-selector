@@ -18,6 +18,7 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/env.d.ts",
+    "e2e/op-log.ts",
     "e2e/automation/**/*.ts",
     "e2e/scenarios/**/*.ts",
     "e2e/browser/**/*.ts",
