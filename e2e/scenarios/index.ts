@@ -3,6 +3,7 @@ import { optionsScenarios } from './options';
 import { selectionCoreScenarios } from './selection.core';
 import {
   selectionBeforeActionScenarios,
+  selectionHistorySessionScenarios,
   selectionSessionScenarios,
   selectionUninjectableScenario,
 } from './selection.edges';
@@ -10,9 +11,10 @@ import type { E2eScenario } from './types';
 
 export const e2eScenarios = [
   ...selectionCoreScenarios,
-  ...selectionSessionScenarios,
+  ...selectionHistorySessionScenarios,
   ...selectionBeforeActionScenarios,
   ...clickActionScenarios,
+  ...selectionSessionScenarios,
   ...optionsScenarios,
   openNewWindowScenario,
   selectionUninjectableScenario,

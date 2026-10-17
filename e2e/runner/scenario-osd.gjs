@@ -98,18 +98,15 @@ function handleMessage(line) {
 }
 
 const stdin = GLib.IOChannel.unix_new(0);
-stdin.set_encoding(null);
+stdin.set_encoding('UTF-8');
 stdin.set_buffered(false);
 
 function readStdinLine(channel) {
   if (typeof channel.read_line_utf8 === 'function') {
     return channel.read_line_utf8();
   }
-  const [status, bytes] = channel.read_line(null);
-  if (status !== GLib.IOStatus.NORMAL || bytes == null) {
-    return [status, null];
-  }
-  return [GLib.IOStatus.NORMAL, imports.byteArray.toString(bytes)];
+  const [status, line] = channel.read_line(null);
+  return [status, line];
 }
 
 GLib.io_add_watch(stdin, GLib.PRIORITY_DEFAULT, GLib.IO_IN, (channel) => {

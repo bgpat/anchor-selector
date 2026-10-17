@@ -129,7 +129,8 @@ const modifierActionScenarios = [
   },
 ] as const satisfies readonly E2eScenario[];
 
-export const selectionSessionScenarios = [
+/** Runs right after core scenarios while the fixture tab is still active. */
+export const selectionHistorySessionScenarios = [
   {
     id: 'selection.history-back-forward-clears',
     title: 'Navigating and history back or forward clear selection',
@@ -165,6 +166,9 @@ export const selectionSessionScenarios = [
       },
     ],
   },
+] as const satisfies readonly E2eScenario[];
+
+export const selectionSessionScenarios = [
   {
     id: 'selection.reload-clears',
     title: 'Reloading while selecting clears selection',
