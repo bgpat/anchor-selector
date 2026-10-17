@@ -220,7 +220,6 @@ export class ChromeAutomation extends PageAutomation {
           : 'left';
     await this.switchToWindow(this.fixtureHandle);
     if (button === 'left') {
-      await this.ensureFixtureContentScript();
       await this.clickToolbarExtensionLeft();
       await pauseAfterOperation('extension.icon.click');
       return;
@@ -239,52 +238,6 @@ export class ChromeAutomation extends PageAutomation {
     const y = Math.round(match.y + match.height / 2);
     await clickAtScreen(x, y, button);
     await pauseAfterOperation('extension.icon.click');
-  }
-
-  private async ensureFixtureContentScript(): Promise<void> {
-    const fixtureUrl = await this.driver.getCurrentUrl();
-    await this.waitFor(
-      async () =>
-        this.probe<boolean>(
-          `const done = arguments[arguments.length - 1];
-          const url = arguments[0];
-          const ext = globalThis.chrome;
-          ext.tabs.query({}).then(async (tabs) => {
-            const tab = tabs.find((item) => item.url === url);
-            if (!tab || tab.id == null) {
-              done(false);
-              return;
-            }
-            const tabId = tab.id;
-            const readState = () =>
-              ext.tabs.sendMessage(tabId, { type: 'get-state' }).then(
-                (state) => state != null,
-                () => false,
-              );
-            if (await readState()) {
-              done(true);
-              return;
-            }
-            try {
-              await ext.scripting.executeScript({
-                target: { tabId },
-                files: ['/content_script.js'],
-              });
-              await ext.scripting.insertCSS({
-                target: { tabId },
-                files: ['/assets/overlay.css'],
-              });
-            } catch {
-              done(false);
-              return;
-            }
-            done(await readState());
-          }).catch(() => done(false));`,
-          fixtureUrl,
-        ),
-      'fixture content script is not ready',
-      capTimeoutMs(3_000),
-    );
   }
 
   private async refreshToolbarCoordsOnce(): Promise<void> {
