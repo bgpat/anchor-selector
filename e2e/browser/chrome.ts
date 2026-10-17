@@ -13,7 +13,7 @@ import {
   ServiceBuilder,
 } from 'selenium-webdriver/chrome';
 import type { ModifierKey } from '@/util/config';
-import { capTimeoutSec, E2E_TIMEOUT_MS } from '../timeout';
+import { capTimeoutMs, capTimeoutSec, E2E_TIMEOUT_MS } from '../timeout';
 import type { ExtensionIconButton } from '../automation/interface';
 import { runAtspi } from './atspi-host';
 import {
@@ -98,6 +98,7 @@ function atspi(command: {
   y?: number;
   pauseMs?: number;
   maxNodes?: number;
+  duration?: number;
 }, timeoutMs?: number): Promise<string> {
   return runAtspi(
     [JSON.stringify(command)],
@@ -114,7 +115,7 @@ async function atspiFind(input: {
   prefer?: 'top' | 'bottom';
   app?: string;
   maxNodes?: number;
-}): Promise<AtspiMatch | null> {
+}, processTimeoutMs?: number): Promise<AtspiMatch | null> {
   try {
     const output = await atspi(
       {
@@ -128,7 +129,7 @@ async function atspiFind(input: {
         exact: input.exact,
         maxNodes: input.maxNodes,
       },
-      capTimeoutMs(ATSPI_FIND_MS),
+      processTimeoutMs ?? undefined,
     );
     const parsed = JSON.parse(output) as { match: AtspiMatch };
     return parsed.match;
@@ -834,13 +835,16 @@ export class ChromeAutomation extends PageAutomation {
     const rect = await this.windowRect();
     const names = ['jump to the anchored element', EXTENSION_NAME];
     for (const name of names) {
-      const match = await atspiFind({
-        name,
-        role: 'push button',
-        prefer: 'top',
-        timeout: 0,
-        maxNodes: 400,
-      });
+      const match = await atspiFind(
+        {
+          name,
+          role: 'push button',
+          prefer: 'top',
+          timeout: 0,
+          maxNodes: 400,
+        },
+        capTimeoutMs(ATSPI_FIND_MS),
+      );
       if (match != null && this.toolbarButtonInChromeBar(match, rect)) {
         this.toolbarButtonCache = match;
         chromeToolbarButton = match;
