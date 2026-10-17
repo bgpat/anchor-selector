@@ -11,6 +11,11 @@ import type { E2eAutomation } from '../automation/interface';
 import { explainAssertion, type AssertionBaseline } from './assertions';
 import { assertRecording, ScreenRecorder } from './record';
 import type { BrowserReport, ScenarioReport } from './report';
+import {
+  showScenarioOsd,
+  startScenarioOsd,
+  stopScenarioOsd,
+} from './scenario-osd';
 import './bun-globals';
 
 const EVENTUAL_TIMEOUT_MS = 2500;
@@ -94,8 +99,10 @@ async function runScenario(
     windows: await automation.countWindows(),
     strokeBefore: null,
   };
-  const showScenario = () =>
-    automation.noteScenario({ id: scenario.id, title: scenario.title });
+  const showScenario = () => {
+    showScenarioOsd({ id: scenario.id, title: scenario.title });
+    return automation.noteScenario({ id: scenario.id, title: scenario.title });
+  };
   await showScenario();
   for (const [index, step] of scenario.steps.entries()) {
     await pause(actionPauseMs);
@@ -231,7 +238,9 @@ async function runRecording(
     ]);
     closeBrowser = session.close;
     automation = session.automation;
-    recorder.start(videoPath, await session.automation.windowRect());
+    const windowRect = await session.automation.windowRect();
+    recorder.start(videoPath, windowRect);
+    startScenarioOsd(windowRect);
     await recorder.assertStarted();
   } catch (error) {
     recordingError = errorMessage(error);
@@ -286,6 +295,7 @@ async function runRecording(
     });
   }
 
+  stopScenarioOsd();
   await recorder.stop().catch(() => undefined);
   await closeBrowser?.().catch(() => undefined);
   if (automation != null) {
