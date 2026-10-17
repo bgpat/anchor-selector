@@ -613,7 +613,12 @@ export class ChromeAutomation extends PageAutomation {
         const current = await this.driver.getCurrentUrl();
         if (current.startsWith('chrome://')) {
           await this.driver.get(returnUrl);
-          await this.waitForReady();
+          await this.waitFor(
+            async () =>
+              (await this.driver.executeScript('return document.readyState')) ===
+              'complete',
+            'document did not finish loading',
+          );
         }
       } catch {
         await this.activateOpenWindow();
