@@ -211,6 +211,7 @@ export class ChromeAutomation extends PageAutomation {
 
   async clickExtensionIcon(input: {
     button: ExtensionIconButton;
+    syncOffFallback?: boolean;
   }): Promise<void> {
     const button =
       input.button === 'right'
@@ -221,7 +222,7 @@ export class ChromeAutomation extends PageAutomation {
     await this.switchToWindow(this.fixtureHandle);
     if (button === 'left') {
       await this.clickToolbarExtensionLeft();
-      await this.syncToolbarLeftClickIfNeeded();
+      await this.syncToolbarLeftClickIfNeeded(input.syncOffFallback === true);
       await pauseAfterOperation('extension.icon.click');
       return;
     }
@@ -287,7 +288,9 @@ export class ChromeAutomation extends PageAutomation {
     }
   }
 
-  private async syncToolbarLeftClickIfNeeded(): Promise<void> {
+  private async syncToolbarLeftClickIfNeeded(
+    allowOffFallback = false,
+  ): Promise<void> {
     const beforeOverlay = await this.isOverlayVisible();
     const beforeBadge = await this.readExtensionBadgeText();
     const deadline =
@@ -301,7 +304,9 @@ export class ChromeAutomation extends PageAutomation {
       await delay(50);
     }
     if (beforeOverlay) {
-      await this.toggleFixtureSelectionViaProbe();
+      if (allowOffFallback) {
+        await this.toggleFixtureSelectionViaProbe();
+      }
       return;
     }
     await this.ensureFixtureSelectionOnViaProbe();

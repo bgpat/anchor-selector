@@ -26,7 +26,11 @@ export type DomBox = {
  */
 export interface E2eAutomation {
   /** Toolbar (browser action) icon click. */
-  clickExtensionIcon(input: { button: ExtensionIconButton }): Promise<void>;
+  clickExtensionIcon(input: {
+    button: ExtensionIconButton;
+    /** Chrome only: probe toggle when a toolbar off click did not sync. */
+    syncOffFallback?: boolean;
+  }): Promise<void>;
 
   /**
    * Enable or disable this extension from the browser's extension

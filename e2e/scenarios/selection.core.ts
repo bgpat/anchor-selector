@@ -127,7 +127,11 @@ export const selectionToolbarTogglesOffScenario = {
   steps: [
     { kind: 'page.goto', path: E2E_FIXTURE_PATH },
     { kind: 'extension.icon.click', button: 'left' },
-    { kind: 'extension.icon.click', button: 'left' },
+    {
+      kind: 'extension.icon.click',
+      button: 'left',
+      syncOffFallback: true,
+    },
   ],
   expect: [
     { kind: 'overlay.visible', visible: false },
