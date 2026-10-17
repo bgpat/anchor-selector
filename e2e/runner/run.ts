@@ -60,22 +60,18 @@ async function dispatch(
   automation: E2eAutomation,
   step: E2eStep,
 ): Promise<void> {
-  const label = `step ${step.kind}`;
-  await Promise.race([
-    timeE2eOp(`step.${step.kind}`, async () => {
-      const method = stepKindMethod[step.kind];
-      const input: Record<string, unknown> = { ...step };
-      delete input.kind;
-      delete input.expect;
-      const fn = automation[method] as (value?: object) => Promise<void>;
-      if (Object.keys(input).length === 0) {
-        await fn.call(automation);
-        return;
-      }
-      await fn.call(automation, input);
-    }, { detail: stepSummary(step) }),
-    timeout(E2E_TIMEOUT_MS, label),
-  ]);
+  await timeE2eOp(`step.${step.kind}`, async () => {
+    const method = stepKindMethod[step.kind];
+    const input: Record<string, unknown> = { ...step };
+    delete input.kind;
+    delete input.expect;
+    const fn = automation[method] as (value?: object) => Promise<void>;
+    if (Object.keys(input).length === 0) {
+      await fn.call(automation);
+      return;
+    }
+    await fn.call(automation, input);
+  }, { detail: stepSummary(step) });
 }
 
 async function checkEventually(
@@ -155,18 +151,27 @@ async function runScenario(
     if (watchesStroke) {
       baseline.strokeBefore = await automation.overlayHighlightStroke();
     }
-    await dispatch(automation, step);
-    await showScenario();
-    await checkAll(
-      step.expect,
-      automation,
-      baseline,
-      `step ${index + 1} (${step.kind})`,
-    );
+    const stepLabel = `step ${index + 1} (${step.kind})`;
+    await Promise.race([
+      (async () => {
+        await dispatch(automation, step);
+        await showScenario();
+        await checkAll(
+          step.expect,
+          automation,
+          baseline,
+          stepLabel,
+        );
+      })(),
+      timeout(E2E_TIMEOUT_MS, stepLabel),
+    ]);
   }
   // Scenario-level expectations describe the state after the last step.
   // Earlier steps, such as opening the fixture, do not satisfy them yet.
-  await checkAll(scenario.expect, automation, baseline, 'scenario');
+  await Promise.race([
+    checkAll(scenario.expect, automation, baseline, 'scenario'),
+    timeout(E2E_TIMEOUT_MS, `scenario ${scenario.id}`),
+  ]);
   }, { id: scenario.id });
 }
 
@@ -262,10 +267,7 @@ async function runRecording(
   const recorder = new ScreenRecorder();
   let recordingError: string | null = null;
   try {
-    const session = await Promise.race([
-      launch(browserName, fixtureOrigin),
-      timeout(E2E_TIMEOUT_MS, 'browser launch'),
-    ]);
+    const session = await launch(browserName, fixtureOrigin);
     closeBrowser = session.close;
     automation = session.automation;
     const windowRect = await session.automation.windowRect();
