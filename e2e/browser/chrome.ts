@@ -598,8 +598,8 @@ export class ChromeAutomation extends PageAutomation {
   }
 
   private async withExtensionsPage<T>(action: () => Promise<T>): Promise<T> {
-    await this.preparePage();
-    const extensionsHandle = await this.openBrowserTab();
+    await this.driver.switchTo().window(this.fixtureHandle);
+    const returnUrl = await this.driver.getCurrentUrl();
     try {
       await this.driver.get('chrome://extensions');
       await this.waitFor(
@@ -608,18 +608,23 @@ export class ChromeAutomation extends PageAutomation {
       );
       return await action();
     } finally {
-      const handles = await this.driver.getAllWindowHandles();
-      if (handles.includes(extensionsHandle)) {
-        const target = (await this.pageTargets()).find(
-          (item) => item.id === extensionsHandle,
-        );
-        if (target != null && !this.isOptionsUrl(target.url)) {
-          await this.closeBrowserTab(extensionsHandle);
+      try {
+        await this.driver.switchTo().window(this.fixtureHandle);
+        const current = await this.driver.getCurrentUrl();
+        if (current.startsWith('chrome://')) {
+          await this.driver.get(returnUrl);
+          await this.waitForReady();
         }
+      } catch {
+        await this.activateOpenWindow();
       }
-      await this.activateOpenWindow();
       await this.rememberOptionsTab();
-      await this.focusFixture();
+      try {
+        await this.driver.switchTo().window(this.fixtureHandle);
+      } catch {
+        await this.activateOpenWindow();
+      }
+      await pauseAfterOperation('extension.extensionsPage');
     }
   }
 

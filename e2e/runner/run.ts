@@ -24,7 +24,7 @@ import './bun-globals';
 import { logE2eOp, timeE2eOp } from '../op-log';
 
 const EVENTUAL_TIMEOUT_MS = 2500;
-const SCENARIO_TIMEOUT_MS = 300000;
+const SCENARIO_TIMEOUT_MS = 180000;
 
 function flag(name: string): string | undefined {
   const index = process.argv.indexOf(name);
@@ -128,6 +128,7 @@ async function checkAll(
 async function runScenario(
   automation: E2eAutomation,
   scenario: E2eScenario,
+  isActive: () => boolean,
 ): Promise<void> {
   await timeE2eOp('scenario', async () => {
   const baseline: AssertionBaseline = {
@@ -141,6 +142,9 @@ async function runScenario(
   };
   await showScenario();
   for (const [index, step] of scenario.steps.entries()) {
+    if (!isActive()) {
+      throw new Error(`scenario aborted: ${scenario.id}`);
+    }
     const watchesStroke = step.expect?.some(
       (assertion) => assertion.kind === 'overlay.highlight.strokeChanged',
     );
@@ -248,6 +252,7 @@ async function runRecording(
   const videoPath = join(resultsDir, video);
 
   const reports: ScenarioReport[] = [];
+  let scenarioRunId = 0;
   let closeBrowser: (() => Promise<void>) | null = null;
   let automation: E2eAutomation | null = null;
   const recorder = new ScreenRecorder();
@@ -282,14 +287,16 @@ async function runRecording(
       continue;
     }
     const started = Date.now();
+    const runId = ++scenarioRunId;
     let failure: string | null = null;
     let failureImage: string | null = null;
     try {
       await Promise.race([
-        runScenario(automation, scenario),
+        runScenario(automation, scenario, () => runId === scenarioRunId),
         timeout(SCENARIO_TIMEOUT_MS, scenario.id),
       ]);
     } catch (error) {
+      scenarioRunId += 1;
       failure = errorMessage(error);
       console.error(failure);
       await pauseAfterOperation();
