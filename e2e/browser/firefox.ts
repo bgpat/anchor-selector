@@ -222,6 +222,7 @@ export class FirefoxAutomation extends PageAutomation {
       await this.rememberOptionsTab();
       return this.optionsHandle != null;
     }, 'options page did not open from about:addons', 60000);
+    await pauseAfterOperation('extension.options.open');
   }
 
   async readExtensionBadgeText(): Promise<string> {

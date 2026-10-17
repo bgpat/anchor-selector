@@ -545,6 +545,7 @@ export abstract class PageAutomation implements E2eAutomation {
       await this.openExtensionOptions();
       await focus();
     }
+    await pauseAfterOperation('focusOptions');
   }
 
   private async waitForReady(): Promise<void> {
@@ -1251,7 +1252,7 @@ export abstract class PageAutomation implements E2eAutomation {
       'options hue slider did not reach target value',
       5000,
     );
-    await pauseAfterOperation();
+    await pauseAfterOperation('options.hue.set');
   }
 
   async setOptionsClickBinding(input: {
@@ -1271,8 +1272,8 @@ export abstract class PageAutomation implements E2eAutomation {
           arguments[0].dispatchEvent(new Event('change', { bubbles: true }));`,
           checkbox,
         );
-        await pauseAfterOperation();
       }
+      await pauseAfterOperation(`options.modifier.${key}`);
     }
     const select = await this.driver.findElement(By.id('click-action'));
     const steps = await this.driver.executeScript<number>(
@@ -1291,10 +1292,10 @@ export abstract class PageAutomation implements E2eAutomation {
       const arrow = steps > 0 ? Key.ARROW_DOWN : Key.ARROW_UP;
       for (let index = 0; index < Math.abs(steps); index += 1) {
         await this.driver.actions().sendKeys(arrow).perform();
-        await pauseAfterOperation();
+        await pauseAfterOperation('options.click-action.arrow');
       }
       await this.driver.actions().sendKeys(Key.ENTER).perform();
-      await pauseAfterOperation();
+      await pauseAfterOperation('options.click-action.enter');
     }
     const selected = await this.driver.executeScript<string>(
       'return document.getElementById("click-action")?.value ?? ""',
@@ -1308,8 +1309,9 @@ export abstract class PageAutomation implements E2eAutomation {
         select.dispatchEvent(new Event('change', { bubbles: true }));`,
         input.action,
       );
-      await pauseAfterOperation();
+      await pauseAfterOperation('options.click-action');
     }
+    await pauseAfterOperation('options.clickBinding.set');
   }
 
   async setSyncStorage(input: {

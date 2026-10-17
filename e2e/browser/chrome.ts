@@ -233,10 +233,11 @@ export class ChromeAutomation extends PageAutomation {
           options,
         );
         await this.clickWebElement(options);
-        await delay(400);
+        await pauseAfterOperation('extension.options.link');
         return false;
       }, 'options page did not open from chrome://extensions', 60000);
     });
+    await pauseAfterOperation('extension.options.open');
   }
 
   async readExtensionBadgeText(): Promise<string> {
@@ -319,6 +320,7 @@ export class ChromeAutomation extends PageAutomation {
         return false;
       }
     }, 'options page did not render', 15000);
+    await pauseAfterOperation('focusOptions');
   }
 
   async readExtensionEnabled(): Promise<boolean> {
