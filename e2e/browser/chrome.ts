@@ -309,6 +309,9 @@ export class ChromeAutomation extends PageAutomation {
             }
             await delay(50);
           }
+          if ((await this.readExtensionBadgeText()) === '') {
+            await this.ensureFixtureSelectionOnViaProbe();
+          }
         }
         return;
       }
@@ -418,6 +421,10 @@ export class ChromeAutomation extends PageAutomation {
           return;
         }
         if (state.overlayActive === true) {
+          const badge = await ext.action.getBadgeText({ tabId });
+          if (badge === '') {
+            await ext.action.setBadgeText({ tabId, text: '\\u200B' });
+          }
           done(null);
           return;
         }
