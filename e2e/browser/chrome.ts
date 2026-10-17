@@ -301,6 +301,14 @@ export class ChromeAutomation extends PageAutomation {
       if (overlay !== beforeOverlay || badge !== beforeBadge) {
         if (beforeOverlay && !overlay) {
           await this.clearFixtureSelectingBadgeViaProbe();
+        } else if (!beforeOverlay && overlay) {
+          const badgeDeadline = Date.now() + capTimeoutMs(2_000);
+          while (Date.now() < badgeDeadline) {
+            if ((await this.readExtensionBadgeText()) !== '') {
+              break;
+            }
+            await delay(50);
+          }
         }
         return;
       }
