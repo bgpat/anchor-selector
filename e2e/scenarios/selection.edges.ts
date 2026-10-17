@@ -1,6 +1,7 @@
 import { modifierKey } from '@/util/config';
 import type { E2eScenario } from './types';
 import {
+  E2E_FIXTURE_PATH,
   E2E_FIXTURE_PATH_2,
   fixturePath2Pattern,
   headingHash,
@@ -28,6 +29,7 @@ const selectionTargetScenarios = [
       'Clicking an element with no id or name ends selection and leaves the hash empty.',
     tags: ['selection', 'edge'],
     steps: [
+      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
       { kind: 'extension.icon.click', button: 'left' },
       { kind: 'page.element.click', selector: plainSelector },
     ],

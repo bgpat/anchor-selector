@@ -28,7 +28,7 @@ function ensureWindow() {
   win.set_skip_taskbar_hint(true);
   win.set_skip_pager_hint(true);
   win.set_accept_focus(false);
-  win.set_type_hint(Gtk.WindowTypeHint.DOCK);
+  win.set_type_hint(Gdk.WindowTypeHint.DOCK);
   win.set_resizable(false);
 
   const provider = new Gtk.CssProvider();
