@@ -330,6 +330,7 @@ export class ChromeAutomation extends PageAutomation {
             type: 'toggle-selection-tab',
             tabId: tab.id,
           });
+          await ext.action.setBadgeText({ tabId: tab.id, text: '' });
           done(null);
         })().catch((error) => done({ error: String(error) }));`,
         fixtureUrl,
