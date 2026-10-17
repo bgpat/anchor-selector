@@ -186,13 +186,10 @@ export class ChromeAutomation extends PageAutomation {
       );
     }
     if (button === 'left') {
-      await atspiClick({
-        name: match.name,
-        role: 'push button',
-        exact: true,
-        prefer: 'top',
-        timeout: 3,
-      });
+      const x = Math.round(match.x + match.width / 2);
+      const y = Math.round(match.y + match.height / 2);
+      await clickAtScreen(x, y, 'left');
+      await pauseAfterOperation('extension.icon.click');
       return;
     }
     const x = Math.round(match.x + match.width / 2);
