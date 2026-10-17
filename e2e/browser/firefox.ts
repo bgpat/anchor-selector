@@ -234,6 +234,11 @@ export class FirefoxAutomation extends PageAutomation {
     } finally {
       await this.firefox.setContext(Context.CONTENT);
     }
+    if (input.enabled) {
+      await this.focusFixture();
+      await this.driver.navigate().refresh();
+      await this.waitForReady();
+    }
     await pauseAfterOperation('extension.setEnabled');
   }
 

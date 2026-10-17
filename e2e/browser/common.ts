@@ -555,7 +555,7 @@ export abstract class PageAutomation implements E2eAutomation {
     await pauseAfterOperation('focusOptions');
   }
 
-  private async waitForReady(): Promise<void> {
+  protected async waitForReady(): Promise<void> {
     await this.waitFor(async () => {
       const state = await this.driver.executeScript(
         'return document.readyState',
