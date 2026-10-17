@@ -239,6 +239,7 @@ export class ChromeAutomation extends PageAutomation {
 
   private async clickToolbarExtensionLeft(): Promise<void> {
     await activateChromeWindow();
+    await this.locateToolbarExtensionButton(capTimeoutSec(1));
     const match = chromeToolbarButton ?? this.toolbarButtonCache;
     if (match == null) {
       throw new Error(`${EXTENSION_NAME} toolbar button was not found`);
@@ -247,9 +248,6 @@ export class ChromeAutomation extends PageAutomation {
     const y = Math.round(match.y + match.height / 2);
     await execFileAsync('xdotool', ['mousemove', String(x), String(y)], xdotoolOpts);
     await execFileAsync('xdotool', ['click', '1'], xdotoolOpts);
-    if (await this.overlaySoon()) {
-      return;
-    }
     try {
       await atspi(
         {
@@ -259,50 +257,21 @@ export class ChromeAutomation extends PageAutomation {
           button: 'left',
           pauseMs: 0,
         },
-        capTimeoutMs(3_000),
+        capTimeoutMs(2_000),
       );
     } catch {
       // xdotool may already have toggled selection; AT-SPI can hang in CI.
     }
-    if (await this.overlaySoon()) {
-      return;
-    }
-  }
-
-  private async overlaySoon(): Promise<boolean> {
-    const deadline = Date.now() + 2_500;
-    while (Date.now() < deadline) {
-      if (await this.isOverlayVisible()) {
-        return true;
-      }
-      await delay(50);
-    }
-    return false;
   }
 
   async setExtensionEnabled(input: { enabled: boolean }): Promise<void> {
     if ((await this.readExtensionEnabled()) === input.enabled) {
       return;
     }
-    const result = await this.probe<null | { error: string }>(
-      `const done = arguments[arguments.length - 1];
-      const id = arguments[0];
-      const enabled = arguments[1];
-      const ext = globalThis.chrome;
-      ext.management.setEnabled(id, enabled, () => {
-        const err = ext.runtime?.lastError;
-        if (err) {
-          done({ error: String(err.message ?? err) });
-          return;
-        }
-        done(null);
-      });`,
-      this.extensionId,
-      input.enabled,
-    );
-    if (result != null && typeof result === 'object' && 'error' in result) {
-      throw new Error(result.error);
-    }
+    await this.withExtensionsPage(async () => {
+      const toggle = await this.extensionToggle();
+      await this.clickWebElement(toggle);
+    });
     if (input.enabled) {
       await this.reopenProbe();
       const fixtureUrl = await this.driver.getCurrentUrl();
