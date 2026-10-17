@@ -299,15 +299,16 @@ export class ChromeAutomation extends PageAutomation {
       }
       await delay(50);
     }
-    await this.ensureFixtureSelectionOnViaProbe();
+    await this.ensureFixtureSelectionViaProbe(!beforeOverlay);
   }
 
-  private async ensureFixtureSelectionOnViaProbe(): Promise<void> {
+  private async ensureFixtureSelectionViaProbe(active: boolean): Promise<void> {
     const fixtureUrl = await this.driver.getCurrentUrl();
     try {
       await this.probe<void>(
       `const done = arguments[arguments.length - 1];
       const url = arguments[0];
+      const active = arguments[1];
       const ext = globalThis.chrome;
       (async () => {
         const tabs = await ext.tabs.query({});
@@ -325,7 +326,7 @@ export class ChromeAutomation extends PageAutomation {
           }
         };
         let state = await readState();
-        if (state == null) {
+        if (state == null && active) {
           await ext.scripting.executeScript({
             target: { tabId },
             files: ['/content_script.js'],
@@ -340,7 +341,7 @@ export class ChromeAutomation extends PageAutomation {
           done({ error: 'content script unavailable' });
           return;
         }
-        if (state.overlayActive === true) {
+        if (state.overlayActive === active) {
           done(null);
           return;
         }
@@ -348,14 +349,15 @@ export class ChromeAutomation extends PageAutomation {
         const click = await ext.runtime.sendMessage({ type: 'get-config', key: 'click' });
         const result = await ext.tabs.sendMessage(tabId, {
           type: 'set-selection',
-          active: true,
+          active,
           config: { hue, click },
         });
-        const badgeText = result?.overlayActive ? '\\u200B' : '';
+        const badgeText = active && result?.overlayActive ? '\\u200B' : '';
         await ext.action.setBadgeText({ tabId, text: badgeText });
         done(null);
       })().catch((error) => done({ error: String(error) }));`,
       fixtureUrl,
+      active,
     );
     } catch {
       // Toolbar UI may already have started selection; probe is best-effort.
@@ -380,6 +382,7 @@ export class ChromeAutomation extends PageAutomation {
         'fixture did not reload after re-enable',
         capTimeoutMs(2_000),
       );
+      await this.reopenProbe();
     }
     await pauseAfterOperation('extension.setEnabled');
   }
