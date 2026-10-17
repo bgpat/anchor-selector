@@ -405,11 +405,23 @@ export class ChromeAutomation extends PageAutomation {
             throw new Error('modifier checkbox not found: ${key}');
           }
           if (!checkbox.checked) {
-            checkbox.checked = true;
-            checkbox.dispatchEvent(new Event('input', { bubbles: true }));
-            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            checkbox.click();
           }
         })()`,
+      );
+      await this.waitFor(
+        async () =>
+          this.optionsPageEvaluate<boolean>(
+            `(() => {
+              const labels = [...document.querySelectorAll('fieldset label')];
+              const label = labels.find((entry) =>
+                (entry.textContent || '').includes(${JSON.stringify(key)}),
+              );
+              return label?.querySelector('input[type="checkbox"]')?.checked === true;
+            })()`,
+          ),
+        `modifier checkbox did not select: ${key}`,
+        5000,
       );
       await pauseAfterOperation(`options.modifier.${key}`);
     }
@@ -418,7 +430,6 @@ export class ChromeAutomation extends PageAutomation {
         const select = document.getElementById('click-action');
         if (!select) throw new Error('click-action missing');
         select.value = ${JSON.stringify(input.action)};
-        select.dispatchEvent(new Event('input', { bubbles: true }));
         select.dispatchEvent(new Event('change', { bubbles: true }));
       })()`,
     );
