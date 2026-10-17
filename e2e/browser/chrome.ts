@@ -290,7 +290,7 @@ export class ChromeAutomation extends PageAutomation {
   private async syncToolbarLeftClickIfNeeded(): Promise<void> {
     const beforeOverlay = await this.isOverlayVisible();
     const beforeBadge = await this.readExtensionBadgeText();
-    const deadline = Date.now() + capTimeoutMs(1_500);
+    const deadline = Date.now() + capTimeoutMs(2_500);
     while (Date.now() < deadline) {
       const overlay = await this.isOverlayVisible();
       const badge = await this.readExtensionBadgeText();
@@ -299,10 +299,10 @@ export class ChromeAutomation extends PageAutomation {
       }
       await delay(50);
     }
-    await this.toggleFixtureSelectionViaProbe();
+    await this.ensureFixtureSelectionOnViaProbe();
   }
 
-  private async toggleFixtureSelectionViaProbe(): Promise<void> {
+  private async ensureFixtureSelectionOnViaProbe(): Promise<void> {
     const fixtureUrl = await this.driver.getCurrentUrl();
     try {
       await this.probe<void>(
@@ -340,12 +340,15 @@ export class ChromeAutomation extends PageAutomation {
           done({ error: 'content script unavailable' });
           return;
         }
+        if (state.overlayActive === true) {
+          done(null);
+          return;
+        }
         const hue = await ext.runtime.sendMessage({ type: 'get-config', key: 'hue' });
         const click = await ext.runtime.sendMessage({ type: 'get-config', key: 'click' });
-        const active = state.overlayActive !== true;
         const result = await ext.tabs.sendMessage(tabId, {
           type: 'set-selection',
-          active,
+          active: true,
           config: { hue, click },
         });
         const badgeText = result?.overlayActive ? '\\u200B' : '';
@@ -355,7 +358,7 @@ export class ChromeAutomation extends PageAutomation {
       fixtureUrl,
     );
     } catch {
-      // Toolbar UI may already have toggled selection; probe is best-effort.
+      // Toolbar UI may already have started selection; probe is best-effort.
     }
   }
 
@@ -377,19 +380,8 @@ export class ChromeAutomation extends PageAutomation {
         'fixture did not reload after re-enable',
         capTimeoutMs(2_000),
       );
-      await this.ensureProbeReachable();
     }
     await pauseAfterOperation('extension.setEnabled');
-  }
-
-  private async ensureProbeReachable(): Promise<void> {
-    try {
-      await this.probe<boolean>(
-        'const done = arguments[arguments.length - 1]; done(true);',
-      );
-    } catch {
-      await this.reopenProbe();
-    }
   }
 
   protected override async reopenProbe(): Promise<void> {
