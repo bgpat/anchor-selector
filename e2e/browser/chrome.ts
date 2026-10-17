@@ -53,9 +53,6 @@ async function activateChromeWindow(): Promise<void> {
   }
 }
 
-/** Bound icon clicks inside a 10s step; launch-time pin clicks stay unbounded. */
-const TOOLBAR_CLICK_MS = 9_000;
-
 /** Survives for the browser session; set during pin/warmup before e2e steps run. */
 let chromeToolbarButton: AtspiMatch | null = null;
 
@@ -242,14 +239,38 @@ export class ChromeAutomation extends PageAutomation {
 
   private async clickToolbarExtensionLeft(): Promise<void> {
     await activateChromeWindow();
-    await atspiClick({
-      name: EXTENSION_NAME,
-      role: 'push button',
-      prefer: 'top',
-      timeout: capTimeoutSec(3),
-      maxNodes: 800,
-      processTimeoutMs: TOOLBAR_CLICK_MS,
-    });
+    const match = chromeToolbarButton ?? this.toolbarButtonCache;
+    if (match == null) {
+      throw new Error(`${EXTENSION_NAME} toolbar button was not found`);
+    }
+    const x = Math.round(match.x + match.width / 2);
+    const y = Math.round(match.y + match.height / 2);
+    await execFileAsync('xdotool', ['mousemove', String(x), String(y)], xdotoolOpts);
+    await execFileAsync('xdotool', ['click', '1'], xdotoolOpts);
+    if (await this.overlaySoon()) {
+      return;
+    }
+    await atspi(
+      {
+        command: 'press-at',
+        x,
+        y,
+        button: 'left',
+        pauseMs: 0,
+      },
+      capTimeoutMs(4_000),
+    );
+  }
+
+  private async overlaySoon(): Promise<boolean> {
+    const deadline = Date.now() + 1_500;
+    while (Date.now() < deadline) {
+      if (await this.isOverlayVisible()) {
+        return true;
+      }
+      await delay(50);
+    }
+    return false;
   }
 
   async setExtensionEnabled(input: { enabled: boolean }): Promise<void> {
