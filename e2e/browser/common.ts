@@ -462,12 +462,13 @@ export abstract class PageAutomation implements E2eAutomation {
   protected async reopenProbe(): Promise<void> {
     const handles = await this.driver.getAllWindowHandles();
     if (!handles.includes(this.probeHandle)) {
-      this.probeHandle = await this.openBrowserTab();
+      await this.driver.switchTo().newWindow('tab');
+      this.probeHandle = await this.driver.getWindowHandle();
     } else {
       await this.switchToWindow(this.probeHandle);
     }
     await this.driver.get(this.probeUrl);
-    await pauseAfterOperation();
+    await pauseAfterOperation('reopenProbe');
     await this.focusFixture();
   }
 
@@ -622,13 +623,9 @@ export abstract class PageAutomation implements E2eAutomation {
 
   async reload(): Promise<void> {
     await this.preparePage();
-    try {
-      await this.clickBrowserReload();
-    } catch {
-      await execFileAsync('xdotool', ['key', '--clearmodifiers', 'ctrl+r']);
-      await pauseAfterOperation();
-    }
+    await this.driver.navigate().refresh();
     await this.waitForReady();
+    await pauseAfterOperation('page.reload');
   }
 
   private async waitForUrlChange(

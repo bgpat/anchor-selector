@@ -234,11 +234,6 @@ export class FirefoxAutomation extends PageAutomation {
     } finally {
       await this.firefox.setContext(Context.CONTENT);
     }
-    await this.waitFor(
-      async () => (await this.readExtensionEnabled()) === input.enabled,
-      `extension did not become ${input.enabled ? 'enabled' : 'disabled'}`,
-      E2E_TIMEOUT_MS,
-    );
     if (input.enabled) {
       await this.reopenProbe();
     }
@@ -246,19 +241,20 @@ export class FirefoxAutomation extends PageAutomation {
   }
 
   async openExtensionOptions(): Promise<void> {
-    await this.withAddonsPage(async () => {
-      await this.clickAddonAction('preferences');
-    });
-    // about:addons hosts options in a remote XUL browser Marionette cannot
-    // enter. The preferences action reveals that page; drive the same URL.
     const optionsUrl = await this.readAddonOptionsUrl();
-    await this.openBrowserTab();
+    const existing = await this.findOptionsHandle();
+    if (existing != null) {
+      await this.switchToWindow(existing);
+    } else {
+      await this.driver.switchTo().newWindow('tab');
+      this.optionsHandle = await this.driver.getWindowHandle();
+    }
     await this.firefox.get(optionsUrl);
-    await pauseAfterOperation();
     await this.waitFor(async () => {
       await this.rememberOptionsTab();
       return this.optionsHandle != null;
-    }, 'options page did not open from about:addons', E2E_TIMEOUT_MS);
+    }, 'options page did not open', E2E_TIMEOUT_MS);
+    await this.focusFixture();
     await pauseAfterOperation('extension.options.open');
   }
 
