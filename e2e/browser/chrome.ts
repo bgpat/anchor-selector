@@ -53,7 +53,8 @@ async function activateChromeWindow(): Promise<void> {
   }
 }
 
-const TOOLBAR_CLICK_MS = 4_500;
+/** Bound icon clicks inside a 10s step; launch-time pin clicks stay unbounded. */
+const TOOLBAR_CLICK_MS = 9_000;
 
 /** Survives for the browser session; set during pin/warmup before e2e steps run. */
 let chromeToolbarButton: AtspiMatch | null = null;
@@ -128,6 +129,7 @@ async function atspiClick(input: {
   prefer?: 'top' | 'bottom';
   app?: string;
   maxNodes?: number;
+  processTimeoutMs?: number;
 }): Promise<void> {
   await atspi(
     {
@@ -143,7 +145,9 @@ async function atspiClick(input: {
       maxNodes: input.maxNodes,
       pauseMs: 0,
     },
-    capTimeoutMs(TOOLBAR_CLICK_MS),
+    input.processTimeoutMs == null
+      ? undefined
+      : capTimeoutMs(input.processTimeoutMs),
   );
   await pauseAfterOperation();
 }
@@ -238,25 +242,14 @@ export class ChromeAutomation extends PageAutomation {
 
   private async clickToolbarExtensionLeft(): Promise<void> {
     await activateChromeWindow();
-    const names = ['jump to the anchored element', EXTENSION_NAME];
-    let lastError: unknown;
-    for (const name of names) {
-      try {
-        await atspiClick({
-          name,
-          role: 'push button',
-          prefer: 'top',
-          timeout: capTimeoutSec(1),
-          maxNodes: 400,
-        });
-        return;
-      } catch (error) {
-        lastError = error;
-      }
-    }
-    throw lastError instanceof Error
-      ? lastError
-      : new Error(`${EXTENSION_NAME} toolbar button could not be clicked`);
+    await atspiClick({
+      name: EXTENSION_NAME,
+      role: 'push button',
+      prefer: 'top',
+      timeout: capTimeoutSec(3),
+      maxNodes: 800,
+      processTimeoutMs: TOOLBAR_CLICK_MS,
+    });
   }
 
   async setExtensionEnabled(input: { enabled: boolean }): Promise<void> {
