@@ -235,8 +235,25 @@ export class FirefoxAutomation extends PageAutomation {
       await this.firefox.setContext(Context.CONTENT);
     }
     if (input.enabled) {
-      await this.focusFixture();
-      await this.driver.navigate().refresh();
+      await this.reopenProbe();
+      const fixtureUrl = await this.driver.getCurrentUrl();
+      await this.probe<void>(
+        `const done = arguments[arguments.length - 1];
+        const url = arguments[0];
+        const ext = globalThis.browser || globalThis.chrome;
+        ext.tabs.query({}).then((tabs) => {
+          const tab = tabs.find((item) => item.url === url);
+          if (!tab || tab.id == null) {
+            done({ error: 'fixture tab was not found' });
+            return;
+          }
+          return ext.tabs.reload(tab.id).then(
+            () => done(null),
+            (error) => done({ error: String(error) }),
+          );
+        }).catch((error) => done({ error: String(error) }));`,
+        fixtureUrl,
+      );
       await this.waitForReady();
     }
     await pauseAfterOperation('extension.setEnabled');
