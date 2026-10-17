@@ -66,7 +66,7 @@ type AtspiMatch = {
 };
 
 function atspi(command: {
-  command: 'find' | 'click' | 'dump' | 'click-xy' | 'list';
+  command: 'find' | 'click' | 'dump' | 'click-xy' | 'press-at' | 'list';
   name?: string;
   role?: string;
   exact?: boolean;
@@ -250,20 +250,27 @@ export class ChromeAutomation extends PageAutomation {
     if (await this.overlaySoon()) {
       return;
     }
-    await atspi(
-      {
-        command: 'press-at',
-        x,
-        y,
-        button: 'left',
-        pauseMs: 0,
-      },
-      capTimeoutMs(4_000),
-    );
+    try {
+      await atspi(
+        {
+          command: 'press-at',
+          x,
+          y,
+          button: 'left',
+          pauseMs: 0,
+        },
+        capTimeoutMs(3_000),
+      );
+    } catch {
+      // xdotool may already have toggled selection; AT-SPI can hang in CI.
+    }
+    if (await this.overlaySoon()) {
+      return;
+    }
   }
 
   private async overlaySoon(): Promise<boolean> {
-    const deadline = Date.now() + 1_500;
+    const deadline = Date.now() + 2_500;
     while (Date.now() < deadline) {
       if (await this.isOverlayVisible()) {
         return true;
