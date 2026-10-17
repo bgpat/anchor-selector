@@ -202,22 +202,23 @@ export const selectionSessionScenarios = [
       { kind: 'overlay.visible', visible: true },
     ],
   },
-  {
-    id: 'selection.uninjectable-page',
-    title: 'Selection does not start on a page that cannot be injected',
-    description:
-      'A left-click on the icon on a page where the content script cannot run shows neither the overlay nor the badge.',
-    tags: ['selection', 'edge'],
-    steps: [
-      { kind: 'page.goto', uninjectable: true },
-      { kind: 'extension.icon.click', button: 'left' },
-    ],
-    expect: [
-      { kind: 'overlay.visible', visible: false },
-      { kind: 'extension.badge.text', text: '' },
-    ],
-  },
 ] as const satisfies readonly E2eScenario[];
+
+export const selectionUninjectableScenario = {
+  id: 'selection.uninjectable-page',
+  title: 'Selection does not start on a page that cannot be injected',
+  description:
+    'A left-click on the icon on a page where the content script cannot run shows neither the overlay nor the badge.',
+  tags: ['selection', 'edge'],
+  steps: [
+    { kind: 'page.goto', uninjectable: true },
+    { kind: 'extension.icon.click', button: 'left' },
+  ],
+  expect: [
+    { kind: 'overlay.visible', visible: false },
+    { kind: 'extension.badge.text', text: '' },
+  ],
+} as const satisfies E2eScenario;
 
 const [nonAnchorScenario, ...selectionHashScenarios] = selectionTargetScenarios;
 

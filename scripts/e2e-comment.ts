@@ -44,12 +44,8 @@ function gh(args: string[]): string {
   return result.stdout;
 }
 
-function countsOf(report: BrowserReport): {
-  passed: number;
-  failed: number;
-  skipped: number;
-} {
-  const counts = { passed: 0, failed: 0, skipped: 0 };
+function countsOf(report: BrowserReport): { passed: number; failed: number } {
+  const counts = { passed: 0, failed: 0 };
   for (const scenario of report.scenarios) {
     counts[scenario.status] += 1;
   }
@@ -58,13 +54,12 @@ function countsOf(report: BrowserReport): {
 
 function tally(report: BrowserReport): string {
   const counts = countsOf(report);
-  return `✅ ${counts.passed} passed · ❌ ${counts.failed} failed · ⏭️ ${counts.skipped} skipped`;
+  return `✅ ${counts.passed} passed · ❌ ${counts.failed} failed`;
 }
 
 const statusEmoji: Record<ScenarioReport['status'], string> = {
   passed: '✅',
   failed: '❌',
-  skipped: '⏭️',
 };
 
 function statusCell(

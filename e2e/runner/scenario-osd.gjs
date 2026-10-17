@@ -101,8 +101,19 @@ const stdin = GLib.IOChannel.unix_new(0);
 stdin.set_encoding(null);
 stdin.set_buffered(false);
 
+function readStdinLine(channel) {
+  if (typeof channel.read_line_utf8 === 'function') {
+    return channel.read_line_utf8();
+  }
+  const [status, bytes] = channel.read_line(null);
+  if (status !== GLib.IOStatus.NORMAL || bytes == null) {
+    return [status, null];
+  }
+  return [GLib.IOStatus.NORMAL, imports.byteArray.toString(bytes)];
+}
+
 GLib.io_add_watch(stdin, GLib.PRIORITY_DEFAULT, GLib.IO_IN, (channel) => {
-  const [status, line] = channel.read_line_utf8();
+  const [status, line] = readStdinLine(channel);
   if (status === GLib.IOStatus.NORMAL && line != null && line.trim() !== '') {
     handleMessage(line.trim());
   }

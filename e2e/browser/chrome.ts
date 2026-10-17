@@ -10,7 +10,6 @@ import {
   Options as ChromeOptions,
   ServiceBuilder,
 } from 'selenium-webdriver/chrome';
-import type { ModifierKey } from '@/util/config';
 import type { ExtensionIconButton } from '../automation/interface';
 import { runAtspi } from './atspi-host';
 import {

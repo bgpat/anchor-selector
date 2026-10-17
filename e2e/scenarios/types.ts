@@ -199,11 +199,6 @@ export type E2eScenario = {
   title: string;
   description?: string;
   tags?: readonly string[];
-  /**
-   * When set, the runner skips this scenario until the named product
-   * capability exists.
-   */
-  skipUntil?: string;
   steps: readonly E2eStep[];
   /** Assertions evaluated after every step. */
   expect?: readonly E2eAssertion[];

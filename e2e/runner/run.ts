@@ -162,10 +162,6 @@ async function runScenario(
   }, { id: scenario.id });
 }
 
-function pause(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 async function main(): Promise<void> {
   const browserName = flag('--browser');
   if (browserName !== 'chrome' && browserName !== 'firefox') {
@@ -242,19 +238,6 @@ async function main(): Promise<void> {
   }
 }
 
-function skippedReport(scenario: E2eScenario): ScenarioReport {
-  console.log(`skipped\t${scenario.id}\t${scenario.skipUntil}`);
-  return {
-    id: scenario.id,
-    title: scenario.title,
-    status: 'skipped',
-    durationMs: 0,
-    video: null,
-    error: null,
-    failureImage: null,
-  };
-}
-
 async function runRecording(
   browserName: BrowserName,
   scenarios: readonly E2eScenario[],
@@ -263,10 +246,6 @@ async function runRecording(
 ): Promise<ScenarioReport[]> {
   const video = `${browserName}.mp4`;
   const videoPath = join(resultsDir, video);
-  const runnable = scenarios.some((scenario) => scenario.skipUntil == null);
-  if (!runnable) {
-    return scenarios.map((scenario) => skippedReport(scenario));
-  }
 
   const reports: ScenarioReport[] = [];
   let closeBrowser: (() => Promise<void>) | null = null;
@@ -290,10 +269,6 @@ async function runRecording(
   }
 
   for (const scenario of scenarios) {
-    if (scenario.skipUntil != null) {
-      reports.push(skippedReport(scenario));
-      continue;
-    }
     if (automation == null) {
       reports.push({
         id: scenario.id,
@@ -347,9 +322,6 @@ async function runRecording(
       const message = `recording failed: ${errorMessage(error)}`;
       rmSync(videoPath, { force: true });
       for (const report of reports) {
-        if (report.status === 'skipped') {
-          continue;
-        }
         report.status = 'failed';
         report.error ??= message;
         report.video = null;

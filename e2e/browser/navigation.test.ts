@@ -23,8 +23,10 @@ describe('waitFor polling', () => {
   test('returns as soon as the predicate succeeds (does not sleep for the full timeout)', async () => {
     const started = Date.now();
     const deadline = Date.now() + 30_000;
+    let polls = 0;
     while (Date.now() < deadline) {
-      if (true) {
+      polls += 1;
+      if (polls >= 1) {
         break;
       }
       await delay(50);

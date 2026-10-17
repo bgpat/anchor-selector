@@ -4,6 +4,7 @@ import { selectionCoreScenarios } from './selection.core';
 import {
   selectionBeforeActionScenarios,
   selectionSessionScenarios,
+  selectionUninjectableScenario,
 } from './selection.edges';
 import type { E2eScenario } from './types';
 
@@ -14,6 +15,7 @@ export const e2eScenarios = [
   ...clickActionScenarios,
   ...optionsScenarios,
   openNewWindowScenario,
+  selectionUninjectableScenario,
 ] as const satisfies readonly E2eScenario[];
 
 const ids = e2eScenarios.map((scenario) => scenario.id);
