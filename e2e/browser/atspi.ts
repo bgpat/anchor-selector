@@ -34,7 +34,12 @@ type Query = {
   text: string;
   submit: boolean;
   selectAll: boolean;
+  maxNodes: number;
 };
+
+function scanLimit(query: Query): number {
+  return query.maxNodes > 0 ? query.maxNodes : 400;
+}
 
 type Limit = {
   depth: number;
@@ -183,9 +188,9 @@ function nameMatches(
   return actual.includes(expected);
 }
 
-function matching(query: Query, maxNodes: number): Found[] {
+function matching(query: Query): Found[] {
   const found: Found[] = [];
-  for (const node of candidates(query.app, maxNodes)) {
+  for (const node of candidates(query.app, scanLimit(query))) {
     if (!nameMatches(node.name, query.name, query.exact)) {
       continue;
     }
@@ -404,7 +409,7 @@ function pressAt(x: number, y: number, button: Button): void {
 }
 
 function dump(query: Query): void {
-  for (const node of candidates(query.app, 800)) {
+  for (const node of candidates(query.app, scanLimit(query))) {
     const box =
       node.rect == null
         ? ''
@@ -417,7 +422,7 @@ function waitFor(query: Query): Found[] {
   const deadline = Date.now() + query.timeout * 1000;
   let found: Found[] = [];
   for (;;) {
-    found = matching(query, 800);
+    found = matching(query);
     if (found.length > 0 || Date.now() >= deadline) {
       return found;
     }
@@ -451,6 +456,7 @@ function readCommand(): Query {
     text: command.text ?? '',
     submit: command.submit ?? false,
     selectAll: command.selectAll ?? false,
+    maxNodes: command.maxNodes ?? 0,
   };
 }
 
@@ -462,7 +468,7 @@ function main(): void {
     return;
   }
   if (query.command === 'list') {
-    print(JSON.stringify(matching(query, 800).map((item) => item.box)));
+    print(JSON.stringify(matching(query).map((item) => item.box)));
     return;
   }
   if (query.command === 'move') {

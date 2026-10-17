@@ -40,7 +40,7 @@ type AtspiMatch = {
 };
 
 function atspi(command: {
-  command: 'find' | 'click' | 'dump' | 'click-xy';
+  command: 'find' | 'click' | 'dump' | 'click-xy' | 'list';
   name?: string;
   role?: string;
   exact?: boolean;
@@ -52,8 +52,31 @@ function atspi(command: {
   x?: number;
   y?: number;
   pauseMs?: number;
+  maxNodes?: number;
 }): Promise<string> {
   return runAtspi([JSON.stringify(command)]);
+}
+
+async function atspiList(input: {
+  name?: string;
+  role?: string;
+  app?: string;
+  timeout?: number;
+  maxNodes?: number;
+}): Promise<AtspiMatch[]> {
+  try {
+    const output = await atspi({
+      command: 'list',
+      app: input.app ?? 'chrom',
+      name: input.name ?? '',
+      role: input.role ?? '',
+      timeout: input.timeout ?? 0,
+      maxNodes: input.maxNodes ?? 300,
+    });
+    return JSON.parse(output) as AtspiMatch[];
+  } catch {
+    return [];
+  }
 }
 
 async function atspiFind(input: {
@@ -64,6 +87,7 @@ async function atspiFind(input: {
   timeout?: number;
   prefer?: 'top' | 'bottom';
   app?: string;
+  maxNodes?: number;
 }): Promise<AtspiMatch | null> {
   try {
     const output = await atspi({
@@ -75,6 +99,7 @@ async function atspiFind(input: {
       prefer: input.prefer,
       timeout: input.timeout,
       exact: input.exact,
+      maxNodes: input.maxNodes,
     });
     const parsed = JSON.parse(output) as { match: AtspiMatch };
     return parsed.match;
@@ -115,6 +140,8 @@ async function atspiDump(): Promise<string> {
 }
 
 export class ChromeAutomation extends PageAutomation {
+  private toolbarButtonCache: AtspiMatch | null = null;
+
   protected override browserAtspiApp(): string {
     return 'chrom';
   }
@@ -686,35 +713,41 @@ export class ChromeAutomation extends PageAutomation {
     timeout: number,
   ): Promise<AtspiMatch | null> {
     const rect = await this.windowRect();
-    // The action title replaces the extension name after install. Searching
-    // the names one after another spends the whole timeout on the absent one.
+    const cached = this.toolbarButtonCache;
+    if (
+      cached != null &&
+      cached.y >= rect.y &&
+      cached.y < rect.y + 160
+    ) {
+      return cached;
+    }
     const names = ['jump to the anchored element', EXTENSION_NAME];
     const deadline = Date.now() + timeout * 1000;
-    for (;;) {
+    while (Date.now() < deadline) {
+      const buttons = await atspiList({
+        role: 'push button',
+        maxNodes: 300,
+        timeout: 0,
+      });
       for (const name of names) {
-        const match = await atspiFind({
-          name,
-          role: 'push button',
-          prefer: 'top',
-          timeout: 0,
-        });
-        if (match == null || match.y < rect.y || match.y >= rect.y + 160) {
-          continue;
+        const match = buttons.find(
+          (item) =>
+            item.y >= rect.y &&
+            item.y < rect.y + 160 &&
+            (item.name === name ||
+              item.name.toLowerCase().includes(name.toLowerCase())) &&
+            !item.name.includes('See more options') &&
+            !item.name.includes('Ask on every visit') &&
+            !item.name.includes('is pinned'),
+        );
+        if (match != null) {
+          this.toolbarButtonCache = match;
+          return match;
         }
-        if (
-          match.name.includes('See more options') ||
-          match.name.includes('Ask on every visit') ||
-          match.name.includes('is pinned')
-        ) {
-          continue;
-        }
-        return match;
-      }
-      if (Date.now() >= deadline) {
-        return null;
       }
       await delay(200);
     }
+    return null;
   }
 
   private async withExtensionsPage<T>(action: () => Promise<T>): Promise<T> {
