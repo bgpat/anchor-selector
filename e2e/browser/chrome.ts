@@ -53,23 +53,7 @@ async function activateChromeWindow(): Promise<void> {
   }
 }
 
-const TOOLBAR_CLICK_MS = 4_000;
-
-/** AT-SPI activates Chrome toolbar controls; raw xdotool clicks often miss them. */
-async function clickToolbarAt(x: number, y: number): Promise<void> {
-  await activateChromeWindow();
-  await atspi(
-    {
-      command: 'click-xy',
-      x,
-      y,
-      button: 'left',
-      pauseMs: 0,
-      duration: 0,
-    },
-    capTimeoutMs(TOOLBAR_CLICK_MS),
-  );
-}
+const TOOLBAR_CLICK_MS = 4_500;
 
 /** Survives for the browser session; set during pin/warmup before e2e steps run. */
 let chromeToolbarButton: AtspiMatch | null = null;
@@ -143,19 +127,24 @@ async function atspiClick(input: {
   timeout?: number;
   prefer?: 'top' | 'bottom';
   app?: string;
+  maxNodes?: number;
 }): Promise<void> {
-  await atspi({
-    command: 'click',
-    app: input.app ?? 'chrom',
-    name: input.name,
-    role: input.role,
-    exclude: input.exclude,
-    button: input.button,
-    prefer: input.prefer,
-    timeout: input.timeout,
-    exact: input.exact,
-    pauseMs: 0,
-  });
+  await atspi(
+    {
+      command: 'click',
+      app: input.app ?? 'chrom',
+      name: input.name,
+      role: input.role,
+      exclude: input.exclude,
+      button: input.button,
+      prefer: input.prefer,
+      timeout: input.timeout,
+      exact: input.exact,
+      maxNodes: input.maxNodes,
+      pauseMs: 0,
+    },
+    capTimeoutMs(TOOLBAR_CLICK_MS),
+  );
   await pauseAfterOperation();
 }
 
@@ -249,17 +238,25 @@ export class ChromeAutomation extends PageAutomation {
 
   private async clickToolbarExtensionLeft(): Promise<void> {
     await activateChromeWindow();
-    let match = chromeToolbarButton ?? this.toolbarButtonCache;
-    if (match == null) {
-      match = await this.locateToolbarExtensionButton(capTimeoutSec(2));
+    const names = ['jump to the anchored element', EXTENSION_NAME];
+    let lastError: unknown;
+    for (const name of names) {
+      try {
+        await atspiClick({
+          name,
+          role: 'push button',
+          prefer: 'top',
+          timeout: capTimeoutSec(1),
+          maxNodes: 400,
+        });
+        return;
+      } catch (error) {
+        lastError = error;
+      }
     }
-    if (match == null) {
-      throw new Error(`${EXTENSION_NAME} toolbar button was not found`);
-    }
-    await clickToolbarAt(
-      Math.round(match.x + match.width / 2),
-      Math.round(match.y + match.height / 2),
-    );
+    throw lastError instanceof Error
+      ? lastError
+      : new Error(`${EXTENSION_NAME} toolbar button could not be clicked`);
   }
 
   async setExtensionEnabled(input: { enabled: boolean }): Promise<void> {
