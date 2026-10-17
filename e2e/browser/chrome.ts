@@ -349,15 +349,12 @@ export class ChromeAutomation extends PageAutomation {
     if (this.optionsHandle == null) {
       throw new Error('Options page is not open');
     }
-    await this.switchToWindow(this.optionsHandle);
+    await this.driver.switchTo().window(this.optionsHandle);
     await this.waitFor(async () => {
-      try {
-        return await this.optionsPageEvaluate<boolean>(
-          `document.querySelector('h1')?.textContent === ${JSON.stringify(EXTENSION_NAME)}`,
-        );
-      } catch {
-        return false;
-      }
+      const title = await this.driver.executeScript<string>(
+        "return document.querySelector('h1')?.textContent ?? ''",
+      );
+      return title === EXTENSION_NAME;
     }, 'options page did not render', 15000);
     await pauseAfterOperation('focusOptions');
   }
