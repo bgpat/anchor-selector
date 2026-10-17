@@ -14,6 +14,7 @@ type Box = {
   y: number;
   width: number;
   height: number;
+  actionable: boolean;
 };
 
 type Query = {
@@ -84,6 +85,27 @@ function roleName(obj: Atspi.Accessible): string {
   } catch {
     return '';
   }
+}
+
+function isActionable(obj: Atspi.Accessible): boolean {
+  try {
+    const state = obj.get_state_set();
+    if (state == null) {
+      return true;
+    }
+    if (!state.contains(Atspi.StateType.ENABLED)) {
+      return false;
+    }
+    if (!state.contains(Atspi.StateType.SENSITIVE)) {
+      return false;
+    }
+    if (!state.contains(Atspi.StateType.SHOWING)) {
+      return false;
+    }
+  } catch {
+    return true;
+  }
+  return true;
 }
 
 function* walk(
@@ -188,6 +210,7 @@ function matching(query: Query, maxNodes: number): Found[] {
         y: rect.y,
         width: rect.width,
         height: rect.height,
+        actionable: isActionable(node.obj),
       },
       obj: node.obj,
     });

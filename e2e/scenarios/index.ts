@@ -9,9 +9,9 @@ import type { E2eScenario } from './types';
 
 export const e2eScenarios = [
   ...selectionCoreScenarios,
+  ...selectionSessionScenarios,
   ...selectionBeforeActionScenarios,
   ...clickActionScenarios,
-  ...selectionSessionScenarios,
   ...optionsScenarios,
   openNewWindowScenario,
 ] as const satisfies readonly E2eScenario[];

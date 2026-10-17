@@ -708,7 +708,7 @@ export class FirefoxAutomation extends PageAutomation {
     await this.inChrome(
       `for (const id of arguments[0]) {
         const button = document.getElementById(id);
-        if (!button || button.hidden) continue;
+        if (!button || button.hidden || button.disabled) continue;
         if (typeof button.doCommand === 'function') {
           button.doCommand();
           return;

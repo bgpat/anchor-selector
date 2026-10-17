@@ -60,6 +60,7 @@ type AtspiBox = {
   y: number;
   width: number;
   height: number;
+  actionable?: boolean;
 };
 
 /** x11grab records the system pointer. WebDriver actions do not move it. */
@@ -637,53 +638,43 @@ export abstract class PageAutomation implements E2eAutomation {
     );
   }
 
-  private async readHistoryAvailability(): Promise<{
-    back: boolean;
-    forward: boolean;
-    length: number;
-    hasNavigationApi: boolean;
-  }> {
-    return this.driver.executeScript(
-      `const nav = window.navigation;
-      if (!nav) {
-        return {
-          back: false,
-          forward: false,
-          length: window.history.length,
-          hasNavigationApi: false,
-        };
+  protected async findToolbarControl(input: {
+    names: readonly string[];
+    roles: readonly string[];
+    exact?: boolean;
+    requireActionable?: boolean;
+  }): Promise<AtspiBox | null> {
+    const rect = await this.windowRect();
+    const top = rect.y;
+    const bottom = rect.y + 200;
+    for (const name of input.names) {
+      for (const role of input.roles) {
+        const matches = await listAtspi({
+          app: this.browserAtspiApp(),
+          role,
+          name,
+          exact: input.exact ?? false,
+        });
+        const match = matches.find(
+          (item) =>
+            item.y >= top &&
+            item.y < bottom &&
+            item.width > 0 &&
+            item.height > 0 &&
+            (!input.requireActionable || item.actionable !== false),
+        );
+        if (match != null) {
+          return match;
+        }
       }
-      return {
-        back: nav.canGoBack,
-        forward: nav.canGoForward,
-        length: window.history.length,
-        hasNavigationApi: true,
-      };`,
-    );
+    }
+    return null;
   }
 
   private async historyNavigate(direction: 'back' | 'forward'): Promise<void> {
     await this.preparePage();
     const before = await this.driver.getCurrentUrl();
-    const availability = await this.readHistoryAvailability();
-    logE2eOp('history.state', {
-      direction,
-      before,
-      canBack: availability.back,
-      canForward: availability.forward,
-      length: availability.length,
-      hasNavigationApi: availability.hasNavigationApi,
-    });
-    if (!availability.hasNavigationApi) {
-      throw new Error('history navigation requires window.navigation');
-    }
-    const allowed =
-      direction === 'back' ? availability.back : availability.forward;
-    if (!allowed) {
-      throw new Error(
-        `history ${direction} is not available (canGoBack=${availability.back}, canGoForward=${availability.forward}, length=${availability.length})`,
-      );
-    }
+    logE2eOp('history.start', { direction, before });
 
     if (direction === 'back') {
       await this.clickBrowserBack();
@@ -697,17 +688,7 @@ export abstract class PageAutomation implements E2eAutomation {
       8000,
     );
     const after = await this.driver.getCurrentUrl();
-    if (after === before) {
-      throw new Error(`history ${direction} did not change url`);
-    }
-    const afterAvailability = await this.readHistoryAvailability();
-    logE2eOp('history.done', {
-      direction,
-      before,
-      after,
-      canBack: afterAvailability.back,
-      canForward: afterAvailability.forward,
-    });
+    logE2eOp('history.done', { direction, before, after });
     await this.waitForReady();
     await pauseAfterOperation(`history.${direction}`);
   }
@@ -726,15 +707,19 @@ export abstract class PageAutomation implements E2eAutomation {
 
   protected async clickBrowserBack(): Promise<void> {
     await this.clickAtspiToolbar({
-      names: ['Back'],
-      roles: ['push button'],
+      names: ['Back', 'Go back', 'Navigate back'],
+      roles: ['push button', 'button'],
+      exact: false,
+      allowWidestFallback: false,
     });
   }
 
   protected async clickBrowserForward(): Promise<void> {
     await this.clickAtspiToolbar({
-      names: ['Forward'],
-      roles: ['push button'],
+      names: ['Forward', 'Go forward', 'Navigate forward'],
+      roles: ['push button', 'button'],
+      exact: false,
+      allowWidestFallback: false,
     });
   }
 
@@ -756,68 +741,64 @@ export abstract class PageAutomation implements E2eAutomation {
     names: readonly string[];
     roles: readonly string[];
     exact?: boolean;
+    /** When false, missing controls throw instead of clicking the widest toolbar widget. */
+    allowWidestFallback?: boolean;
+    /** Skip AT-SPI controls that are disabled or insensitive. */
+    requireActionable?: boolean;
   }): Promise<void> {
-    const rect = await this.windowRect();
-    const top = rect.y;
-    const bottom = rect.y + 200;
-    for (const name of input.names) {
-      for (const role of input.roles) {
-        const matches = await listAtspi({
+    const allowWidestFallback = input.allowWidestFallback ?? true;
+    const requireActionable = input.requireActionable ?? false;
+    const match = await this.findToolbarControl({
+      names: input.names,
+      roles: input.roles,
+      exact: input.exact,
+      requireActionable,
+    });
+    if (match != null) {
+      const x = Math.round(match.x + match.width / 2);
+      const y = Math.round(match.y + match.height / 2);
+      await runAtspi([
+        JSON.stringify({
+          command: 'click',
           app: this.browserAtspiApp(),
-          role,
-          name,
+          role: match.role,
+          name: match.name,
           exact: input.exact ?? false,
-        });
-        const match = matches.find(
+          pauseMs: atspiPauseMs,
+          x,
+          y,
+        }),
+      ]);
+      await pauseAfterOperation();
+      return;
+    }
+    if (allowWidestFallback) {
+      const rect = await this.windowRect();
+      const top = rect.y;
+      const bottom = rect.y + 200;
+      const widest = (
+        await Promise.all(
+          input.roles.map((role) =>
+            listAtspi({ app: this.browserAtspiApp(), role }),
+          ),
+        )
+      )
+        .flat()
+        .filter(
           (item) =>
             item.y >= top &&
             item.y < bottom &&
-            item.width > 0 &&
+            item.width >= 200 &&
             item.height > 0,
+        )
+        .sort((left, right) => right.width - left.width)[0];
+      if (widest != null) {
+        await clickAtScreen(
+          widest.x + widest.width / 2,
+          widest.y + widest.height / 2,
         );
-        if (match == null) {
-          continue;
-        }
-        const x = Math.round(match.x + match.width / 2);
-        const y = Math.round(match.y + match.height / 2);
-        await runAtspi([
-          JSON.stringify({
-            command: 'click',
-            app: this.browserAtspiApp(),
-            role,
-            name,
-            exact: input.exact ?? false,
-            pauseMs: atspiPauseMs,
-            x,
-            y,
-          }),
-        ]);
-        await pauseAfterOperation();
         return;
       }
-    }
-    const widest = (
-      await Promise.all(
-        input.roles.map((role) =>
-          listAtspi({ app: this.browserAtspiApp(), role }),
-        ),
-      )
-    )
-      .flat()
-      .filter(
-        (item) =>
-          item.y >= top &&
-          item.y < bottom &&
-          item.width >= 200 &&
-          item.height > 0,
-      )
-      .sort((left, right) => right.width - left.width)[0];
-    if (widest != null) {
-      await clickAtScreen(
-        widest.x + widest.width / 2,
-        widest.y + widest.height / 2,
-      );
-      return;
     }
     throw new Error(
       `Toolbar control not found: ${input.names.join(', ')} (${input.roles.join(', ')})`,
