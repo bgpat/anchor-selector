@@ -10,6 +10,7 @@ import {
   Options as ChromeOptions,
   ServiceBuilder,
 } from 'selenium-webdriver/chrome';
+import type { ModifierKey } from '@/util/config';
 import type { ExtensionIconButton } from '../automation/interface';
 import { runAtspi } from './atspi-host';
 import {
@@ -351,12 +352,77 @@ export class ChromeAutomation extends PageAutomation {
     }
     await this.driver.switchTo().window(this.optionsHandle);
     await this.waitFor(async () => {
-      const title = await this.driver.executeScript<string>(
-        "return document.querySelector('h1')?.textContent ?? ''",
-      );
-      return title === EXTENSION_NAME;
+      try {
+        return await this.optionsPageEvaluate<boolean>(
+          `document.querySelector('h1')?.textContent === ${JSON.stringify(EXTENSION_NAME)}`,
+        );
+      } catch {
+        return false;
+      }
     }, 'options page did not render', 15000);
     await pauseAfterOperation('focusOptions');
+  }
+
+  override async setOptionsHue(input: { value: number }): Promise<void> {
+    await this.focusOptions();
+    await this.optionsPageEvaluate<void>(
+      `(() => {
+        const slider = document.querySelector('input[type="range"]');
+        if (!slider) throw new Error('hue slider missing');
+        const target = String(${input.value});
+        const setter = Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          'value',
+        )?.set;
+        if (setter) setter.call(slider, target);
+        else slider.value = target;
+        slider.dispatchEvent(new Event('input', { bubbles: true }));
+        slider.dispatchEvent(new Event('change', { bubbles: true }));
+      })()`,
+    );
+    await this.waitFor(
+      async () => (await this.readOptionsHue()) === input.value,
+      'options hue slider did not reach target value',
+      5000,
+    );
+    await pauseAfterOperation('options.hue.set');
+  }
+
+  override async setOptionsClickBinding(input: {
+    keys: readonly ModifierKey[];
+    action: string;
+  }): Promise<void> {
+    await this.focusOptions();
+    for (const key of input.keys) {
+      await this.optionsPageEvaluate<void>(
+        `(() => {
+          const labels = [...document.querySelectorAll('fieldset label')];
+          const label = labels.find((entry) =>
+            (entry.textContent || '').includes(${JSON.stringify(key)}),
+          );
+          const checkbox = label?.querySelector('input[type="checkbox"]');
+          if (!checkbox) {
+            throw new Error('modifier checkbox not found: ${key}');
+          }
+          if (!checkbox.checked) {
+            checkbox.checked = true;
+            checkbox.dispatchEvent(new Event('input', { bubbles: true }));
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        })()`,
+      );
+      await pauseAfterOperation(`options.modifier.${key}`);
+    }
+    await this.optionsPageEvaluate<void>(
+      `(() => {
+        const select = document.getElementById('click-action');
+        if (!select) throw new Error('click-action missing');
+        select.value = ${JSON.stringify(input.action)};
+        select.dispatchEvent(new Event('input', { bubbles: true }));
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      })()`,
+    );
+    await pauseAfterOperation('options.clickBinding.set');
   }
 
   async readExtensionEnabled(): Promise<boolean> {
