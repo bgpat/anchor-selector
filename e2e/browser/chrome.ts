@@ -261,8 +261,18 @@ export class ChromeAutomation extends PageAutomation {
 
   private async clickToolbarExtensionLeft(): Promise<void> {
     await activateChromeWindow();
-    if (chromeToolbarButton == null && this.toolbarButtonCache == null) {
-      await this.refreshToolbarCoordsOnce();
+    try {
+      await atspiClick({
+        name: EXTENSION_NAME,
+        role: 'push button',
+        prefer: 'top',
+        timeout: 1,
+        maxNodes: 400,
+        processTimeoutMs: 3_500,
+      });
+      return;
+    } catch {
+      // Fall back to coordinates pinned during launch.
     }
     const match = chromeToolbarButton ?? this.toolbarButtonCache;
     if (match == null) {
@@ -270,7 +280,8 @@ export class ChromeAutomation extends PageAutomation {
     }
     const x = Math.round(match.x + match.width / 2);
     const y = Math.round(match.y + match.height / 2);
-    await clickAtScreen(x, y, 'left', { pause: false });
+    await execFileAsync('xdotool', ['mousemove', String(x), String(y)], xdotoolOpts);
+    await execFileAsync('xdotool', ['click', '1'], xdotoolOpts);
   }
 
   async setExtensionEnabled(input: { enabled: boolean }): Promise<void> {
