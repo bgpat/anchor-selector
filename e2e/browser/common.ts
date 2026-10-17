@@ -682,9 +682,9 @@ export abstract class PageAutomation implements E2eAutomation {
     logE2eOp('history.start', { direction, before });
 
     if (direction === 'back') {
-      await this.clickBrowserBack();
+      await this.driver.navigate().back();
     } else {
-      await this.clickBrowserForward();
+      await this.driver.navigate().forward();
     }
 
     await this.waitForUrlChange(

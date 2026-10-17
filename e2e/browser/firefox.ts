@@ -201,12 +201,48 @@ export class FirefoxAutomation extends PageAutomation {
     if ((await this.readExtensionEnabled()) === input.enabled) {
       return;
     }
-    await this.withAddonsPage(async () => {
-      await this.clickAddonAction('toggle-disabled');
-    });
+    await this.firefox.setContext(Context.CHROME);
+    try {
+      const result = await this.firefox.executeAsyncScript<
+        null | { error: string }
+      >(
+        `const done = arguments[arguments.length - 1];
+        const id = arguments[0];
+        const enabled = arguments[1];
+        const { AddonManager } = ChromeUtils.importESModule(
+          'resource://gre/modules/AddonManager.sys.mjs',
+        );
+        AddonManager.getAddonByID(id)
+          .then((addon) => {
+            if (!addon) {
+              done({ error: 'extension addon was not found' });
+              return;
+            }
+            const change = enabled ? addon.enable() : addon.disable();
+            return Promise.resolve(change).then(
+              () => done(null),
+              (error) => done({ error: String(error) }),
+            );
+          })
+          .catch((error) => done({ error: String(error) }));`,
+        this.extensionId,
+        input.enabled,
+      );
+      if (result != null && typeof result === 'object' && 'error' in result) {
+        throw new Error(result.error);
+      }
+    } finally {
+      await this.firefox.setContext(Context.CONTENT);
+    }
+    await this.waitFor(
+      async () => (await this.readExtensionEnabled()) === input.enabled,
+      `extension did not become ${input.enabled ? 'enabled' : 'disabled'}`,
+      E2E_TIMEOUT_MS,
+    );
     if (input.enabled) {
       await this.reopenProbe();
     }
+    await pauseAfterOperation('extension.setEnabled');
   }
 
   async openExtensionOptions(): Promise<void> {
