@@ -98,17 +98,20 @@ async function atspiFind(input: {
   maxNodes?: number;
 }): Promise<AtspiMatch | null> {
   try {
-    const output = await atspi({
-      command: 'find',
-      app: input.app ?? 'chrom',
-      name: input.name,
-      role: input.role,
-      exclude: input.exclude,
-      prefer: input.prefer,
-      timeout: input.timeout,
-      exact: input.exact,
-      maxNodes: input.maxNodes,
-    });
+    const output = await atspi(
+      {
+        command: 'find',
+        app: input.app ?? 'chrom',
+        name: input.name,
+        role: input.role,
+        exclude: input.exclude,
+        prefer: input.prefer,
+        timeout: input.timeout,
+        exact: input.exact,
+        maxNodes: input.maxNodes,
+      },
+      capTimeoutMs(3_000),
+    );
     const parsed = JSON.parse(output) as { match: AtspiMatch };
     return parsed.match;
   } catch {
@@ -267,8 +270,7 @@ export class ChromeAutomation extends PageAutomation {
     }
     const x = Math.round(match.x + match.width / 2);
     const y = Math.round(match.y + match.height / 2);
-    await execFileAsync('xdotool', ['mousemove', String(x), String(y)], xdotoolOpts);
-    await execFileAsync('xdotool', ['click', '1'], xdotoolOpts);
+    await clickAtScreen(x, y, 'left', { pause: false });
   }
 
   async setExtensionEnabled(input: { enabled: boolean }): Promise<void> {
@@ -281,28 +283,18 @@ export class ChromeAutomation extends PageAutomation {
     });
     if (input.enabled) {
       await this.reopenProbe();
-      const fixtureUrl = await this.driver.getCurrentUrl();
-      await this.probe<void>(
-        `const done = arguments[arguments.length - 1];
-        const url = arguments[0];
-        const ext = globalThis.chrome;
-        ext.tabs.query({}).then((tabs) => {
-          const tab = tabs.find((item) => item.url === url);
-          if (!tab || tab.id == null) {
-            done({ error: 'fixture tab was not found' });
-            return;
-          }
-          return ext.tabs.reload(tab.id).then(
-            () => done(null),
-            (error) => done({ error: String(error) }),
-          );
-        }).catch((error) => done({ error: String(error) }));`,
-        fixtureUrl,
+      await this.switchToWindow(this.fixtureHandle);
+      await this.driver.navigate().refresh();
+      await this.waitFor(
+        async () =>
+          (await this.driver.executeScript('return document.readyState')) ===
+          'complete',
+        'fixture did not reload after re-enable',
+        capTimeoutMs(3_000),
       );
-      await this.waitForReady();
-      if (chromeToolbarButton == null) {
-        await this.locateToolbarExtensionButton(capTimeoutSec(3));
-      }
+      chromeToolbarButton = null;
+      this.toolbarButtonCache = null;
+      await this.refreshToolbarCoordsOnce();
     } else {
       chromeToolbarButton = null;
       this.toolbarButtonCache = null;
