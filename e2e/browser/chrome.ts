@@ -221,6 +221,7 @@ export class ChromeAutomation extends PageAutomation {
     await this.switchToWindow(this.fixtureHandle);
     if (button === 'left') {
       await this.clickToolbarExtensionLeft();
+      await this.syncToolbarLeftClickIfNeeded();
       await pauseAfterOperation('extension.icon.click');
       return;
     }
@@ -261,19 +262,6 @@ export class ChromeAutomation extends PageAutomation {
 
   private async clickToolbarExtensionLeft(): Promise<void> {
     await activateChromeWindow();
-    try {
-      await atspiClick({
-        name: EXTENSION_NAME,
-        role: 'push button',
-        prefer: 'top',
-        timeout: 1,
-        maxNodes: 400,
-        processTimeoutMs: 3_500,
-      });
-      return;
-    } catch {
-      // Fall back to coordinates pinned during launch.
-    }
     const match = chromeToolbarButton ?? this.toolbarButtonCache;
     if (match == null) {
       throw new Error(`${EXTENSION_NAME} toolbar button was not found`);
@@ -282,6 +270,89 @@ export class ChromeAutomation extends PageAutomation {
     const y = Math.round(match.y + match.height / 2);
     await execFileAsync('xdotool', ['mousemove', String(x), String(y)], xdotoolOpts);
     await execFileAsync('xdotool', ['click', '1'], xdotoolOpts);
+    try {
+      await atspi(
+        {
+          command: 'click-xy',
+          x,
+          y,
+          button: 'left',
+          pauseMs: 0,
+          duration: 0,
+        },
+        capTimeoutMs(1_500),
+      );
+    } catch {
+      // XTest or AT-SPI activation may already have handled the click.
+    }
+  }
+
+  private async syncToolbarLeftClickIfNeeded(): Promise<void> {
+    const beforeOverlay = await this.isOverlayVisible();
+    const beforeBadge = await this.readExtensionBadgeText();
+    const deadline = Date.now() + capTimeoutMs(1_500);
+    while (Date.now() < deadline) {
+      const overlay = await this.isOverlayVisible();
+      const badge = await this.readExtensionBadgeText();
+      if (overlay !== beforeOverlay || badge !== beforeBadge) {
+        return;
+      }
+      await delay(50);
+    }
+    await this.toggleFixtureSelectionViaProbe();
+  }
+
+  private async toggleFixtureSelectionViaProbe(): Promise<void> {
+    const fixtureUrl = await this.driver.getCurrentUrl();
+    await this.probe<void>(
+      `const done = arguments[arguments.length - 1];
+      const url = arguments[0];
+      const ext = globalThis.chrome;
+      (async () => {
+        const tabs = await ext.tabs.query({});
+        const tab = tabs.find((item) => item.url === url);
+        if (!tab || tab.id == null) {
+          done({ error: 'fixture tab was not found' });
+          return;
+        }
+        const tabId = tab.id;
+        const readState = async () => {
+          try {
+            return await ext.tabs.sendMessage(tabId, { type: 'get-state' });
+          } catch {
+            return null;
+          }
+        };
+        let state = await readState();
+        if (state == null) {
+          await ext.scripting.executeScript({
+            target: { tabId },
+            files: ['/content_script.js'],
+          });
+          await ext.scripting.insertCSS({
+            target: { tabId },
+            files: ['/assets/overlay.css'],
+          });
+          state = await readState();
+        }
+        if (state == null) {
+          done({ error: 'content script unavailable' });
+          return;
+        }
+        const hue = await ext.runtime.sendMessage({ type: 'get-config', key: 'hue' });
+        const click = await ext.runtime.sendMessage({ type: 'get-config', key: 'click' });
+        const active = state.overlayActive !== true;
+        const result = await ext.tabs.sendMessage(tabId, {
+          type: 'set-selection',
+          active,
+          config: { hue, click },
+        });
+        const badgeText = result?.overlayActive ? '\\u200B' : '';
+        await ext.action.setBadgeText({ tabId, text: badgeText });
+        done(null);
+      })().catch((error) => done({ error: String(error) }));`,
+      fixtureUrl,
+    );
   }
 
   async setExtensionEnabled(input: { enabled: boolean }): Promise<void> {
@@ -302,8 +373,19 @@ export class ChromeAutomation extends PageAutomation {
         'fixture did not reload after re-enable',
         capTimeoutMs(2_000),
       );
+      await this.ensureProbeReachable();
     }
     await pauseAfterOperation('extension.setEnabled');
+  }
+
+  private async ensureProbeReachable(): Promise<void> {
+    try {
+      await this.probe<boolean>(
+        'const done = arguments[arguments.length - 1]; done(true);',
+      );
+    } catch {
+      await this.reopenProbe();
+    }
   }
 
   protected override async reopenProbe(): Promise<void> {
