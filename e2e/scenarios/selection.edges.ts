@@ -189,13 +189,16 @@ export const selectionSessionScenarios = [
         ],
       },
       { kind: 'extension.setEnabled', enabled: true },
-      { kind: 'extension.icon.click', button: 'left' },
+      {
+        kind: 'extension.icon.click',
+        button: 'left',
+        expect: [
+          { kind: 'overlay.root.count', count: 1 },
+          { kind: 'overlay.visible', visible: true },
+        ],
+      },
     ],
-    expect: [
-      { kind: 'extension.enabled', enabled: true },
-      { kind: 'overlay.root.count', count: 1 },
-      { kind: 'overlay.visible', visible: true },
-    ],
+    expect: [{ kind: 'extension.enabled', enabled: true }],
   },
   {
     id: 'selection.reload-clears',
