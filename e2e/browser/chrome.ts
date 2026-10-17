@@ -27,6 +27,7 @@ import {
   fitWindow,
   installProbePage,
   keepSingleTab,
+  listAtspi,
   prepareTabs,
   probeExpression,
 } from './common';
@@ -189,26 +190,24 @@ export class ChromeAutomation extends PageAutomation {
         : input.button === 'middle'
           ? 'middle'
           : 'left';
-    const match =
-      chromeToolbarButton ??
-      this.toolbarButtonCache ??
-      await this.locateToolbarExtensionButton(capTimeoutSec(5));
+    let match = chromeToolbarButton ?? this.toolbarButtonCache;
+    if (match == null) {
+      match = await this.locateToolbarExtensionButton(capTimeoutSec(5));
+    }
     if (match == null) {
       const dump = await atspiDump();
       throw new Error(
         `${EXTENSION_NAME} toolbar button was not found\n${dump.slice(0, 2000)}`,
       );
     }
+    const x = Math.round(match.x + match.width / 2);
+    const y = Math.round(match.y + match.height / 2);
     if (button === 'left') {
-      const x = Math.round(match.x + match.width / 2);
-      const y = Math.round(match.y + match.height / 2);
       await execFileAsync('xdotool', ['mousemove', '--sync', String(x), String(y)]);
       await execFileAsync('xdotool', ['click', '1']);
       await pauseAfterOperation('extension.icon.click');
       return;
     }
-    const x = Math.round(match.x + match.width / 2);
-    const y = Math.round(match.y + match.height / 2);
     await clickAtScreen(x, y, button);
   }
 
