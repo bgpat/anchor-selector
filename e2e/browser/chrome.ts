@@ -14,6 +14,7 @@ import {
 } from 'selenium-webdriver/chrome';
 import type { ModifierKey } from '@/util/config';
 import { capTimeoutMs, capTimeoutSec, E2E_TIMEOUT_MS } from '../timeout';
+import type { GotoInput } from './navigation';
 import type { ExtensionIconButton } from '../automation/interface';
 import { runAtspi } from './atspi-host';
 import {
@@ -206,6 +207,11 @@ export class ChromeAutomation extends PageAutomation {
     await pauseAfterOperation();
   }
 
+  override async goto(input: GotoInput): Promise<void> {
+    await super.goto(input);
+    await this.locateToolbarExtensionButton(capTimeoutSec(2));
+  }
+
   async clickExtensionIcon(input: {
     button: ExtensionIconButton;
   }): Promise<void> {
@@ -239,7 +245,6 @@ export class ChromeAutomation extends PageAutomation {
 
   private async clickToolbarExtensionLeft(): Promise<void> {
     await activateChromeWindow();
-    await this.locateToolbarExtensionButton(capTimeoutSec(1));
     const match = chromeToolbarButton ?? this.toolbarButtonCache;
     if (match == null) {
       throw new Error(`${EXTENSION_NAME} toolbar button was not found`);
@@ -248,20 +253,6 @@ export class ChromeAutomation extends PageAutomation {
     const y = Math.round(match.y + match.height / 2);
     await execFileAsync('xdotool', ['mousemove', String(x), String(y)], xdotoolOpts);
     await execFileAsync('xdotool', ['click', '1'], xdotoolOpts);
-    try {
-      await atspi(
-        {
-          command: 'press-at',
-          x,
-          y,
-          button: 'left',
-          pauseMs: 0,
-        },
-        capTimeoutMs(2_000),
-      );
-    } catch {
-      // xdotool may already have toggled selection; AT-SPI can hang in CI.
-    }
   }
 
   async setExtensionEnabled(input: { enabled: boolean }): Promise<void> {
@@ -351,27 +342,25 @@ export class ChromeAutomation extends PageAutomation {
   }
 
   async openExtensionOptions(): Promise<void> {
-    await this.withExtensionsPageInNewTab(async () => {
-      const details = await this.extensionControl('#detailsButton');
-      await this.clickWebElement(details);
-      await this.waitFor(async () => {
-        await this.rememberOptionsTab().catch(() => undefined);
-        if (this.optionsHandle != null) {
-          return true;
-        }
-        const options = await this.deepElementByText('Extension options');
-        if (options == null) {
-          return false;
-        }
-        await this.driver.executeScript(
-          'arguments[0].scrollIntoView({block: "center"})',
-          options,
-        );
-        await this.clickWebElement(options);
-        await pauseAfterOperation('extension.options.link');
-        return false;
-      }, 'options page did not open from chrome://extensions', E2E_TIMEOUT_MS);
-    });
+    const optionsUrl = `chrome-extension://${this.extensionId}/options.html`;
+    const existing = await this.findOptionsHandle();
+    if (existing != null) {
+      await this.switchToWindow(existing);
+    } else {
+      const before = new Set(await this.driver.getAllWindowHandles());
+      await this.driver.switchTo().newWindow('tab');
+      const created = (await this.driver.getAllWindowHandles()).find(
+        (handle) => !before.has(handle),
+      );
+      if (created == null) {
+        throw new Error('options tab was not created');
+      }
+      this.optionsHandle = created;
+      this.markActiveWindow(created);
+    }
+    await this.driver.get(optionsUrl);
+    await this.waitForReady();
+    this.optionsHandle = this.activeWebDriverWindow;
     await pauseAfterOperation('extension.options.open');
   }
 
@@ -828,6 +817,7 @@ export class ChromeAutomation extends PageAutomation {
       await this.waitFor(
         async () => (await this.extensionItem()) != null,
         'chrome://extensions did not list the extension',
+        capTimeoutMs(5_000),
       );
       return await action();
     } finally {
