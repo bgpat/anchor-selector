@@ -1,6 +1,9 @@
 import { clickActionScenarios, openNewWindowScenario } from './click-actions';
 import { optionsScenarios } from './options';
-import { selectionCoreScenarios } from './selection.core';
+import {
+  selectionCoreScenarios,
+  selectionToolbarTogglesOffScenario,
+} from './selection.core';
 import {
   selectionBeforeActionScenarios,
   selectionHistorySessionScenarios,
@@ -17,6 +20,7 @@ export const e2eScenarios = [
   ...selectionSessionScenarios,
   ...optionsScenarios,
   openNewWindowScenario,
+  selectionToolbarTogglesOffScenario,
   selectionUninjectableScenario,
 ] as const satisfies readonly E2eScenario[];
 

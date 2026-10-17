@@ -115,19 +115,22 @@ export const selectionCoreScenarios = [
       { kind: 'page.url.hash', value: '' },
     ],
   },
-  {
-    id: 'selection.toolbar-toggles-off',
-    title: 'Left-clicking the icon again ends selection',
-    description:
-      'A left-click during selection closes the overlay and clears the badge.',
-    tags: ['smoke', 'selection'],
-    steps: [
-      { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'extension.icon.click', button: 'left' },
-    ],
-    expect: [
-      { kind: 'overlay.visible', visible: false },
-      { kind: 'extension.badge.text', text: '' },
-    ],
-  },
 ] as const satisfies readonly E2eScenario[];
+
+/** Runs late so toolbar probe fallbacks do not disturb session-scenario state. */
+export const selectionToolbarTogglesOffScenario = {
+  id: 'selection.toolbar-toggles-off',
+  title: 'Left-clicking the icon again ends selection',
+  description:
+    'A left-click during selection closes the overlay and clears the badge.',
+  tags: ['smoke', 'selection'],
+  steps: [
+    { kind: 'page.goto', path: E2E_FIXTURE_PATH },
+    { kind: 'extension.icon.click', button: 'left' },
+    { kind: 'extension.icon.click', button: 'left' },
+  ],
+  expect: [
+    { kind: 'overlay.visible', visible: false },
+    { kind: 'extension.badge.text', text: '' },
+  ],
+} as const satisfies E2eScenario;
