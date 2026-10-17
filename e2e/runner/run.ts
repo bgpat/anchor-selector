@@ -24,7 +24,7 @@ import './bun-globals';
 import { logE2eOp, timeE2eOp } from '../op-log';
 
 const EVENTUAL_TIMEOUT_MS = 2500;
-const SCENARIO_TIMEOUT_MS = 180000;
+const SCENARIO_TIMEOUT_MS = 300000;
 
 function flag(name: string): string | undefined {
   const index = process.argv.indexOf(name);

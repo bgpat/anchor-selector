@@ -172,17 +172,6 @@ export const selectionHistorySessionScenarios = [
 
 export const selectionSessionScenarios = [
   {
-    id: 'selection.reload-clears',
-    title: 'Reloading while selecting clears selection',
-    description: 'Reloading the page during selection removes the overlay.',
-    tags: ['selection', 'edge'],
-    steps: [
-      { kind: 'extension.icon.click', button: 'left' },
-      { kind: 'page.reload' },
-    ],
-    expect: [...selectionOff],
-  },
-  {
     id: 'extension.re-enable-no-duplicate',
     title: 'Disabling clears selection and re-enabling does not duplicate the overlay',
     description:
@@ -207,6 +196,17 @@ export const selectionSessionScenarios = [
       { kind: 'overlay.root.count', count: 1 },
       { kind: 'overlay.visible', visible: true },
     ],
+  },
+  {
+    id: 'selection.reload-clears',
+    title: 'Reloading while selecting clears selection',
+    description: 'Reloading the page during selection removes the overlay.',
+    tags: ['selection', 'edge'],
+    steps: [
+      { kind: 'extension.icon.click', button: 'left' },
+      { kind: 'page.reload' },
+    ],
+    expect: [...selectionOff],
   },
 ] as const satisfies readonly E2eScenario[];
 
