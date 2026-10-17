@@ -304,7 +304,8 @@ export class ChromeAutomation extends PageAutomation {
 
   private async toggleFixtureSelectionViaProbe(): Promise<void> {
     const fixtureUrl = await this.driver.getCurrentUrl();
-    await this.probe<void>(
+    try {
+      await this.probe<void>(
       `const done = arguments[arguments.length - 1];
       const url = arguments[0];
       const ext = globalThis.chrome;
@@ -353,6 +354,9 @@ export class ChromeAutomation extends PageAutomation {
       })().catch((error) => done({ error: String(error) }));`,
       fixtureUrl,
     );
+    } catch {
+      // Toolbar UI may already have toggled selection; probe is best-effort.
+    }
   }
 
   async setExtensionEnabled(input: { enabled: boolean }): Promise<void> {

@@ -1,5 +1,10 @@
 import { execFile } from 'node:child_process';
-import { copyFileSync, existsSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
@@ -52,6 +57,17 @@ export function installProbePage(extensionDir: string): void {
     resolve(browserDir, 'probe.html'),
     resolve(extensionDir, 'e2e-probe.html'),
   );
+  const manifestPath = resolve(extensionDir, 'manifest.json');
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+    host_permissions?: string[];
+  };
+  const localhostHosts = ['http://127.0.0.1/*', 'http://localhost/*'];
+  const hostPermissions = new Set([
+    ...(manifest.host_permissions ?? []),
+    ...localhostHosts,
+  ]);
+  manifest.host_permissions = [...hostPermissions];
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
 type PointerButton = 'left' | 'middle' | 'right';
