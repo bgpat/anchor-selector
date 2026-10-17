@@ -14,7 +14,6 @@ import {
 } from 'selenium-webdriver/chrome';
 import type { ModifierKey } from '@/util/config';
 import { capTimeoutMs, capTimeoutSec, E2E_TIMEOUT_MS } from '../timeout';
-import type { GotoInput } from './navigation';
 import type { ExtensionIconButton } from '../automation/interface';
 import { runAtspi } from './atspi-host';
 import {
@@ -207,11 +206,6 @@ export class ChromeAutomation extends PageAutomation {
     await pauseAfterOperation();
   }
 
-  override async goto(input: GotoInput): Promise<void> {
-    await super.goto(input);
-    await this.locateToolbarExtensionButton(capTimeoutSec(2));
-  }
-
   async clickExtensionIcon(input: {
     button: ExtensionIconButton;
   }): Promise<void> {
@@ -243,8 +237,30 @@ export class ChromeAutomation extends PageAutomation {
     await pauseAfterOperation('extension.icon.click');
   }
 
+  private async refreshToolbarCoordsOnce(): Promise<void> {
+    const rect = await this.windowRect();
+    const names = ['jump to the anchored element', EXTENSION_NAME];
+    for (const name of names) {
+      const match = await atspiFind({
+        name,
+        role: 'push button',
+        prefer: 'top',
+        timeout: 0,
+        maxNodes: 400,
+      });
+      if (match != null && this.toolbarButtonInChromeBar(match, rect)) {
+        this.toolbarButtonCache = match;
+        chromeToolbarButton = match;
+        return;
+      }
+    }
+  }
+
   private async clickToolbarExtensionLeft(): Promise<void> {
     await activateChromeWindow();
+    if (chromeToolbarButton == null && this.toolbarButtonCache == null) {
+      await this.refreshToolbarCoordsOnce();
+    }
     const match = chromeToolbarButton ?? this.toolbarButtonCache;
     if (match == null) {
       throw new Error(`${EXTENSION_NAME} toolbar button was not found`);
