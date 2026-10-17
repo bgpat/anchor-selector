@@ -634,6 +634,7 @@ export class FirefoxAutomation extends PageAutomation {
         const extensionId = arguments[0];
         const source = arguments[1];
         const payload = arguments[2];
+        const scriptTimeoutMs = arguments[3];
         const { ExtensionParent } = ChromeUtils.importESModule(
           'resource://gre/modules/ExtensionParent.sys.mjs',
         );
@@ -649,7 +650,7 @@ export class FirefoxAutomation extends PageAutomation {
           'MarionetteCommands',
         );
         actor.executeScript(source, payload, {
-          timeout: E2E_TIMEOUT_MS,
+          timeout: scriptTimeoutMs,
           sandboxName: null,
           newSandbox: false,
           file: '',
@@ -664,6 +665,7 @@ export class FirefoxAutomation extends PageAutomation {
         this.extensionId,
         script,
         args,
+        E2E_TIMEOUT_MS,
       )) as T | { error: string };
       if (
         result != null &&
