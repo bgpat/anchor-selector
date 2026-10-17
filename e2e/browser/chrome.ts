@@ -290,7 +290,8 @@ export class ChromeAutomation extends PageAutomation {
   private async syncToolbarLeftClickIfNeeded(): Promise<void> {
     const beforeOverlay = await this.isOverlayVisible();
     const beforeBadge = await this.readExtensionBadgeText();
-    const deadline = Date.now() + capTimeoutMs(2_500);
+    const deadline =
+      Date.now() + capTimeoutMs(beforeOverlay ? 4_000 : 2_500);
     while (Date.now() < deadline) {
       const overlay = await this.isOverlayVisible();
       const badge = await this.readExtensionBadgeText();
@@ -300,14 +301,6 @@ export class ChromeAutomation extends PageAutomation {
       await delay(50);
     }
     if (beforeOverlay) {
-      await this.clickToolbarExtensionLeft();
-      const offDeadline = Date.now() + capTimeoutMs(2_500);
-      while (Date.now() < offDeadline) {
-        if (!(await this.isOverlayVisible())) {
-          return;
-        }
-        await delay(50);
-      }
       return;
     }
     await this.ensureFixtureSelectionOnViaProbe();
