@@ -61,33 +61,57 @@ function tally(report: BrowserReport): string {
   return `✅ ${counts.passed} passed · ❌ ${counts.failed} failed · ⏭️ ${counts.skipped} skipped`;
 }
 
-function scenarioLines(
-  report: BrowserReport,
-  status: ScenarioReport['status'],
-  heading: string,
-): string[] {
-  const scenarios = report.scenarios.filter(
-    (scenario) => scenario.status === status,
-  );
-  if (scenarios.length === 0) {
-    return [];
+const statusEmoji: Record<ScenarioReport['status'], string> = {
+  passed: '✅',
+  failed: '❌',
+  skipped: '⏭️',
+};
+
+function statusCell(
+  scenarios: readonly ScenarioReport[],
+  id: string,
+): string {
+  const scenario = scenarios.find((entry) => entry.id === id);
+  if (scenario == null) {
+    return '—';
   }
-  return [
-    heading,
-    '',
-    ...scenarios.map(
-      (scenario) => `- \`${scenario.id}\` ${scenario.title}`,
-    ),
-    '',
-  ];
+  return statusEmoji[scenario.status];
 }
 
-function resultSections(report: BrowserReport): string[] {
-  return [
-    ...scenarioLines(report, 'passed', '### ✅ Passed'),
-    ...scenarioLines(report, 'failed', '### ❌ Failed'),
-    ...scenarioLines(report, 'skipped', '### ⏭️ Skipped'),
+function unifiedResultTable(
+  reports: readonly { report: BrowserReport }[],
+): string[] {
+  const byBrowser = new Map(
+    reports.map((entry) => [entry.report.browser, entry.report]),
+  );
+  const chrome = byBrowser.get('chrome');
+  const firefox = byBrowser.get('firefox');
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const report of [chrome, firefox]) {
+    if (report == null) {
+      continue;
+    }
+    for (const scenario of report.scenarios) {
+      if (seen.has(scenario.id)) {
+        continue;
+      }
+      seen.add(scenario.id);
+      ids.push(scenario.id);
+    }
+  }
+  const lines = [
+    '| Scenario | Chrome | Firefox |',
+    '| --- | --- | --- |',
   ];
+  for (const id of ids) {
+    const chromeCell =
+      chrome == null ? '—' : statusCell(chrome.scenarios, id);
+    const firefoxCell =
+      firefox == null ? '—' : statusCell(firefox.scenarios, id);
+    lines.push(`| \`${id}\` | ${chromeCell} | ${firefoxCell} |`);
+  }
+  return ['', ...lines, ''];
 }
 
 function reportsIn(
@@ -194,24 +218,23 @@ function main() {
     return;
   }
   const login = gh(['api', 'user', '--jq', '.login']).trim();
-  const lines = [marker, ''];
+  const lines = [marker, '', '## E2E results', ''];
+  for (const { report } of reports) {
+    lines.push(`**${report.browser}:** ${tally(report)}`, '');
+  }
+  lines.push(...unifiedResultTable(reports));
   const videos: string[] = [];
+  lines.push('## Recordings', '');
   for (const { report, dir } of reports) {
     const videoName = report.scenarios.find(
       (scenario) => scenario.video != null,
     )?.video;
     const videoPath = videoName == null ? null : join(dir, videoName);
-    lines.push(
-      `## E2E ${report.browser}`,
-      '',
-      tally(report),
-      '',
-      ...resultSections(report),
-    );
-    if (videoPath != null) {
-      videos.push(videoPath);
-      lines.push(`![${report.browser}](${videoPath})`, '');
+    if (videoPath == null) {
+      continue;
     }
+    videos.push(videoPath);
+    lines.push(`### ${report.browser}`, '', `![${report.browser}](${videoPath})`, '');
   }
   const bodyPath = join(mkdtempSync(join(tmpdir(), 'e2e-comment-')), 'body.md');
   writeFileSync(bodyPath, `${lines.join('\n')}\n`);
