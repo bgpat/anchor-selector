@@ -140,6 +140,7 @@ export const selectionHistorySessionScenarios = [
       'Opening another document while selecting clears the overlay and badge, and neither back nor forward leaves the overlay up.',
     tags: ['selection', 'edge'],
     steps: [
+      { kind: 'page.goto', path: E2E_FIXTURE_PATH },
       { kind: 'extension.icon.click', button: 'left' },
       {
         kind: 'page.goto',
