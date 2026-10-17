@@ -183,7 +183,14 @@ export class ChromeAutomation extends PageAutomation {
   async clickExtensionIcon(input: {
     button: ExtensionIconButton;
   }): Promise<void> {
-    await this.driver.switchTo().window(this.fixtureHandle);
+    try {
+      const current = await this.driver.getWindowHandle();
+      if (current !== this.fixtureHandle) {
+        await this.driver.switchTo().window(this.fixtureHandle);
+      }
+    } catch {
+      await this.driver.switchTo().window(this.fixtureHandle);
+    }
     const button =
       input.button === 'right'
         ? 'right'
@@ -203,7 +210,7 @@ export class ChromeAutomation extends PageAutomation {
     const x = Math.round(match.x + match.width / 2);
     const y = Math.round(match.y + match.height / 2);
     if (button === 'left') {
-      await execFileAsync('xdotool', ['mousemove', '--sync', String(x), String(y)]);
+      await execFileAsync('xdotool', ['mousemove', String(x), String(y)]);
       await execFileAsync('xdotool', ['click', '1']);
       await pauseAfterOperation('extension.icon.click');
       return;
