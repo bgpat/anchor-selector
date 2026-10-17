@@ -299,10 +299,6 @@ export class ChromeAutomation extends PageAutomation {
       }
       await delay(50);
     }
-    if (beforeOverlay) {
-      await this.clickToolbarExtensionLeft();
-      return;
-    }
     await this.ensureFixtureSelectionOnViaProbe();
   }
 
