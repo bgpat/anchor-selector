@@ -53,8 +53,7 @@ async function activateChromeWindow(): Promise<void> {
   }
 }
 
-const TOOLBAR_CLICK_MS = 3_000;
-const ATSPI_FIND_MS = 3_000;
+const TOOLBAR_CLICK_MS = 4_000;
 
 /** AT-SPI activates Chrome toolbar controls; raw xdotool clicks often miss them. */
 async function clickToolbarAt(x: number, y: number): Promise<void> {
@@ -115,22 +114,19 @@ async function atspiFind(input: {
   prefer?: 'top' | 'bottom';
   app?: string;
   maxNodes?: number;
-}, processTimeoutMs?: number): Promise<AtspiMatch | null> {
+}): Promise<AtspiMatch | null> {
   try {
-    const output = await atspi(
-      {
-        command: 'find',
-        app: input.app ?? 'chrom',
-        name: input.name,
-        role: input.role,
-        exclude: input.exclude,
-        prefer: input.prefer,
-        timeout: input.timeout,
-        exact: input.exact,
-        maxNodes: input.maxNodes,
-      },
-      processTimeoutMs ?? undefined,
-    );
+    const output = await atspi({
+      command: 'find',
+      app: input.app ?? 'chrom',
+      name: input.name,
+      role: input.role,
+      exclude: input.exclude,
+      prefer: input.prefer,
+      timeout: input.timeout,
+      exact: input.exact,
+      maxNodes: input.maxNodes,
+    });
     const parsed = JSON.parse(output) as { match: AtspiMatch };
     return parsed.match;
   } catch {
@@ -253,46 +249,17 @@ export class ChromeAutomation extends PageAutomation {
 
   private async clickToolbarExtensionLeft(): Promise<void> {
     await activateChromeWindow();
-    const names = ['jump to the anchored element', EXTENSION_NAME];
-    let lastError: unknown;
-    for (const name of names) {
-      try {
-        await atspi(
-          {
-            command: 'click',
-            app: 'chrom',
-            name,
-            role: 'push button',
-            prefer: 'top',
-            timeout: capTimeoutSec(1),
-            maxNodes: 800,
-            pauseMs: 0,
-          },
-          capTimeoutMs(TOOLBAR_CLICK_MS),
-        );
-        return;
-      } catch (error) {
-        lastError = error;
-      }
+    let match = chromeToolbarButton ?? this.toolbarButtonCache;
+    if (match == null) {
+      match = await this.locateToolbarExtensionButton(capTimeoutSec(2));
     }
-    let match =
-      (await this.refreshToolbarCoordsQuick()) ??
-      chromeToolbarButton ??
-      this.toolbarButtonCache;
-    if (match != null) {
-      try {
-        await clickToolbarAt(
-          Math.round(match.x + match.width / 2),
-          Math.round(match.y + match.height / 2),
-        );
-        return;
-      } catch (error) {
-        lastError = error;
-      }
+    if (match == null) {
+      throw new Error(`${EXTENSION_NAME} toolbar button was not found`);
     }
-    throw lastError instanceof Error
-      ? lastError
-      : new Error(`${EXTENSION_NAME} toolbar button could not be clicked`);
+    await clickToolbarAt(
+      Math.round(match.x + match.width / 2),
+      Math.round(match.y + match.height / 2),
+    );
   }
 
   async setExtensionEnabled(input: { enabled: boolean }): Promise<void> {
@@ -828,30 +795,6 @@ export class ChromeAutomation extends PageAutomation {
       !match.name.includes('Ask on every visit') &&
       !match.name.includes('is pinned')
     );
-  }
-
-  /** Single bounded AT-SPI scan; safe inside a 10s step before toolbar clicks. */
-  private async refreshToolbarCoordsQuick(): Promise<AtspiMatch | null> {
-    const rect = await this.windowRect();
-    const names = ['jump to the anchored element', EXTENSION_NAME];
-    for (const name of names) {
-      const match = await atspiFind(
-        {
-          name,
-          role: 'push button',
-          prefer: 'top',
-          timeout: 0,
-          maxNodes: 400,
-        },
-        capTimeoutMs(ATSPI_FIND_MS),
-      );
-      if (match != null && this.toolbarButtonInChromeBar(match, rect)) {
-        this.toolbarButtonCache = match;
-        chromeToolbarButton = match;
-        return match;
-      }
-    }
-    return null;
   }
 
   /** Slow AT-SPI lookup; run during launch, not inside a 10s e2e step. */

@@ -11,6 +11,9 @@ const tsc = resolve(repoRoot, 'node_modules/.bin/tsc');
 
 let compiled: Promise<string> | null = null;
 
+/** gjs/AT-SPI is not safe to run concurrently on one session. */
+let atspiQueue: Promise<unknown> = Promise.resolve();
+
 function atspiProgram(): Promise<string> {
   compiled ??= (async () => {
     const dir = mkdtempSync(resolve(tmpdir(), 'anchor-selector-atspi-'));
@@ -33,7 +36,7 @@ function atspiProgram(): Promise<string> {
   return compiled;
 }
 
-export async function runAtspi(
+async function runAtspiOnce(
   args: string[],
   options?: { timeoutMs?: number },
 ): Promise<string> {
@@ -70,4 +73,17 @@ export async function runAtspi(
     throw new Error(err || out || `gjs exited ${code}`);
   }
   return out;
+}
+
+export function runAtspi(
+  args: string[],
+  options?: { timeoutMs?: number },
+): Promise<string> {
+  const run = () => runAtspiOnce(args, options);
+  const result = atspiQueue.then(run, run);
+  atspiQueue = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  return result;
 }
