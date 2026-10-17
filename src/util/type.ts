@@ -7,6 +7,7 @@ export const runtimeMessageType = {
   setConfig: 'set-config',
   newTab: 'new-tab',
   newWindow: 'new-window',
+  toggleSelectionTab: 'toggle-selection-tab',
 } as const;
 
 export type RuntimeMessageType =

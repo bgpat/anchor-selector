@@ -301,9 +301,37 @@ export class ChromeAutomation extends PageAutomation {
       await delay(50);
     }
     if (beforeOverlay) {
+      await this.toggleFixtureSelectionViaProbe();
       return;
     }
     await this.ensureFixtureSelectionOnViaProbe();
+  }
+
+  private async toggleFixtureSelectionViaProbe(): Promise<void> {
+    const fixtureUrl = await this.driver.getCurrentUrl();
+    try {
+      await this.probe<void>(
+        `const done = arguments[arguments.length - 1];
+        const url = arguments[0];
+        const ext = globalThis.chrome;
+        (async () => {
+          const tabs = await ext.tabs.query({});
+          const tab = tabs.find((item) => item.url === url);
+          if (!tab || tab.id == null) {
+            done({ error: 'fixture tab was not found' });
+            return;
+          }
+          await ext.runtime.sendMessage({
+            type: 'toggle-selection-tab',
+            tabId: tab.id,
+          });
+          done(null);
+        })().catch((error) => done({ error: String(error) }));`,
+        fixtureUrl,
+      );
+    } catch {
+      // Toolbar UI may already have ended selection; probe is best-effort.
+    }
   }
 
   private async ensureFixtureSelectionOnViaProbe(): Promise<void> {

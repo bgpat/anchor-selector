@@ -48,7 +48,8 @@ type RuntimeMessage =
       value: StoredConfig[ConfigKey];
     }
   | { type: typeof runtimeMessageType.newTab; url: string }
-  | { type: typeof runtimeMessageType.newWindow; url: string };
+  | { type: typeof runtimeMessageType.newWindow; url: string }
+  | { type: typeof runtimeMessageType.toggleSelectionTab; tabId: number };
 
 const tabChains = new Map<number, Promise<unknown>>();
 
@@ -231,6 +232,10 @@ export function registerBackground() {
         case runtimeMessageType.newWindow:
           browser.windows.create({ url: message.url });
           break;
+        case runtimeMessageType.toggleSelectionTab:
+          return runExclusive(message.tabId, () =>
+            toggleSelection(message.tabId),
+          );
       }
     },
   );
