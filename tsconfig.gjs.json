@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  "files": [
+    "e2e/browser/atspi.ts",
+    "node_modules/@girs/atspi-2.0/atspi-2.0-ambient.d.ts",
+    "node_modules/@girs/gdk-3.0/gdk-3.0-ambient.d.ts",
+    "node_modules/@girs/glib-2.0/glib-2.0-ambient.d.ts"
+  ]
+}

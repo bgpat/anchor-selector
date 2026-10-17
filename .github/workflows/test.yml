@@ -51,3 +51,76 @@ jobs:
           name: extension-${{ matrix.browser }}
           path: .output/${{ matrix.browser }}
           if-no-files-found: error
+
+  e2e:
+    name: E2E (${{ matrix.browser }})
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome, firefox]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: $/.github/actions/bun-deps
+      - name: Install browser automation packages
+        uses: $/.github/actions/apt-install
+        with:
+          packages: |
+            adwaita-icon-theme
+            at-spi2-core
+            dbus-x11
+            ffmpeg
+            gir1.2-atspi-2.0
+            gir1.2-gdk-3.0
+            gjs
+            libasound2t64
+            libdbus-glib-1-2
+            libgtk-3-0
+            libnss3
+            libx11-xcb1
+            libxt6
+            xclip
+            xcursor-themes
+            xdotool
+            xvfb
+      - run: bun run build:${{ matrix.browser }}
+      - name: Run e2e
+        shell: bash
+        env:
+          XCURSOR_THEME: Adwaita
+          XCURSOR_SIZE: 24
+        run: |
+          set -o pipefail
+          mkdir -p "test-results/${{ matrix.browser }}"
+          dbus-run-session -- xvfb-run -a -s '-screen 0 960x600x24' bun run e2e:${{ matrix.browser }} 2>&1 | tee "test-results/${{ matrix.browser }}/e2e-console.log"
+      - name: Annotate e2e failures
+        if: always()
+        run: bun scripts/e2e-workflow-errors.ts --browser ${{ matrix.browser }}
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: e2e-${{ matrix.browser }}
+          path: test-results/${{ matrix.browser }}
+          if-no-files-found: ignore
+
+  e2e-comment:
+    name: Comment e2e recordings
+    needs: e2e
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: $/.github/actions/bun-deps
+      - uses: actions/download-artifact@v7.0.0
+        continue-on-error: true
+        with:
+          pattern: e2e-*
+          path: test-results
+      - name: Comment with recordings
+        env:
+          GH_TOKEN: ${{ secrets.PR_COMMENT_TOKEN }}
+        run: bun scripts/e2e-comment.ts --pr "${{ github.event.pull_request.number }}" --results test-results
