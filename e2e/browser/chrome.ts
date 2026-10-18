@@ -285,7 +285,16 @@ export class ChromeAutomation extends PageAutomation {
     }
     const x = Math.round(match.x + match.width / 2);
     const y = Math.round(match.y + match.height / 2);
-    await execFileAsync('xdotool', ['mousemove', String(x), String(y)], xdotoolOpts);
+    await atspi(
+      {
+        command: 'move',
+        x,
+        y,
+        duration: 0,
+        pauseMs: 0,
+      },
+      capTimeoutMs(1_500),
+    );
     await execFileAsync('xdotool', ['click', '1'], xdotoolOpts);
     try {
       await atspi(

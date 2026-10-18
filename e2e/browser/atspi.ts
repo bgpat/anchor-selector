@@ -272,7 +272,7 @@ function doClickAction(obj: Atspi.Accessible): boolean {
   }
 }
 
-function warpPointer(x: number, y: number, durationMs: number): void {
+function pointerPosition(): [number, number] {
   Gdk.init([]);
   const display = Gdk.Display.get_default();
   if (display == null) {
@@ -282,28 +282,30 @@ function warpPointer(x: number, y: number, durationMs: number): void {
   if (pointer == null) {
     fail('Gdk pointer not found');
   }
-  const screen = display.get_default_screen();
-  const [, startX, startY] = pointer.get_position();
+  const [, x, y] = pointer.get_position();
+  return [x, y];
+}
+
+/** Move via AT-SPI abs events so the window under the pointer updates the cursor shape. */
+function movePointer(x: number, y: number, durationMs = 0): void {
+  const targetX = Math.trunc(x);
+  const targetY = Math.trunc(y);
+  const [startX, startY] = pointerPosition();
   const steps = durationMs <= 0 ? 1 : Math.max(1, Math.floor(durationMs / 16));
   for (let index = 1; index <= steps; index += 1) {
     const nextX =
-      index === steps ? x : startX + Math.trunc(((x - startX) * index) / steps);
+      index === steps
+        ? targetX
+        : startX + Math.trunc(((targetX - startX) * index) / steps);
     const nextY =
-      index === steps ? y : startY + Math.trunc(((y - startY) * index) / steps);
-    pointer.warp(screen, nextX, nextY);
-    display.flush();
+      index === steps
+        ? targetY
+        : startY + Math.trunc(((targetY - startY) * index) / steps);
+    Atspi.generate_mouse_event(nextX, nextY, 'abs');
     if (index < steps) {
       GLib.usleep(Math.round((durationMs / steps) * 1000));
     }
   }
-  display.sync();
-}
-
-function movePointer(x: number, y: number, durationMs = 250): void {
-  const targetX = Math.trunc(x);
-  const targetY = Math.trunc(y);
-  warpPointer(targetX, targetY, durationMs);
-  Atspi.generate_mouse_event(targetX, targetY, 'abs');
 }
 
 function accessibleAt(x: number, y: number): Atspi.Accessible | null {
@@ -451,7 +453,7 @@ function readCommand(): Query {
     button: command.button ?? 'left',
     x: command.x ?? 0,
     y: command.y ?? 0,
-    duration: command.duration ?? 250,
+    duration: command.duration ?? 0,
     pauseMs: command.pauseMs ?? 0,
     text: command.text ?? '',
     submit: command.submit ?? false,

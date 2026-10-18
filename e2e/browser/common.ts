@@ -90,6 +90,7 @@ export async function pointAtScreen(x: number, y: number): Promise<void> {
         command: 'move',
         x: Math.round(x),
         y: Math.round(y),
+        duration: 0,
       }),
     ],
     { timeoutMs: capTimeoutMs(ATSPI_POINTER_MS) },
