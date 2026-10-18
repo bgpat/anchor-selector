@@ -16,6 +16,7 @@ workflows:
     '.github/workflows/test.yml':
         - 'actions/cache@v6'
         - 'actions/checkout@v7'
+        - 'actions/download-artifact@v7.0.0'
         - 'actions/upload-artifact@v7'
         - 'oven-sh/setup-bun@v2'
 dependencies:
@@ -29,6 +30,11 @@ dependencies:
         commit: 'sha1-3d3c42e5aac5ba805825da76410c181273ba90b1'
         owner_id: 44036562
         repo_id: 197814629
+    'actions/download-artifact@v7.0.0':
+        ref: 'v7.0.0'
+        commit: 'sha1-37930b1c2abaa49bbe596cd826c3c89aef350131'
+        owner_id: 44036562
+        repo_id: 192626254
     'actions/upload-artifact@v7':
         ref: 'v7'
         commit: 'sha1-cf430e030ddbb5b0abf93d22962f4752f3646cd9'

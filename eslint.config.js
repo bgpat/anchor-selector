@@ -31,7 +31,7 @@ export default [
       ...tsPlugin.configs.recommended.rules,
       indent: 'off',
       'linebreak-style': ['error', 'unix'],
-      quotes: ['error', 'single'],
+      quotes: ['error', 'single', { avoidEscape: true }],
       semi: ['error', 'always'],
       '@typescript-eslint/no-unused-vars': [
         'warn',
@@ -56,7 +56,16 @@ export default [
     },
   },
   {
-    files: ['scripts/**/*.ts'],
+    files: ['e2e/browser/atspi.ts'],
+    languageOptions: {
+      globals: {
+        print: 'readonly',
+        printerr: 'readonly',
+      },
+    },
+  },
+  {
+    files: ['scripts/**/*.ts', 'e2e/**/*.ts'],
     languageOptions: {
       globals: {
         Bun: 'readonly',

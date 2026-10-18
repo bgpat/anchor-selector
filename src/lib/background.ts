@@ -48,7 +48,8 @@ type RuntimeMessage =
       value: StoredConfig[ConfigKey];
     }
   | { type: typeof runtimeMessageType.newTab; url: string }
-  | { type: typeof runtimeMessageType.newWindow; url: string };
+  | { type: typeof runtimeMessageType.newWindow; url: string }
+  | { type: typeof runtimeMessageType.toggleSelectionTab; tabId: number };
 
 const tabChains = new Map<number, Promise<unknown>>();
 
@@ -162,12 +163,20 @@ export function registerBackground() {
   const selectionPorts = new Set<ReturnType<typeof browser.runtime.connect>>();
   browser.runtime.onConnect.addListener((port) => {
     selectionPorts.add(port);
+    const tabId = port.sender?.tab?.id;
     port.onDisconnect.addListener(() => {
       selectionPorts.delete(port);
+      if (tabId == null) {
+        return;
+      }
+      void runExclusive(tabId, () => setBadge(tabId, false));
     });
   });
 
   browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (changeInfo.status === 'loading') {
+      void runExclusive(tabId, () => setBadge(tabId, false));
+    }
     if (changeInfo.status !== 'complete') {
       return;
     }
@@ -223,6 +232,10 @@ export function registerBackground() {
         case runtimeMessageType.newWindow:
           browser.windows.create({ url: message.url });
           break;
+        case runtimeMessageType.toggleSelectionTab:
+          return runExclusive(message.tabId, () =>
+            toggleSelection(message.tabId),
+          );
       }
     },
   );

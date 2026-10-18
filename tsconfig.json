@@ -13,5 +13,17 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/env.d.ts"]
+  "exclude": ["e2e/browser/atspi.ts", "e2e/**/*.test.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/env.d.ts",
+    "e2e/op-log.ts",
+    "e2e/automation/**/*.ts",
+    "e2e/scenarios/**/*.ts",
+    "e2e/browser/**/*.ts",
+    "e2e/runner/**/*.ts",
+    "scripts/e2e-comment.ts",
+    "scripts/e2e-workflow-errors.ts"
+  ]
 }
