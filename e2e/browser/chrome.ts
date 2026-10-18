@@ -36,6 +36,9 @@ const execFileAsync = promisify(execFile);
 
 const xdotoolOpts = { timeout: 2_000 };
 
+/** Max wait after toolbar left-click for overlay/badge UI to catch up before probe fallback. */
+const TOOLBAR_LEFT_CLICK_SYNC_WAIT_MS = 500;
+
 async function activateChromeWindow(): Promise<void> {
   try {
     const { stdout } = await execFileAsync(
@@ -307,7 +310,7 @@ export class ChromeAutomation extends PageAutomation {
     const beforeOverlay = await this.isOverlayVisible();
     const beforeBadge = await this.readExtensionBadgeText();
     const deadline =
-      Date.now() + capTimeoutMs(beforeOverlay ? 4_000 : 2_500);
+      Date.now() + capTimeoutMs(TOOLBAR_LEFT_CLICK_SYNC_WAIT_MS);
     while (Date.now() < deadline) {
       const overlay = await this.isOverlayVisible();
       const badge = await this.readExtensionBadgeText();
@@ -315,7 +318,8 @@ export class ChromeAutomation extends PageAutomation {
         if (beforeOverlay && !overlay && allowOffFallback) {
           await this.clearFixtureSelectingBadgeViaProbe();
         } else if (!beforeOverlay && overlay) {
-          const badgeDeadline = Date.now() + capTimeoutMs(2_000);
+          const badgeDeadline =
+            Date.now() + capTimeoutMs(TOOLBAR_LEFT_CLICK_SYNC_WAIT_MS);
           while (Date.now() < badgeDeadline) {
             if ((await this.readExtensionBadgeText()) !== '') {
               break;
