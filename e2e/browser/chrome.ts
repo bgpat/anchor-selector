@@ -740,6 +740,7 @@ export class ChromeAutomation extends PageAutomation {
 
   async pinActionButton(): Promise<void> {
     if ((await this.toolbarExtensionButton(1)) != null) {
+      await this.dismissExtensionsMenu();
       return;
     }
     await this.driver
@@ -794,6 +795,7 @@ export class ChromeAutomation extends PageAutomation {
         `Could not pin ${EXTENSION_NAME}\n${message}\n${buttons}`,
       );
     }
+    await this.dismissExtensionsMenu();
     if ((await this.locateToolbarExtensionButton(30)) == null) {
       const dump = await atspiDump();
       writeFileSync('test-results/chrome/atspi-dump.txt', dump);
@@ -960,6 +962,58 @@ export class ChromeAutomation extends PageAutomation {
       throw new Error('options page target was not found');
     }
     return evaluateOnTarget<T>(target.webSocketDebuggerUrl, expression);
+  }
+
+  private async extensionsPopoverOpen(): Promise<boolean> {
+    for (const name of ['Manage extensions', 'Full access']) {
+      const match = await atspiFind({
+        name,
+        timeout: 0,
+        maxNodes: 800,
+      });
+      if (match != null) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Close the Chrome extensions bubble left open after pinning. */
+  private async dismissExtensionsMenu(): Promise<void> {
+    await activateChromeWindow();
+    await this.switchToWindow(this.fixtureHandle);
+    for (let attempt = 0; attempt < 4; attempt++) {
+      if (!(await this.extensionsPopoverOpen())) {
+        return;
+      }
+      await this.driver
+        .actions()
+        .sendKeys(Key.ESCAPE)
+        .perform()
+        .catch(() => undefined);
+      await delay(120);
+      if (!(await this.extensionsPopoverOpen())) {
+        return;
+      }
+      await atspiClick({
+        name: 'Extensions',
+        role: 'push button',
+        exact: true,
+        timeout: 1,
+      }).catch(() => undefined);
+      await delay(150);
+      if (!(await this.extensionsPopoverOpen())) {
+        return;
+      }
+      const rect = await this.windowRect();
+      await clickAtScreen(
+        Math.round(rect.x + rect.width / 2),
+        Math.round(rect.y + 280),
+        'left',
+        { pause: false },
+      );
+      await delay(150);
+    }
   }
 
   private toolbarButtonInChromeBar(
