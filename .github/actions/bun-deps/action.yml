@@ -19,7 +19,7 @@ runs:
         path: |
           ~/.bun/install/cache
           node_modules
-        key: bun-deps-${{ hashFiles('bun.lock') }}
+        key: bun-deps-${{ hashFiles('bun.lock', 'package.json') }}
 
-    - run: bun install --frozen-lockfile
+    - run: bun install
       shell: bash
