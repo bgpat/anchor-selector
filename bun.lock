@@ -1,1 +1,1 @@
-PLACEHOLDER
+@include(/tmp/push_full_payload.json:files.0.content)
