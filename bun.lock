@@ -1,1 +1,1 @@
-/tmp/bun_patched.lock
+@include(/tmp/bun_good.lock)
