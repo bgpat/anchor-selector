@@ -23,7 +23,7 @@
         "react": "^19.3.0",
         "react-dom": "^19.3.0",
         "stylelint": "18.1.0",
-        "stylelint-config-standard": "41.0.0",
+        "stylelint-config-standard": "41.1.0",
         "stylelint-order": "9.0.0",
         "typescript": "npm:@typescript/typescript6@^6.0.2",
         "typescript-7": "npm:typescript@7.0.2",
@@ -1362,7 +1362,7 @@
 
     "stylelint-config-recommended": ["stylelint-config-recommended@19.1.0", "", { "peerDependencies": { "stylelint": "^18.0.0" } }, "sha512-DurXBzvz2cmVX2rM1JMDCbPIq+MRKhIPY743lFk1DjUoyx7giLfN+HR8Hilw+kE2nE5blaXhVf66edvQGnLdwA=="],
 
-    "stylelint-config-standard": ["stylelint-config-standard@41.0.0", "", { "dependencies": { "stylelint-config-recommended": "^19.0.0" }, "peerDependencies": { "stylelint": "^18.0.0" } }, "sha512-EJIvMOMARieBOLhw2yzN7BaVFiIY2Ex8CkbXahxP6tQZK41+N8OVUo57Uvx9iTr862h+thqDoDH7vQbeth1ryg=="],
+    "stylelint-config-standard": ["stylelint-config-standard@41.1.0", "", { "dependencies": { "stylelint-config-recommended": "^19.0.0" }, "peerDependencies": { "stylelint": "^18.0.0" } }, "sha512-Z7PiQpBffnqu7U5h/FeBWCYZsRsZXa1J8MjkpgcciphLJULysDcu2jKXuSrPgnQGow9x0T+pOfblqRA5cSE6aw=="],
 
     "stylelint-order": ["stylelint-order@9.0.0", "", { "dependencies": { "postcss": "^8.5.33", "postcss-sorting": "^11.0.0" }, "peerDependencies": { "stylelint": "^16.18.0 || ^17.0.0 || ^18.0.0" } }, "sha512-zcDFbwWU6yDpjkhsiZiv3T27nLYqleYZJS/pSe0pdwp3lHLeR8eXFjRUHyr0D/iEVkZ4yFSGoAS3nesPeggzTg=="],
 
